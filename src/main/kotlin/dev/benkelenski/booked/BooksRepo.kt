@@ -1,17 +1,19 @@
 package dev.benkelenski.booked
 
-class BookRepo(private val queries: BookQueries) {
+class BooksRepo(private val queries: BooksQueries) {
 
     fun getAllBooks(): List<Book> = queries.findAllBooks()
         .executeAsList()
-//        .map { it.toModel() }
+        .map { it.toModel() }
 
 
     fun getBookById(id: Int): Book? = queries.findBookById(id)
         .executeAsOneOrNull()
-//        ?.toModel()
+        ?.toModel()
 
-    fun saveBook(title: String, author: String): Long = queries.insertBook(title, author).value
+    fun saveBook(title: String, author: String): Book? =
+        queries.insertBook(title, author)
+            .executeAsOneOrNull()?.toModel()
 
     fun deleteBook(id: Int): Long = queries.deleteBookById(id).value
 }

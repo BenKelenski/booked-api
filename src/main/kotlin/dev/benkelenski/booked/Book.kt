@@ -2,10 +2,9 @@ package dev.benkelenski.booked
 
 
 import java.time.Instant
-import java.util.*
 
 data class Book(
-    val id: UUID,
+    val id: Int,
     val title: String,
     val author: String,
     val createdAt: Instant,
@@ -16,6 +15,6 @@ data class Book(
 data class BookRequest(
     val title: String,
     val author: String,
-    val publisher: String?,
-    val isbn: String?,
+//    val publisher: String?,
+//    val isbn: String?,
 )

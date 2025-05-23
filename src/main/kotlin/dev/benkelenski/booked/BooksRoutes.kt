@@ -12,7 +12,7 @@ val booksLens = Body.auto<Array<Book>>().toLens()
 val bookLens = Body.auto<Book>().toLens()
 val bookRequestLens = Body.auto<BookRequest>().toLens()
 
-fun BookService.toApi(): HttpHandler {
+fun BooksService.toApi(): HttpHandler {
     return routes(
         "/v1/books" bind Method.GET to {
             val result = getBooks().toTypedArray()
@@ -25,11 +25,9 @@ fun BookService.toApi(): HttpHandler {
                 ?: Response(Status.NOT_FOUND)
         },
         "/v1/books" bind Method.POST to { request ->
-            createBook(
-                bookRequestLens(request)
-            )
-
-            Response(Status.CREATED)
+            createBook(bookRequestLens(request))
+                ?.let { Response(Status.CREATED).with(bookLens of it) }
+                ?: Response(Status.EXPECTATION_FAILED)
         },
         "/v1/books/$bookIdLens" bind Method.DELETE to { request ->
             deleteBook(bookIdLens(request))

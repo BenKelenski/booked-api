@@ -16,8 +16,11 @@ dependencies {
     implementation("org.http4k:http4k-format-moshi")
     implementation("org.http4k:http4k-server-jetty")
     implementation("app.cash.sqldelight:jdbc-driver:2.1.0")
+    implementation("com.zaxxer:HikariCP:6.3.0")
+    runtimeOnly("org.postgresql:postgresql:42.7.2")
 
     testImplementation("org.http4k:http4k-testing-kotest")
+    testImplementation("io.mockk:mockk:1.14.2")
     testImplementation(kotlin("test"))
 }
 

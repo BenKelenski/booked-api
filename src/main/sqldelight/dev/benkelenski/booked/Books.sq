@@ -1,4 +1,4 @@
-CREATE TABLE book (
+CREATE TABLE IF NOT EXISTS books (
     id SERIAL PRIMARY KEY,
     title VARCHAR(250) NOT NULL,
     author VARCHAR(250) NOT NULL,
@@ -6,17 +6,18 @@ CREATE TABLE book (
 );
 
 findAllBooks:
-SELECT * FROM book;
+SELECT * FROM books;
 
 findBookById:
-SELECT * FROM book WHERE id = ?;
+SELECT * FROM books WHERE id = ?;
 
 deleteBookById:
-DELETE FROM book WHERE id = ?;
+DELETE FROM books WHERE id = ?;
 
 insertBook:
-INSERT INTO book(title, author, created_at)
-VALUES (?, ?, CURRENT_TIMESTAMP);
+INSERT INTO books(title, author, created_at)
+VALUES (?, ?, CURRENT_TIMESTAMP)
+RETURNING *;
 
 
 
