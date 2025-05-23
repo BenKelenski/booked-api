@@ -1,3 +1,22 @@
-CREATE TABLE books (
-    id char(36)
+CREATE TABLE book (
+    id SERIAL PRIMARY KEY,
+    title VARCHAR(250) NOT NULL,
+    author VARCHAR(250) NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL
 );
+
+findAllBooks:
+SELECT * FROM book;
+
+findBookById:
+SELECT * FROM book WHERE id = ?;
+
+deleteBookById:
+DELETE FROM book WHERE id = ?;
+
+insertBook:
+INSERT INTO book(title, author, created_at)
+VALUES (?, ?, CURRENT_TIMESTAMP);
+
+
+
