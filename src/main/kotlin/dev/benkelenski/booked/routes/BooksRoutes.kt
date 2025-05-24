@@ -1,5 +1,8 @@
-package dev.benkelenski.booked
+package dev.benkelenski.booked.routes
 
+import dev.benkelenski.booked.models.Book
+import dev.benkelenski.booked.models.BookRequest
+import dev.benkelenski.booked.services.BooksService
 import org.http4k.core.*
 import org.http4k.format.Moshi.auto
 import org.http4k.lens.Path

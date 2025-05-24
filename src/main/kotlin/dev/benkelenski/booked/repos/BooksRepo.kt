@@ -1,4 +1,8 @@
-package dev.benkelenski.booked
+package dev.benkelenski.booked.repos
+
+import dev.benkelenski.booked.Books
+import dev.benkelenski.booked.BooksQueries
+import dev.benkelenski.booked.models.Book
 
 class BooksRepo(private val queries: BooksQueries) {
 

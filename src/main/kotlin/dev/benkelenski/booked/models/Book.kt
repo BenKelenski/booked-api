@@ -1,4 +1,4 @@
-package dev.benkelenski.booked
+package dev.benkelenski.booked.models
 
 
 import java.time.Instant
