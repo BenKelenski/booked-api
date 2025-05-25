@@ -29,7 +29,7 @@ fun BookService.toApi(): HttpHandler {
         },
         "/v1/books" bind Method.POST to { request ->
             createBook(bookRequestLens(request))
-            1?.let { Response(Status.CREATED).with(bookLens of it) }
+                ?.let { Response(Status.CREATED).with(bookLens of it) }
                 ?: Response(Status.EXPECTATION_FAILED)
         },
         "/v1/books/$bookIdLens" bind Method.DELETE to { request ->
