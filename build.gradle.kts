@@ -18,8 +18,9 @@ dependencies {
     implementation("org.http4k:http4k-server-jetty")
     implementation("org.http4k:http4k-config")
     // DB
-    implementation("app.cash.sqldelight:jdbc-driver:2.1.0")
-    implementation("com.zaxxer:HikariCP:6.3.0")
+    implementation("org.jetbrains.exposed:exposed-core:0.61.0")
+    implementation("org.jetbrains.exposed:exposed-kotlin-datetime:0.61.0")
+    runtimeOnly("org.jetbrains.exposed:exposed-jdbc:0.61.0")
     runtimeOnly("org.postgresql:postgresql:42.7.2")
     // logging
     implementation("io.github.oshai:kotlin-logging-jvm:5.1.0")

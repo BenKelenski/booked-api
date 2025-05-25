@@ -4,7 +4,7 @@ import dev.benkelenski.booked.models.Book
 import dev.benkelenski.booked.models.BookRequest
 import dev.benkelenski.booked.repos.BooksRepo
 
-class BooksService(private val booksRepo: BooksRepo) {
+class BookService(private val booksRepo: BooksRepo) {
 
     fun getBook(id: Int): Book? = booksRepo.getBookById(id)
 
@@ -13,7 +13,7 @@ class BooksService(private val booksRepo: BooksRepo) {
     fun deleteBook(id: Int): Boolean {
         val count = booksRepo.deleteBook(id)
         print("Deleted $count books")
-        return count.toInt() == 1
+        return count == 1
     }
 
     fun createBook(bookRequest: BookRequest): Book? =

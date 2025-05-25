@@ -1,6 +1,6 @@
 package dev.benkelenski.booked.services
 
-class ShelvesService {
+class ShelfService {
 
 //    fun getShelf(id: Int): Shelf? =
 }

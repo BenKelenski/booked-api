@@ -2,7 +2,7 @@ package dev.benkelenski.booked.routes
 
 import dev.benkelenski.booked.models.Book
 import dev.benkelenski.booked.models.BookRequest
-import dev.benkelenski.booked.services.BooksService
+import dev.benkelenski.booked.services.BookService
 import org.http4k.core.*
 import org.http4k.format.Moshi.auto
 import org.http4k.lens.Path
@@ -15,7 +15,7 @@ val booksLens = Body.auto<Array<Book>>().toLens()
 val bookLens = Body.auto<Book>().toLens()
 val bookRequestLens = Body.auto<BookRequest>().toLens()
 
-fun BooksService.toApi(): HttpHandler {
+fun BookService.toApi(): HttpHandler {
     return routes(
         "/v1/books" bind Method.GET to {
             val result = getBooks().toTypedArray()
@@ -34,7 +34,7 @@ fun BooksService.toApi(): HttpHandler {
         },
         "/v1/books/$bookIdLens" bind Method.DELETE to { request ->
             deleteBook(bookIdLens(request))
-                .let { Response(Status.OK) }
+                .let { Response(Status.OK).body("Book successfully deleted: $it") }
         }
     )
 }
