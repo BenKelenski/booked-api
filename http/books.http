@@ -4,13 +4,22 @@ GET http://localhost:8080/v1/books
 ### GET get book by ID
 GET http://localhost:8080/v1/books/1
 
-### POST save book
+### POST save book 1
 POST localhost:8080/v1/books
 Content-Type: application/json
 
 {
   "title": "Mistborn",
   "author": "Brando Sando"
+}
+
+### POST save book 2
+POST localhost:8080/v1/books
+Content-Type: application/json
+
+{
+  "title": "Red Rising",
+  "author": "Pierce Brown"
 }
 
 ### DELETE book by ID
