@@ -10,7 +10,7 @@ import org.jetbrains.exposed.sql.transactions.transaction
 
 class BooksRepo {
 
-    fun getAllBooks() = transaction {
+    fun getAllBooks(): List<Book> = transaction {
         addLogger(StdOutSqlLogger)
         BookTable.selectAll()
             .map(::mapToBook)
@@ -20,7 +20,9 @@ class BooksRepo {
     fun getBookById(id: Int): Book? = transaction {
         addLogger(StdOutSqlLogger)
         BookTable.selectAll()
-            .where { BookTable.id eq id }.map(::mapToBook).singleOrNull()
+            .where { BookTable.id eq id }
+            .map(::mapToBook)
+            .singleOrNull()
     }
 
     fun saveBook(title: String, author: String): Book? = transaction {

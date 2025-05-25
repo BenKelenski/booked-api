@@ -37,12 +37,3 @@ tasks.test {
 kotlin {
     jvmToolchain(21)
 }
-
-sqldelight {
-    databases {
-        create("Database") {
-            packageName.set("dev.benkelenski.booked")
-            dialect("app.cash.sqldelight:postgresql-dialect:2.1.0")
-        }
-    }
-}
