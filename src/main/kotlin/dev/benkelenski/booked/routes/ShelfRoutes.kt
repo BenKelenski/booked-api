@@ -15,26 +15,26 @@ val shelvesLens = Body.auto<Array<Shelf>>().toLens()
 val shelfLens = Body.auto<Shelf>().toLens()
 val shelfRequestLens = Body.auto<ShelfRequest>().toLens()
 
-fun ShelfService.toApi(): HttpHandler {
-    return routes(
-        "/v1/shelves" bind Method.GET to {
-            val result = getAllShelves().toTypedArray()
-            Response(Status.OK)
-                .with(shelvesLens of result)
-        },
-        "/v1/shelves/$shelfIdLens" bind Method.GET to { request ->
-            getShelf(shelfIdLens(request))
-                ?.let { Response(Status.OK).with(shelfLens of it) }
-                ?: Response(Status.NOT_FOUND)
-        },
-        "/v1/shelves" bind Method.POST to { request ->
-            createShelf(shelfRequestLens(request))
-                ?.let { Response(Status.CREATED).with(shelfLens of it) }
-                ?: Response(Status.EXPECTATION_FAILED)
-        },
-        "/v1/shelves/$shelfIdLens" bind Method.DELETE to { request ->
-            deleteShelf(shelfIdLens(request))
-                .let { Response(Status.OK).body("Shelf successfully deleted: $it") }
-        }
-    )
-}
+fun shelfRoutes(
+    shelfService: ShelfService,
+) = routes(
+    "/v1/shelves" bind Method.GET to {
+        val result = shelfService.getAllShelves().toTypedArray()
+        Response(Status.OK)
+            .with(shelvesLens of result)
+    },
+    "/v1/shelves/$shelfIdLens" bind Method.GET to { request ->
+        shelfService.getShelf(shelfIdLens(request))
+            ?.let { Response(Status.OK).with(shelfLens of it) }
+            ?: Response(Status.NOT_FOUND)
+    },
+    "/v1/shelves" bind Method.POST to { request ->
+        shelfService.createShelf(shelfRequestLens(request))
+            ?.let { Response(Status.CREATED).with(shelfLens of it) }
+            ?: Response(Status.EXPECTATION_FAILED)
+    },
+    "/v1/shelves/$shelfIdLens" bind Method.DELETE to { request ->
+        shelfService.deleteShelf(shelfIdLens(request))
+            .let { Response(Status.OK).body("Shelf successfully deleted: $it") }
+    }
+)

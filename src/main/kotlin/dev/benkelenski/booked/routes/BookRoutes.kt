@@ -15,26 +15,26 @@ val booksLens = Body.auto<Array<Book>>().toLens()
 val bookLens = Body.auto<Book>().toLens()
 val bookRequestLens = Body.auto<BookRequest>().toLens()
 
-fun BookService.toApi(): HttpHandler {
-    return routes(
-        "/v1/books" bind Method.GET to {
-            val result = getAllBooks().toTypedArray()
-            Response(Status.OK)
-                .with(booksLens of result)
-        },
-        "/v1/books/$bookIdLens" bind Method.GET to { request ->
-            getBook(bookIdLens(request))
-                ?.let { Response(Status.OK).with(bookLens of it) }
-                ?: Response(Status.NOT_FOUND)
-        },
-        "/v1/books" bind Method.POST to { request ->
-            createBook(bookRequestLens(request))
-                ?.let { Response(Status.CREATED).with(bookLens of it) }
-                ?: Response(Status.EXPECTATION_FAILED)
-        },
-        "/v1/books/$bookIdLens" bind Method.DELETE to { request ->
-            deleteBook(bookIdLens(request))
-                .let { Response(Status.OK).body("Book successfully deleted: $it") }
-        }
-    )
-}
+fun bookRoutes(
+    bookService: BookService,
+) = routes(
+    "/v1/books" bind Method.GET to {
+        val result = bookService.getAllBooks().toTypedArray()
+        Response(Status.OK)
+            .with(booksLens of result)
+    },
+    "/v1/books/$bookIdLens" bind Method.GET to { request ->
+        bookService.getBook(bookIdLens(request))
+            ?.let { Response(Status.OK).with(bookLens of it) }
+            ?: Response(Status.NOT_FOUND)
+    },
+    "/v1/books" bind Method.POST to { request ->
+        bookService.createBook(bookRequestLens(request))
+            ?.let { Response(Status.CREATED).with(bookLens of it) }
+            ?: Response(Status.EXPECTATION_FAILED)
+    },
+    "/v1/books/$bookIdLens" bind Method.DELETE to { request ->
+        bookService.deleteBook(bookIdLens(request))
+            .let { Response(Status.OK).body("Book successfully deleted: $it") }
+    }
+)
