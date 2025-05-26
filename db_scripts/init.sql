@@ -14,6 +14,6 @@ CREATE TABLE IF NOT EXISTS shelf
 (
     id          SERIAL PRIMARY KEY,
     name        VARCHAR(150) NOT NULL,
-    description VARCHAR(250),
+    description VARCHAR(250) NULL,
     created_at  TIMESTAMPTZ  NOT NULL
 );
