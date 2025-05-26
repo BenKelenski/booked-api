@@ -1,6 +1,5 @@
 package dev.benkelenski.booked.repos
 
-
 import dev.benkelenski.booked.models.Book
 import dev.benkelenski.booked.models.BookTable
 import org.jetbrains.exposed.sql.*

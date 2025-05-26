@@ -26,7 +26,7 @@ class ShelfRepo {
     fun addShelf(name: String, description: String?): Shelf? = transaction {
         addLogger(StdOutSqlLogger)
         ShelfTable.insertReturning {
-            it[ShelfTable.name]
+            it[ShelfTable.name] = name
             it[ShelfTable.description] = description
             it[ShelfTable.createdAt] = CurrentTimestampWithTimeZone
         }

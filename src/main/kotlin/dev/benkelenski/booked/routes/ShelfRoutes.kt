@@ -2,7 +2,10 @@ package dev.benkelenski.booked.routes
 
 import dev.benkelenski.booked.models.Shelf
 import dev.benkelenski.booked.models.ShelfRequest
-import dev.benkelenski.booked.services.ShelfService
+import dev.benkelenski.booked.services.CreateShelf
+import dev.benkelenski.booked.services.DeleteShelf
+import dev.benkelenski.booked.services.GetAllShelves
+import dev.benkelenski.booked.services.GetShelf
 import org.http4k.core.*
 import org.http4k.format.Moshi.auto
 import org.http4k.lens.Path
@@ -16,25 +19,28 @@ val shelfLens = Body.auto<Shelf>().toLens()
 val shelfRequestLens = Body.auto<ShelfRequest>().toLens()
 
 fun shelfRoutes(
-    shelfService: ShelfService,
+    getShelf: GetShelf,
+    getAllShelves: GetAllShelves,
+    createShelf: CreateShelf,
+    deleteShelf: DeleteShelf,
 ) = routes(
-    "/v1/shelves" bind Method.GET to {
-        val result = shelfService.getAllShelves().toTypedArray()
+    "/shelves" bind Method.GET to {
+        val result = getAllShelves().toTypedArray()
         Response(Status.OK)
             .with(shelvesLens of result)
     },
-    "/v1/shelves/$shelfIdLens" bind Method.GET to { request ->
-        shelfService.getShelf(shelfIdLens(request))
+    "/shelves/$shelfIdLens" bind Method.GET to { request ->
+        getShelf(shelfIdLens(request))
             ?.let { Response(Status.OK).with(shelfLens of it) }
             ?: Response(Status.NOT_FOUND)
     },
-    "/v1/shelves" bind Method.POST to { request ->
-        shelfService.createShelf(shelfRequestLens(request))
+    "/shelves" bind Method.POST to { request ->
+        createShelf(shelfRequestLens(request))
             ?.let { Response(Status.CREATED).with(shelfLens of it) }
             ?: Response(Status.EXPECTATION_FAILED)
     },
-    "/v1/shelves/$shelfIdLens" bind Method.DELETE to { request ->
-        shelfService.deleteShelf(shelfIdLens(request))
+    "/shelves/$shelfIdLens" bind Method.DELETE to { request ->
+        deleteShelf(shelfIdLens(request))
             .let { Response(Status.OK).body("Shelf successfully deleted: $it") }
     }
 )

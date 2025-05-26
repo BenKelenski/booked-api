@@ -12,6 +12,7 @@ import org.http4k.config.EnvironmentKey
 import org.http4k.lens.secret
 import org.http4k.lens.string
 import org.http4k.routing.RoutingHttpHandler
+import org.http4k.routing.bind
 import org.http4k.routing.routes
 import org.http4k.server.Jetty
 import org.http4k.server.asServer
@@ -22,6 +23,10 @@ val dbUser = EnvironmentKey.string().required("DB_USER")
 val dbPass = EnvironmentKey.secret().required("DB_PASS")
 
 val logger = KotlinLogging.logger {}
+
+fun withPrefix(prefix: String, vararg routes: RoutingHttpHandler): RoutingHttpHandler {
+    return prefix bind routes(*routes)
+}
 
 fun createApp(env: Environment): RoutingHttpHandler {
     Database.connect(
@@ -39,9 +44,20 @@ fun createApp(env: Environment): RoutingHttpHandler {
         shelfRepo = ShelfRepo()
     )
 
-    return routes(
-        bookRoutes(bookService),
-        shelfRoutes(shelfService)
+    return withPrefix(
+        "/api/v1",
+        bookRoutes(
+            bookService::getBook,
+            bookService::getAllBooks,
+            bookService::createBook,
+            bookService::deleteBook
+        ),
+        shelfRoutes(
+            shelfService::getShelf,
+            shelfService::getAllShelves,
+            shelfService::createShelf,
+            shelfService::deleteShelf
+        )
     )
 }
 

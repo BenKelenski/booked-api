@@ -2,7 +2,10 @@ package dev.benkelenski.booked.routes
 
 import dev.benkelenski.booked.models.Book
 import dev.benkelenski.booked.models.BookRequest
-import dev.benkelenski.booked.services.BookService
+import dev.benkelenski.booked.services.CreateBook
+import dev.benkelenski.booked.services.DeleteBook
+import dev.benkelenski.booked.services.GetAllBooks
+import dev.benkelenski.booked.services.GetBook
 import org.http4k.core.*
 import org.http4k.format.Moshi.auto
 import org.http4k.lens.Path
@@ -16,25 +19,30 @@ val bookLens = Body.auto<Book>().toLens()
 val bookRequestLens = Body.auto<BookRequest>().toLens()
 
 fun bookRoutes(
-    bookService: BookService,
+    getBook: GetBook,
+    getAllBooks: GetAllBooks,
+    createBook: CreateBook,
+    deleteBook: DeleteBook,
 ) = routes(
-    "/v1/books" bind Method.GET to {
-        val result = bookService.getAllBooks().toTypedArray()
-        Response(Status.OK)
-            .with(booksLens of result)
+    "/books" bind Method.GET to {
+        getAllBooks()
+            .let {
+                Response(Status.OK)
+                    .with(booksLens of it.toTypedArray())
+            }
     },
-    "/v1/books/$bookIdLens" bind Method.GET to { request ->
-        bookService.getBook(bookIdLens(request))
+    "/books/$bookIdLens" bind Method.GET to { request ->
+        getBook(bookIdLens(request))
             ?.let { Response(Status.OK).with(bookLens of it) }
             ?: Response(Status.NOT_FOUND)
     },
-    "/v1/books" bind Method.POST to { request ->
-        bookService.createBook(bookRequestLens(request))
+    "/books" bind Method.POST to { request ->
+        createBook(bookRequestLens(request))
             ?.let { Response(Status.CREATED).with(bookLens of it) }
             ?: Response(Status.EXPECTATION_FAILED)
     },
-    "/v1/books/$bookIdLens" bind Method.DELETE to { request ->
-        bookService.deleteBook(bookIdLens(request))
+    "/books/$bookIdLens" bind Method.DELETE to { request ->
+        deleteBook(bookIdLens(request))
             .let { Response(Status.OK).body("Book successfully deleted: $it") }
     }
 )
