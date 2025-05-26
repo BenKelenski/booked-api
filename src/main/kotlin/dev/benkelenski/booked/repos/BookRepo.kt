@@ -12,7 +12,7 @@ class BooksRepo {
     fun getAllBooks(): List<Book> = transaction {
         addLogger(StdOutSqlLogger)
         BookTable.selectAll()
-            .map(::mapToBook)
+            .map { it.toBook() }
     }
 
 
@@ -20,7 +20,7 @@ class BooksRepo {
         addLogger(StdOutSqlLogger)
         BookTable.selectAll()
             .where { BookTable.id eq id }
-            .map(::mapToBook)
+            .map { it.toBook() }
             .singleOrNull()
     }
 
@@ -31,7 +31,7 @@ class BooksRepo {
             it[BookTable.author] = author
             it[BookTable.createdAt] = CurrentTimestampWithTimeZone
         }
-            .map(::mapToBook)
+            .map { it.toBook() }
             .singleOrNull()
     }
 
@@ -42,10 +42,11 @@ class BooksRepo {
         }
     }
 
-    private fun mapToBook(row: ResultRow): Book = Book(
-        id = row[BookTable.id],
-        title = row[BookTable.title],
-        author = row[BookTable.author],
-        createdAt = row[BookTable.createdAt].toInstant()
-    )
 }
+
+fun ResultRow.toBook() = Book(
+    id = this[BookTable.id],
+    title = this[BookTable.title],
+    author = this[BookTable.author],
+    createdAt = this[BookTable.createdAt].toInstant()
+)
