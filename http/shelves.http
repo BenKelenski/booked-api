@@ -1,7 +1,16 @@
-
-
 ### GET all shelves
-GET http://localhost:8080/v1/shelves
+GET {{baseUrl}}{{basePath}}/shelves
 
 ### GET get shelf by ID
-GET http://localhost:8080
+GET {{baseUrl}}{{basePath}}/shelves/1
+
+### POST add new shelf
+POST {{baseUrl}}{{basePath}}/shelves
+Content-Type: application/json
+
+{
+  "name": "my shelf"
+}
+
+### DELETE remove shelf
+DELETE {{baseUrl}}{{basePath}}/shelves/1

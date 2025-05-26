@@ -2,10 +2,10 @@
 GET {{baseUrl}}{{basePath}}/books
 
 ### GET get book by ID
-GET http://localhost:8080/v1/books/1
+GET {{baseUrl}}{{basePath}}/books/1
 
 ### POST save book 1
-POST localhost:8080/api/v1/books
+POST {{baseUrl}}{{basePath}}/books
 Content-Type: application/json
 
 {
@@ -14,7 +14,7 @@ Content-Type: application/json
 }
 
 ### POST save book 2
-POST localhost:8080/v1/books
+POST {{baseUrl}}{{basePath}}/books
 Content-Type: application/json
 
 {
@@ -23,4 +23,4 @@ Content-Type: application/json
 }
 
 ### DELETE book by ID
-DELETE http://localhost:8080/v1/books/1
+DELETE {{baseUrl}}{{basePath}}/books/1
