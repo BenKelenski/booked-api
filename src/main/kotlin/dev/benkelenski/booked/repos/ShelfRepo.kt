@@ -9,43 +9,37 @@ import org.jetbrains.exposed.sql.transactions.transaction
 
 class ShelfRepo {
 
-    fun getAllShelves(): List<Shelf> = transaction {
-        addLogger(StdOutSqlLogger)
-        ShelfTable.selectAll()
-            .map { it.toShelf() }
-    }
+  fun getAllShelves(): List<Shelf> = transaction {
+    addLogger(StdOutSqlLogger)
+    ShelfTable.selectAll().map { it.toShelf() }
+  }
 
-    fun getShelfById(id: Int): Shelf? = transaction {
-        addLogger(StdOutSqlLogger)
-        ShelfTable.selectAll()
-            .where { ShelfTable.id eq id }
-            .map { it.toShelf() }
-            .singleOrNull()
-    }
+  fun getShelfById(id: Int): Shelf? = transaction {
+    addLogger(StdOutSqlLogger)
+    ShelfTable.selectAll().where { ShelfTable.id eq id }.map { it.toShelf() }.singleOrNull()
+  }
 
-    fun addShelf(name: String, description: String?): Shelf? = transaction {
-        addLogger(StdOutSqlLogger)
-        ShelfTable.insertReturning {
-            it[ShelfTable.name] = name
-            it[ShelfTable.description] = description
-            it[ShelfTable.createdAt] = CurrentTimestampWithTimeZone
-        }
-            .map { it.toShelf() }
-            .singleOrNull()
-    }
+  fun addShelf(name: String, description: String?): Shelf? = transaction {
+    addLogger(StdOutSqlLogger)
+    ShelfTable.insertReturning {
+        it[ShelfTable.name] = name
+        it[ShelfTable.description] = description
+        it[ShelfTable.createdAt] = CurrentTimestampWithTimeZone
+      }
+      .map { it.toShelf() }
+      .singleOrNull()
+  }
 
-    fun deleteShelf(id: Int): Int = transaction {
-        addLogger(StdOutSqlLogger)
-        ShelfTable.deleteWhere {
-            ShelfTable.id eq id
-        }
-    }
-
+  fun deleteShelf(id: Int): Int = transaction {
+    addLogger(StdOutSqlLogger)
+    ShelfTable.deleteWhere { ShelfTable.id eq id }
+  }
 }
 
-fun ResultRow.toShelf() = Shelf(
+fun ResultRow.toShelf() =
+  Shelf(
     id = this[ShelfTable.id],
     name = this[ShelfTable.name],
     description = this[ShelfTable.description],
-    createdAt = this[ShelfTable.createdAt].toInstant()
-)
+    createdAt = this[ShelfTable.createdAt].toInstant(),
+  )

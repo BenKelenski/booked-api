@@ -25,48 +25,42 @@ val dbPass = EnvironmentKey.secret().required("DB_PASS")
 val logger = KotlinLogging.logger {}
 
 fun withPrefix(prefix: String, vararg routes: RoutingHttpHandler): RoutingHttpHandler {
-    return prefix bind routes(*routes)
+  return prefix bind routes(*routes)
 }
 
 fun createApp(env: Environment): RoutingHttpHandler {
-    Database.connect(
-        url = env[dbUrl],
-        driver = "org.postgresql.Driver",
-        user = env[dbUser],
-        password = env[dbPass].use { it }
-    )
+  Database.connect(
+    url = env[dbUrl],
+    driver = "org.postgresql.Driver",
+    user = env[dbUser],
+    password = env[dbPass].use { it },
+  )
 
-    val bookService = BookService(
-        booksRepo = BooksRepo()
-    )
+  val bookService = BookService(booksRepo = BooksRepo())
 
-    val shelfService = ShelfService(
-        shelfRepo = ShelfRepo()
-    )
+  val shelfService = ShelfService(shelfRepo = ShelfRepo())
 
-    return withPrefix(
-        "/api/v1",
-        bookRoutes(
-            bookService::getBook,
-            bookService::getAllBooks,
-            bookService::createBook,
-            bookService::deleteBook
-        ),
-        shelfRoutes(
-            shelfService::getShelf,
-            shelfService::getAllShelves,
-            shelfService::createShelf,
-            shelfService::deleteShelf
-        )
-    )
+  return withPrefix(
+    "/api/v1",
+    bookRoutes(
+      bookService::getBook,
+      bookService::getAllBooks,
+      bookService::createBook,
+      bookService::deleteBook,
+    ),
+    shelfRoutes(
+      shelfService::getShelf,
+      shelfService::getAllShelves,
+      shelfService::createShelf,
+      shelfService::deleteShelf,
+    ),
+  )
 }
 
 fun main() {
-    val port = 8080
-    logger.info { "creating app" }
-    val routingHandler = createApp(env = Environment.ENV)
-    logger.info { "starting app on port: $port" }
-    routingHandler
-        .asServer(Jetty(port))
-        .start()
+  val port = 8080
+  logger.info { "creating app" }
+  val routingHandler = createApp(env = Environment.ENV)
+  logger.info { "starting app on port: $port" }
+  routingHandler.asServer(Jetty(port)).start()
 }
