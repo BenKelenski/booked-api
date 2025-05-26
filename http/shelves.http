@@ -1,0 +1,7 @@
+
+
+### GET all shelves
+GET http://localhost:8080/v1/shelves
+
+### GET get shelf by ID
+GET http://localhost:8080

@@ -1,11 +1,11 @@
 ### GET all books
-GET http://localhost:8080/v1/books
+GET {{baseUrl}}{{basePath}}/books
 
 ### GET get book by ID
 GET http://localhost:8080/v1/books/1
 
 ### POST save book 1
-POST localhost:8080/v1/books
+POST localhost:8080/api/v1/books
 Content-Type: application/json
 
 {
