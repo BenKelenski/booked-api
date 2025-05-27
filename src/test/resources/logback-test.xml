@@ -2,7 +2,7 @@
 <configuration>
 
     <!-- Define the default logging level -->
-    <root level="${LOG_LEVEL}">
+    <root level="INFO">
         <appender-ref ref="COLORED_CONSOLE"/>
     </root>
 

@@ -4,11 +4,10 @@ plugins {
 }
 
 group = "org.example"
+
 version = "1.0-SNAPSHOT"
 
-repositories {
-    mavenCentral()
-}
+repositories { mavenCentral() }
 
 dependencies {
     // http4k
@@ -27,13 +26,12 @@ dependencies {
     implementation("ch.qos.logback:logback-classic:1.5.18")
 
     testImplementation("org.http4k:http4k-testing-kotest")
-    testImplementation("io.mockk:mockk:1.14.2")
+    testImplementation("org.testcontainers:postgresql:1.21.0")
+    //    testImplementation("io.mockk:mockk:1.14.2")
+    //    testImplementation("com.h2database:h2:2.3.232")
     testImplementation(kotlin("test"))
 }
 
-tasks.test {
-    useJUnitPlatform()
-}
-kotlin {
-    jvmToolchain(21)
-}
+tasks.test { useJUnitPlatform() }
+
+kotlin { jvmToolchain(21) }

@@ -1,6 +1,6 @@
 package dev.benkelenski.booked
 
-import dev.benkelenski.booked.repos.BooksRepo
+import dev.benkelenski.booked.repos.BookRepo
 import dev.benkelenski.booked.repos.ShelfRepo
 import dev.benkelenski.booked.routes.bookRoutes
 import dev.benkelenski.booked.routes.shelfRoutes
@@ -24,43 +24,47 @@ val dbPass = EnvironmentKey.secret().required("DB_PASS")
 
 val logger = KotlinLogging.logger {}
 
-fun withPrefix(prefix: String, vararg routes: RoutingHttpHandler): RoutingHttpHandler {
-  return prefix bind routes(*routes)
+private fun withPrefix(prefix: String, vararg routes: RoutingHttpHandler): RoutingHttpHandler {
+    return prefix bind routes(*routes)
 }
 
-fun createApp(env: Environment): RoutingHttpHandler {
-  Database.connect(
-    url = env[dbUrl],
-    driver = "org.postgresql.Driver",
-    user = env[dbUser],
-    password = env[dbPass].use { it },
-  )
+private fun createDbConn(env: Environment) {
+    Database.connect(
+        url = env[dbUrl],
+        driver = "org.postgresql.Driver",
+        user = env[dbUser],
+        password = env[dbPass].use { it },
+    )
+}
 
-  val bookService = BookService(booksRepo = BooksRepo())
+fun createApp(): RoutingHttpHandler {
+    val bookService = BookService(bookRepo = BookRepo())
 
-  val shelfService = ShelfService(shelfRepo = ShelfRepo())
+    val shelfService = ShelfService(shelfRepo = ShelfRepo())
 
-  return withPrefix(
-    "/api/v1",
-    bookRoutes(
-      bookService::getBook,
-      bookService::getAllBooks,
-      bookService::createBook,
-      bookService::deleteBook,
-    ),
-    shelfRoutes(
-      shelfService::getShelf,
-      shelfService::getAllShelves,
-      shelfService::createShelf,
-      shelfService::deleteShelf,
-    ),
-  )
+    return withPrefix(
+        "/api/v1",
+        bookRoutes(
+            bookService::getBook,
+            bookService::getAllBooks,
+            bookService::createBook,
+            bookService::deleteBook,
+        ),
+        shelfRoutes(
+            shelfService::getShelf,
+            shelfService::getAllShelves,
+            shelfService::createShelf,
+            shelfService::deleteShelf,
+        ),
+    )
 }
 
 fun main() {
-  val port = 8080
-  logger.info { "creating app" }
-  val routingHandler = createApp(env = Environment.ENV)
-  logger.info { "starting app on port: $port" }
-  routingHandler.asServer(Jetty(port)).start()
+    val port = 8080
+    logger.info { "creating database connection" }
+    createDbConn(env = Environment.ENV)
+    logger.info { "creating app" }
+    val app = createApp()
+    logger.info { "starting app on port: $port" }
+    app.asServer(Jetty(port)).start()
 }

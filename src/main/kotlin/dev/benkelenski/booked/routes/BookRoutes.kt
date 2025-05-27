@@ -19,34 +19,39 @@ val bookLens = Body.auto<Book>().toLens()
 val bookRequestLens = Body.auto<BookRequest>().toLens()
 
 fun bookRoutes(
-  getBook: GetBook,
-  getAllBooks: GetAllBooks,
-  createBook: CreateBook,
-  deleteBook: DeleteBook,
+    getBook: GetBook,
+    getAllBooks: GetAllBooks,
+    createBook: CreateBook,
+    deleteBook: DeleteBook,
 ) =
-  routes(
-    "/books" bind
-      Method.GET to
-      {
-        getAllBooks().let { Response(Status.OK).with(booksLens of it.toTypedArray()) }
-      },
-    "/books/$bookIdLens" bind
-      Method.GET to
-      { request ->
-        getBook(bookIdLens(request))?.let { Response(Status.OK).with(bookLens of it) }
-          ?: Response(Status.NOT_FOUND)
-      },
-    "/books" bind
-      Method.POST to
-      { request ->
-        createBook(bookRequestLens(request))?.let { Response(Status.CREATED).with(bookLens of it) }
-          ?: Response(Status.EXPECTATION_FAILED)
-      },
-    "/books/$bookIdLens" bind
-      Method.DELETE to
-      { request ->
-        deleteBook(bookIdLens(request)).let {
-          Response(Status.OK).body("Book successfully deleted: $it")
-        }
-      },
-  )
+    routes(
+        "/books" bind
+            Method.GET to
+            {
+                getAllBooks().let { Response(Status.OK).with(booksLens of it.toTypedArray()) }
+            },
+        "/books/$bookIdLens" bind
+            Method.GET to
+            { request ->
+                getBook(bookIdLens(request))?.let { Response(Status.OK).with(bookLens of it) }
+                    ?: Response(Status.NOT_FOUND)
+            },
+        "/books" bind
+            Method.POST to
+            { request ->
+                createBook(bookRequestLens(request))?.let {
+                    Response(Status.CREATED).with(bookLens of it)
+                } ?: Response(Status.EXPECTATION_FAILED)
+            },
+        "/books/$bookIdLens" bind
+            Method.DELETE to
+            { request ->
+                deleteBook(bookIdLens(request)).let { wasDeleted ->
+                    if (wasDeleted) {
+                        Response(Status.OK).body("Book successfully deleted")
+                    } else {
+                        Response(Status.NOT_FOUND)
+                    }
+                }
+            },
+    )

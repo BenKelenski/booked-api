@@ -18,12 +18,12 @@ typealias DeleteShelf = (id: Int) -> Boolean
 
 class ShelfService(val shelfRepo: ShelfRepo) {
 
-  fun getShelf(id: Int): Shelf? = shelfRepo.getShelfById(id)
+    fun getShelf(id: Int): Shelf? = shelfRepo.getShelfById(id)
 
-  fun getAllShelves(): List<Shelf> = shelfRepo.getAllShelves()
+    fun getAllShelves(): List<Shelf> = shelfRepo.getAllShelves()
 
-  fun createShelf(shelfRequest: ShelfRequest): Shelf? =
-    shelfRepo.addShelf(shelfRequest.name, shelfRequest.description)
+    fun createShelf(shelfRequest: ShelfRequest): Shelf? =
+        shelfRepo.addShelf(shelfRequest.name, shelfRequest.description)
 
-  fun deleteShelf(id: Int): Boolean = shelfRepo.deleteShelf(id) == 1
+    fun deleteShelf(id: Int): Boolean = shelfRepo.deleteShelf(id) == 1
 }

@@ -2,7 +2,7 @@ package dev.benkelenski.booked.services
 
 import dev.benkelenski.booked.models.Book
 import dev.benkelenski.booked.models.BookRequest
-import dev.benkelenski.booked.repos.BooksRepo
+import dev.benkelenski.booked.repos.BookRepo
 
 /** alias for [BookService.getBook] */
 typealias GetBook = (id: Int) -> Book?
@@ -16,14 +16,14 @@ typealias CreateBook = (bookRequest: BookRequest) -> Book?
 /** alias for [BookService.deleteBook] */
 typealias DeleteBook = (id: Int) -> Boolean
 
-class BookService(private val booksRepo: BooksRepo) {
+class BookService(private val bookRepo: BookRepo) {
 
-  fun getBook(id: Int): Book? = booksRepo.getBookById(id)
+    fun getBook(id: Int): Book? = bookRepo.getBookById(id)
 
-  fun getAllBooks(): List<Book> = booksRepo.getAllBooks()
+    fun getAllBooks(): List<Book> = bookRepo.getAllBooks()
 
-  fun createBook(bookRequest: BookRequest): Book? =
-    booksRepo.saveBook(title = bookRequest.title, author = bookRequest.author)
+    fun createBook(bookRequest: BookRequest): Book? =
+        bookRepo.saveBook(title = bookRequest.title, author = bookRequest.author)
 
-  fun deleteBook(id: Int): Boolean = booksRepo.deleteBook(id) == 1
+    fun deleteBook(id: Int): Boolean = bookRepo.deleteBook(id) == 1
 }

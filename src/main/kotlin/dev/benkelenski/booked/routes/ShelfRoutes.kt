@@ -19,36 +19,36 @@ val shelfLens = Body.auto<Shelf>().toLens()
 val shelfRequestLens = Body.auto<ShelfRequest>().toLens()
 
 fun shelfRoutes(
-  getShelf: GetShelf,
-  getAllShelves: GetAllShelves,
-  createShelf: CreateShelf,
-  deleteShelf: DeleteShelf,
+    getShelf: GetShelf,
+    getAllShelves: GetAllShelves,
+    createShelf: CreateShelf,
+    deleteShelf: DeleteShelf,
 ) =
-  routes(
-    "/shelves" bind
-      Method.GET to
-      {
-        val result = getAllShelves().toTypedArray()
-        Response(Status.OK).with(shelvesLens of result)
-      },
-    "/shelves/$shelfIdLens" bind
-      Method.GET to
-      { request ->
-        getShelf(shelfIdLens(request))?.let { Response(Status.OK).with(shelfLens of it) }
-          ?: Response(Status.NOT_FOUND)
-      },
-    "/shelves" bind
-      Method.POST to
-      { request ->
-        createShelf(shelfRequestLens(request))?.let {
-          Response(Status.CREATED).with(shelfLens of it)
-        } ?: Response(Status.EXPECTATION_FAILED)
-      },
-    "/shelves/$shelfIdLens" bind
-      Method.DELETE to
-      { request ->
-        deleteShelf(shelfIdLens(request)).let {
-          Response(Status.OK).body("Shelf successfully deleted: $it")
-        }
-      },
-  )
+    routes(
+        "/shelves" bind
+            Method.GET to
+            {
+                val result = getAllShelves().toTypedArray()
+                Response(Status.OK).with(shelvesLens of result)
+            },
+        "/shelves/$shelfIdLens" bind
+            Method.GET to
+            { request ->
+                getShelf(shelfIdLens(request))?.let { Response(Status.OK).with(shelfLens of it) }
+                    ?: Response(Status.NOT_FOUND)
+            },
+        "/shelves" bind
+            Method.POST to
+            { request ->
+                createShelf(shelfRequestLens(request))?.let {
+                    Response(Status.CREATED).with(shelfLens of it)
+                } ?: Response(Status.EXPECTATION_FAILED)
+            },
+        "/shelves/$shelfIdLens" bind
+            Method.DELETE to
+            { request ->
+                deleteShelf(shelfIdLens(request)).let {
+                    Response(Status.OK).body("Shelf successfully deleted: $it")
+                }
+            },
+    )
