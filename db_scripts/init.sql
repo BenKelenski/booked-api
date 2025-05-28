@@ -15,10 +15,10 @@ CREATE TABLE IF NOT EXISTS book
     id         SERIAL PRIMARY KEY,
     title      VARCHAR(250) NOT NULL,
     author     VARCHAR(250) NOT NULL,
-    created_at TIMESTAMPTZ  NOT NULL
+    created_at TIMESTAMPTZ  NOT NULL,
 
---     shelf_id   INTEGER      NOT NULL,
---     FOREIGN KEY (shelf_id)
---         REFERENCES shelf (id)
---         ON DELETE CASCADE
+    shelf_id   INTEGER      NOT NULL,
+    FOREIGN KEY (shelf_id)
+        REFERENCES shelf (id)
+        ON DELETE CASCADE
 );

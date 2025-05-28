@@ -23,7 +23,11 @@ class BookService(private val bookRepo: BookRepo) {
     fun getAllBooks(): List<Book> = bookRepo.getAllBooks()
 
     fun createBook(bookRequest: BookRequest): Book? =
-        bookRepo.saveBook(title = bookRequest.title, author = bookRequest.author)
+        bookRepo.saveBook(
+            title = bookRequest.title,
+            author = bookRequest.author,
+            shelfId = bookRequest.shelfId,
+        )
 
     fun deleteBook(id: Int): Boolean = bookRepo.deleteBook(id) == 1
 }

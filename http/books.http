@@ -10,7 +10,8 @@ Content-Type: application/json
 
 {
   "title": "Mistborn",
-  "author": "Brando Sando"
+  "author": "Brando Sando",
+  "shelf_id": 1
 }
 
 ### POST save book 2
@@ -19,7 +20,8 @@ Content-Type: application/json
 
 {
   "title": "Red Rising",
-  "author": "Pierce Brown"
+  "author": "Pierce Brown",
+  "shelf_id": 1
 }
 
 ### DELETE book by ID
