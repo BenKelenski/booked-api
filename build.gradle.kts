@@ -1,7 +1,10 @@
 plugins {
+    application
     kotlin("jvm") version "2.1.20"
     id("app.cash.sqldelight") version "2.1.0"
 }
+
+application { mainClass.set("dev.benkelenski.booked.AppKt") }
 
 group = "org.example"
 
