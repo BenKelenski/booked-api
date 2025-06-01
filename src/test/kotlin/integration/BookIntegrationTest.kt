@@ -1,28 +1,42 @@
 package integration
 
+import com.auth0.jwt.JWT
+import com.auth0.jwt.algorithms.Algorithm
+import dev.benkelenski.booked.audience
 import dev.benkelenski.booked.createApp
+import dev.benkelenski.booked.issuer
 import dev.benkelenski.booked.models.BookRequest
 import dev.benkelenski.booked.models.BookTable
 import dev.benkelenski.booked.models.ShelfTable
+import dev.benkelenski.booked.publicKey
 import dev.benkelenski.booked.repos.BookRepo
+import dev.benkelenski.booked.repos.ShelfRepo
 import dev.benkelenski.booked.routes.bookLens
 import dev.benkelenski.booked.routes.bookRequestLens
 import dev.benkelenski.booked.routes.booksLens
 import io.kotest.matchers.be
 import io.kotest.matchers.collections.shouldHaveSize
 import io.kotest.matchers.string.shouldContain
+import org.http4k.base64Encode
+import org.http4k.config.Environment
 import org.http4k.core.Method
 import org.http4k.core.Request
 import org.http4k.core.Status
 import org.http4k.core.with
 import org.http4k.kotest.shouldHaveBody
 import org.http4k.kotest.shouldHaveStatus
+import org.http4k.lens.bearerAuth
 import org.http4k.routing.RoutingHttpHandler
 import org.jetbrains.exposed.sql.Database
 import org.jetbrains.exposed.sql.SchemaUtils
 import org.jetbrains.exposed.sql.transactions.transaction
 import org.junit.jupiter.api.*
 import org.testcontainers.containers.PostgreSQLContainer
+import java.security.KeyPairGenerator
+import java.security.interfaces.RSAPrivateKey
+
+private const val ISSUER = "booked_idp"
+private const val AUDIENCE = "booked_app"
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class BookIntegrationTest {
@@ -30,6 +44,18 @@ class BookIntegrationTest {
     private lateinit var postgres: PostgreSQLContainer<*>
 
     private lateinit var app: RoutingHttpHandler
+
+    private val keyPair =
+        KeyPairGenerator.getInstance("RSA").apply { initialize(2048) }.generateKeyPair()
+
+    private fun createToken(userId: String): String {
+        val algorithm = Algorithm.RSA256(null, keyPair.private as RSAPrivateKey)
+        return JWT.create()
+            .withIssuer(ISSUER)
+            .withAudience(AUDIENCE)
+            .withSubject(userId)
+            .sign(algorithm)
+    }
 
     @BeforeAll
     fun setupDb() {
@@ -48,7 +74,15 @@ class BookIntegrationTest {
             password = postgres.password,
         )
 
-        app = createApp()
+        app =
+            createApp(
+                env =
+                    Environment.defaults(
+                        publicKey of keyPair.public.encoded.base64Encode(),
+                        issuer of ISSUER,
+                        audience of AUDIENCE,
+                    )
+            )
     }
 
     @BeforeEach
@@ -68,8 +102,25 @@ class BookIntegrationTest {
 
     @Test
     fun `get all books`() {
-        val book1 = BookRepo().saveBook("test book 1", "test author 1")
-        val book2 = BookRepo().saveBook("test book 2", "test author 2")
+        val shelf = ShelfRepo().addShelf(name = "test", description = null)
+
+        val book1 =
+            BookRepo()
+                .saveBook(
+                    userId = "user1",
+                    title = "test book 1",
+                    author = "test author 1",
+                    shelfId = shelf!!.id,
+                )
+
+        val book2 =
+            BookRepo()
+                .saveBook(
+                    userId = "user1",
+                    title = "test book 2",
+                    author = "test author 2",
+                    shelfId = shelf.id,
+                )
 
         val response = app(Request(Method.GET, "/api/v1/books"))
 
@@ -79,14 +130,21 @@ class BookIntegrationTest {
 
     @Test
     fun `get book - not found`() {
-        val response = app(Request(Method.GET, "/v1/books/9999"))
-
-        response shouldHaveStatus Status.NOT_FOUND
+        Request(Method.GET, "/v1/books/9999").let(app).shouldHaveStatus(Status.NOT_FOUND)
     }
 
     @Test
     fun `get book - found`() {
-        val book1 = BookRepo().saveBook("test book 1", "test author 1")
+        val shelf = ShelfRepo().addShelf(name = "test", description = null)
+
+        val book1 =
+            BookRepo()
+                .saveBook(
+                    userId = "user1",
+                    title = "test book 1",
+                    author = "test author 1",
+                    shelfId = shelf!!.id,
+                )
 
         val response = app(Request(Method.GET, "/api/v1/books/${book1?.id}"))
 
@@ -95,36 +153,104 @@ class BookIntegrationTest {
     }
 
     @Test
+    fun `create book - unauthorized`() {
+
+        Request(Method.POST, "/api/v1/books")
+            .with(
+                bookRequestLens of
+                    BookRequest(title = "Red Rising", author = "Pierce Brown", shelfId = 1)
+            )
+            .let(app)
+            .shouldHaveStatus(Status.UNAUTHORIZED)
+    }
+
+    @Test
     fun `create book`() {
+        val shelf = ShelfRepo().addShelf(name = "test", description = null)
+
         val response =
             app(
                 Request(Method.POST, "/api/v1/books")
                     .with(
                         bookRequestLens of
-                            BookRequest(title = "Red Rising", author = "Pierce Brown ")
+                            BookRequest(
+                                title = "Red Rising",
+                                author = "Pierce Brown",
+                                shelfId = shelf!!.id,
+                            )
                     )
+                    .bearerAuth(createToken("user1"))
             )
 
         response shouldHaveStatus Status.CREATED
+        response.bodyString() shouldContain "user1"
         response.bodyString() shouldContain "Red Rising"
         response.bodyString() shouldContain "Pierce Brown"
     }
 
     @Test
-    fun `delete book - not found`() {
-        val response = app(Request(Method.DELETE, "/api/v1/books/999"))
+    fun `delete book - unauthorized due to no token`() {
+        Request(Method.DELETE, "/api/v1/books/999").let(app).shouldHaveStatus(Status.UNAUTHORIZED)
+    }
 
-        response shouldHaveStatus Status.NOT_FOUND
+    @Test
+    fun `delete book - unauthorized due to bad token`() {
+        Request(Method.DELETE, "/api/v1/books/999")
+            .bearerAuth("foo")
+            .let(app)
+            .shouldHaveStatus(Status.UNAUTHORIZED)
+    }
+
+    @Test
+    fun `delete book - not found`() {
+        Request(Method.DELETE, "/api/v1/books/999")
+            .bearerAuth(createToken("user1"))
+            .let(app)
+            .shouldHaveStatus(Status.NOT_FOUND)
+    }
+
+    @Test
+    fun `delete book - forbidden`() {
+        val shelf = ShelfRepo().addShelf(name = "test", description = null)
+
+        val book =
+            BookRepo()
+                .saveBook(
+                    userId = "user2",
+                    title = "test book 1",
+                    author = "test author 1",
+                    shelfId = shelf!!.id,
+                )
+
+        Request(Method.DELETE, "/api/v1/books/${book?.id}")
+            .bearerAuth(createToken("user1"))
+            .let(app)
+            .shouldHaveStatus(Status.FORBIDDEN)
     }
 
     @Test
     fun `delete book - success`() {
-        BookRepo().saveBook("test book 1", "test author 1")
-        val book2 = BookRepo().saveBook("test book 2", "test author 2")
+        val shelf = ShelfRepo().addShelf(name = "test", description = null)
 
-        val response = app(Request(Method.DELETE, "/api/v1/books/${book2?.id}"))
+        BookRepo()
+            .saveBook(
+                userId = "user1",
+                title = "test book 1",
+                author = "test author 1",
+                shelfId = shelf!!.id,
+            )
 
-        response shouldHaveStatus Status.OK
+        val book2 =
+            BookRepo()
+                .saveBook(userId = "user1", "test book 2", "test author 2", shelfId = shelf.id)
+
+        val response =
+            app(
+                Request(Method.DELETE, "/api/v1/books/${book2?.id}")
+                    .bearerAuth(createToken("user1"))
+            )
+
+        response shouldHaveStatus Status.NO_CONTENT
         BookRepo().getAllBooks() shouldHaveSize 1
     }
 }

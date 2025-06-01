@@ -1,7 +1,6 @@
 plugins {
     application
     kotlin("jvm") version "2.1.20"
-    id("app.cash.sqldelight") version "2.1.0"
 }
 
 application { mainClass.set("dev.benkelenski.booked.AppKt") }
@@ -27,6 +26,8 @@ dependencies {
     // logging
     implementation("io.github.oshai:kotlin-logging-jvm:5.1.0")
     implementation("ch.qos.logback:logback-classic:1.5.18")
+    // Auth
+    implementation("com.auth0:java-jwt:4.5.0")
 
     testImplementation("org.http4k:http4k-testing-kotest")
     testImplementation("org.testcontainers:postgresql:1.21.0")

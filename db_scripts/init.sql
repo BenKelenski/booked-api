@@ -13,6 +13,7 @@ CREATE TABLE IF NOT EXISTS shelf
 CREATE TABLE IF NOT EXISTS book
 (
     id         SERIAL PRIMARY KEY,
+    user_id    VARCHAR(128) NOT NULL,
     title      VARCHAR(250) NOT NULL,
     author     VARCHAR(250) NOT NULL,
     created_at TIMESTAMPTZ  NOT NULL,

@@ -19,9 +19,10 @@ class BookRepo {
         BookTable.selectAll().where { BookTable.id eq id }.map { it.toBook() }.singleOrNull()
     }
 
-    fun saveBook(title: String, author: String, shelfId: Int): Book? = transaction {
+    fun saveBook(userId: String, title: String, author: String, shelfId: Int): Book? = transaction {
         addLogger(StdOutSqlLogger)
         BookTable.insertReturning {
+                it[BookTable.userId] = userId
                 it[BookTable.title] = title
                 it[BookTable.author] = author
                 it[BookTable.createdAt] = CurrentTimestampWithTimeZone
@@ -40,6 +41,7 @@ class BookRepo {
 fun ResultRow.toBook() =
     Book(
         id = this[BookTable.id],
+        userId = this[BookTable.userId],
         title = this[BookTable.title],
         author = this[BookTable.author],
         createdAt = this[BookTable.createdAt].toInstant(),

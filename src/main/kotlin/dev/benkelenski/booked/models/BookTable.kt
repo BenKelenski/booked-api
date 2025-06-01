@@ -6,6 +6,7 @@ import org.jetbrains.exposed.sql.kotlin.datetime.timestampWithTimeZone
 
 object BookTable : Table("book") {
     val id = integer("id").autoIncrement()
+    val userId = varchar(name = "user_id", length = 128)
     val title = varchar("title", 250)
     val author = varchar("author", 250)
     val createdAt = timestampWithTimeZone("created_at")

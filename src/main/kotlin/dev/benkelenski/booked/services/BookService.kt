@@ -1,5 +1,7 @@
 package dev.benkelenski.booked.services
 
+import com.auth0.jwt.JWTVerifier
+import com.auth0.jwt.exceptions.JWTVerificationException
 import dev.benkelenski.booked.models.Book
 import dev.benkelenski.booked.models.BookRequest
 import dev.benkelenski.booked.repos.BookRepo
@@ -11,23 +13,53 @@ typealias GetBook = (id: Int) -> Book?
 typealias GetAllBooks = () -> List<Book>
 
 /** alias for [BookService.createBook] */
-typealias CreateBook = (bookRequest: BookRequest) -> Book?
+typealias CreateBook = (userId: String, bookRequest: BookRequest) -> Book?
 
 /** alias for [BookService.deleteBook] */
-typealias DeleteBook = (id: Int) -> Boolean
+typealias DeleteBook = (userId: String, id: Int) -> DeleteResult
 
-class BookService(private val bookRepo: BookRepo) {
+/** alias for [BookService.verify] */
+typealias Verify = (token: String) -> String?
+
+class BookService(private val bookRepo: BookRepo, private val jwtVerifier: JWTVerifier) {
 
     fun getBook(id: Int): Book? = bookRepo.getBookById(id)
 
     fun getAllBooks(): List<Book> = bookRepo.getAllBooks()
 
-    fun createBook(bookRequest: BookRequest): Book? =
+    fun createBook(userId: String, bookRequest: BookRequest): Book? =
         bookRepo.saveBook(
+            userId = userId,
             title = bookRequest.title,
             author = bookRequest.author,
             shelfId = bookRequest.shelfId,
         )
 
-    fun deleteBook(id: Int): Boolean = bookRepo.deleteBook(id) == 1
+    fun deleteBook(userId: String, id: Int): DeleteResult {
+        val book = bookRepo.getBookById(id) ?: return DeleteResult.NotFound
+        if (book.userId != userId) return DeleteResult.Forbidden
+        return if (bookRepo.deleteBook(id) == 1) {
+            DeleteResult.Success
+        } else {
+            DeleteResult.Failure("Failed to delete $book")
+        }
+    }
+
+    fun verify(token: String): String? {
+        return try {
+            jwtVerifier.verify(token).subject
+        } catch (e: JWTVerificationException) {
+            null
+        }
+    }
+}
+
+sealed class DeleteResult {
+    object Success : DeleteResult()
+
+    object NotFound : DeleteResult()
+
+    object Forbidden : DeleteResult()
+
+    data class Failure(val reason: String) : DeleteResult()
 }
