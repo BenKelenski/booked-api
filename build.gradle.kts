@@ -28,6 +28,7 @@ dependencies {
     implementation("ch.qos.logback:logback-classic:1.5.18")
     // Auth
     implementation("com.auth0:java-jwt:4.5.0")
+    implementation("com.auth0:jwks-rsa:0.22.1")
 
     testImplementation("org.http4k:http4k-testing-kotest")
     testImplementation("org.testcontainers:postgresql:1.21.0")

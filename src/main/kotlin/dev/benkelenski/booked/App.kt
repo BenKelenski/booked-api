@@ -1,7 +1,9 @@
 package dev.benkelenski.booked
 
+import com.auth0.jwk.JwkProviderBuilder
 import com.auth0.jwt.JWT
 import com.auth0.jwt.algorithms.Algorithm
+import com.auth0.jwt.interfaces.RSAKeyProvider
 import dev.benkelenski.booked.repos.BookRepo
 import dev.benkelenski.booked.repos.ShelfRepo
 import dev.benkelenski.booked.routes.bookRoutes
@@ -15,22 +17,27 @@ import org.http4k.config.EnvironmentKey
 import org.http4k.lens.base64
 import org.http4k.lens.secret
 import org.http4k.lens.string
+import org.http4k.lens.uri
 import org.http4k.routing.RoutingHttpHandler
 import org.http4k.routing.bind
 import org.http4k.routing.routes
 import org.http4k.server.Jetty
 import org.http4k.server.asServer
 import org.jetbrains.exposed.sql.Database
+import java.net.URI
 import java.security.KeyFactory
 import java.security.interfaces.RSAPublicKey
 import java.security.spec.X509EncodedKeySpec
+import java.util.concurrent.TimeUnit
 
 val dbUrl = EnvironmentKey.string().required("DB_URL")
 val dbUser = EnvironmentKey.string().required("DB_USER")
 val dbPass = EnvironmentKey.secret().required("DB_PASS")
-val publicKey = EnvironmentKey.base64().required("PUBLIC_KEY")
+val publicKey = EnvironmentKey.base64().optional("PUBLIC_KEY")
+val jwksUri = EnvironmentKey.uri().required("JWKS_URI")
 val issuer = EnvironmentKey.string().required("ISSUER")
 val audience = EnvironmentKey.string().required("AUDIENCE")
+val redirectUri = EnvironmentKey.uri().required("REDIRECT_URI")
 
 val logger = KotlinLogging.logger {}
 
@@ -48,9 +55,31 @@ private fun createDbConn(env: Environment) {
 }
 
 fun createApp(env: Environment): RoutingHttpHandler {
-    val keySpec = X509EncodedKeySpec(env[publicKey].base64DecodedArray())
-    val publicKey = KeyFactory.getInstance("RSA").generatePublic(keySpec)
-    val algorithm = Algorithm.RSA256(publicKey as RSAPublicKey, null)
+    val algorithm =
+        env[publicKey]?.let { publicKey ->
+            val keySpec = X509EncodedKeySpec(publicKey.base64DecodedArray())
+            val javaPublicKey = KeyFactory.getInstance("RSA").generatePublic(keySpec)
+            Algorithm.RSA256(javaPublicKey as RSAPublicKey, null)
+        }
+            ?: run {
+                val provider =
+                    JwkProviderBuilder(URI.create(env[jwksUri].toString()).toURL())
+                        .cached(10, 24, TimeUnit.HOURS)
+                        .rateLimited(10, 1, TimeUnit.MINUTES)
+                        .build()
+
+                val rsaKeyProvider =
+                    object : RSAKeyProvider {
+                        override fun getPublicKeyById(keyId: String?) =
+                            provider.get(keyId).publicKey as RSAPublicKey
+
+                        override fun getPrivateKey() = null
+
+                        override fun getPrivateKeyId() = null
+                    }
+
+                Algorithm.RSA256(rsaKeyProvider)
+            }
 
     val verifier =
         JWT.require(algorithm).withIssuer(env[issuer]).withAudience(env[audience]).build()
@@ -85,6 +114,8 @@ fun main() {
     createDbConn(env = env)
     logger.info { "creating app" }
     val app = createApp(env = env)
+    val webApp = webApp(env[audience], env[redirectUri])
+
     logger.info { "starting app on port: $port" }
-    app.asServer(Jetty(port)).start()
+    routes(app, webApp).asServer(Jetty(port)).start()
 }
