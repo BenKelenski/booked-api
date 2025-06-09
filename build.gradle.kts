@@ -32,8 +32,6 @@ dependencies {
 
     testImplementation("org.http4k:http4k-testing-kotest")
     testImplementation("org.testcontainers:postgresql:1.21.0")
-    //    testImplementation("io.mockk:mockk:1.14.2")
-    //    testImplementation("com.h2database:h2:2.3.232")
     testImplementation(kotlin("test"))
 }
 
