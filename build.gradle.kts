@@ -17,6 +17,7 @@ dependencies {
     implementation("org.http4k:http4k-core")
     implementation("org.http4k:http4k-format-moshi")
     implementation("org.http4k:http4k-server-jetty")
+    implementation("org.http4k:http4k-client-okhttp")
     implementation("org.http4k:http4k-config")
     // DB
     implementation("org.jetbrains.exposed:exposed-core:0.61.0")

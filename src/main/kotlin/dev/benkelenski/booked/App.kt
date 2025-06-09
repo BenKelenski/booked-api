@@ -4,6 +4,7 @@ import com.auth0.jwk.JwkProviderBuilder
 import com.auth0.jwt.JWT
 import com.auth0.jwt.algorithms.Algorithm
 import com.auth0.jwt.interfaces.RSAKeyProvider
+import dev.benkelenski.booked.clients.GoogleBooksClient
 import dev.benkelenski.booked.repos.BookRepo
 import dev.benkelenski.booked.repos.ShelfRepo
 import dev.benkelenski.booked.routes.bookRoutes
@@ -12,8 +13,11 @@ import dev.benkelenski.booked.services.BookService
 import dev.benkelenski.booked.services.ShelfService
 import io.github.oshai.kotlinlogging.KotlinLogging
 import org.http4k.base64DecodedArray
+import org.http4k.client.OkHttp
 import org.http4k.config.Environment
 import org.http4k.config.EnvironmentKey
+import org.http4k.core.HttpHandler
+import org.http4k.core.Uri
 import org.http4k.lens.base64
 import org.http4k.lens.secret
 import org.http4k.lens.string
@@ -38,6 +42,9 @@ val jwksUri = EnvironmentKey.uri().required("JWKS_URI")
 val issuer = EnvironmentKey.string().required("ISSUER")
 val audience = EnvironmentKey.string().required("AUDIENCE")
 val redirectUri = EnvironmentKey.uri().required("REDIRECT_URI")
+val googleApisHost =
+    EnvironmentKey.uri().defaulted("GOOGLE_APIS_HOST", Uri.of("https://www.googleapis.com"))
+val googleApisKey = EnvironmentKey.secret().required("GOOGLE_APIS_KEY")
 
 val logger = KotlinLogging.logger {}
 
@@ -54,7 +61,7 @@ private fun createDbConn(env: Environment) {
     )
 }
 
-fun createApp(env: Environment): RoutingHttpHandler {
+fun createApp(env: Environment, internet: HttpHandler): RoutingHttpHandler {
     val algorithm =
         env[publicKey]?.let { publicKey ->
             val keySpec = X509EncodedKeySpec(publicKey.base64DecodedArray())
@@ -84,7 +91,17 @@ fun createApp(env: Environment): RoutingHttpHandler {
     val verifier =
         JWT.require(algorithm).withIssuer(env[issuer]).withAudience(env[audience]).build()
 
-    val bookService = BookService(bookRepo = BookRepo(), jwtVerifier = verifier)
+    val bookService =
+        BookService(
+            bookRepo = BookRepo(),
+            jwtVerifier = verifier,
+            googleBooksClient =
+                GoogleBooksClient(
+                    host = env[googleApisHost],
+                    apiKey = env[googleApisKey].use { it },
+                    internet = internet,
+                ),
+        )
 
     val shelfService = ShelfService(shelfRepo = ShelfRepo())
 
@@ -113,7 +130,7 @@ fun main() {
     logger.info { "creating database connection" }
     createDbConn(env = env)
     logger.info { "creating app" }
-    val app = createApp(env = env)
+    val app = createApp(env = env, internet = OkHttp())
     val webApp = webApp(env[audience], env[redirectUri])
 
     logger.info { "starting app on port: $port" }
