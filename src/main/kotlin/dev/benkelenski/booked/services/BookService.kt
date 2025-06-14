@@ -5,6 +5,7 @@ import com.auth0.jwt.exceptions.JWTVerificationException
 import dev.benkelenski.booked.clients.GoogleBooksClient
 import dev.benkelenski.booked.models.Book
 import dev.benkelenski.booked.models.BookRequest
+import dev.benkelenski.booked.models.DataBook
 import dev.benkelenski.booked.repos.BookRepo
 
 /** alias for [BookService.getBook] */
@@ -18,6 +19,9 @@ typealias CreateBook = (userId: String, bookRequest: BookRequest) -> Book?
 
 /** alias for [BookService.deleteBook] */
 typealias DeleteBook = (userId: String, id: Int) -> DeleteResult
+
+/** alias for [BookService.searchBooks] */
+typealias SearchBooks = (query: String?) -> Array<DataBook>?
 
 /** alias for [BookService.verify] */
 typealias Verify = (token: String) -> String?
@@ -49,6 +53,8 @@ class BookService(
             DeleteResult.Failure("Failed to delete $book")
         }
     }
+
+    fun searchBooks(query: String?): Array<DataBook>? = googleBooksClient.search(query)
 
     fun verify(token: String): String? {
         return try {

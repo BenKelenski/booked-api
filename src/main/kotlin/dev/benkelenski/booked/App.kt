@@ -112,6 +112,7 @@ fun createApp(env: Environment, internet: HttpHandler): RoutingHttpHandler {
             bookService::getAllBooks,
             bookService::createBook,
             bookService::deleteBook,
+            bookService::searchBooks,
             bookService::verify,
         ),
         shelfRoutes(

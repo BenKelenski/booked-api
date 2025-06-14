@@ -26,3 +26,6 @@ Content-Type: application/json
 
 ### DELETE book by ID
 DELETE {{baseUrl}}{{basePath}}/books/1
+
+### GET Search google books
+GET {{baseUrl}}{{basePath}}/books/search?query=flowers+inauthor:keyes

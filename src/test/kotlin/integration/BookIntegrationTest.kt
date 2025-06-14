@@ -2,13 +2,10 @@ package integration
 
 import com.auth0.jwt.JWT
 import com.auth0.jwt.algorithms.Algorithm
-import dev.benkelenski.booked.audience
-import dev.benkelenski.booked.createApp
-import dev.benkelenski.booked.issuer
+import dev.benkelenski.booked.*
 import dev.benkelenski.booked.models.BookRequest
 import dev.benkelenski.booked.models.BookTable
 import dev.benkelenski.booked.models.ShelfTable
-import dev.benkelenski.booked.publicKey
 import dev.benkelenski.booked.repos.BookRepo
 import dev.benkelenski.booked.repos.ShelfRepo
 import dev.benkelenski.booked.routes.bookLens
@@ -19,14 +16,13 @@ import io.kotest.matchers.collections.shouldHaveSize
 import io.kotest.matchers.string.shouldContain
 import org.http4k.base64Encode
 import org.http4k.config.Environment
-import org.http4k.core.Method
-import org.http4k.core.Request
-import org.http4k.core.Status
-import org.http4k.core.with
+import org.http4k.config.Secret
+import org.http4k.core.*
 import org.http4k.kotest.shouldHaveBody
 import org.http4k.kotest.shouldHaveStatus
 import org.http4k.lens.bearerAuth
 import org.http4k.routing.RoutingHttpHandler
+import org.http4k.routing.reverseProxy
 import org.jetbrains.exposed.sql.Database
 import org.jetbrains.exposed.sql.SchemaUtils
 import org.jetbrains.exposed.sql.transactions.transaction
@@ -37,6 +33,8 @@ import java.security.interfaces.RSAPrivateKey
 
 private const val ISSUER = "booked_idp"
 private const val AUDIENCE = "booked_app"
+private val GOOGLE_BOOKS_API_HOST = Uri.of("https://www.googleapis.test")
+private val GOOGLE_APIS_KEY = Secret("FAKE_API_KEY")
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class BookIntegrationTest {
@@ -81,7 +79,10 @@ class BookIntegrationTest {
                         publicKey of keyPair.public.encoded.base64Encode(),
                         issuer of ISSUER,
                         audience of AUDIENCE,
-                    )
+                        googleApisHost of GOOGLE_BOOKS_API_HOST,
+                        googleApisKey of GOOGLE_APIS_KEY,
+                    ),
+                internet = reverseProxy(GOOGLE_BOOKS_API_HOST.host to fakeGoogleBooks()),
             )
     }
 
