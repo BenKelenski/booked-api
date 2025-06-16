@@ -2,7 +2,8 @@ package integration
 
 import com.auth0.jwt.JWT
 import com.auth0.jwt.algorithms.Algorithm
-import dev.benkelenski.booked.*
+import dev.benkelenski.booked.createApp
+import dev.benkelenski.booked.loadConfig
 import dev.benkelenski.booked.models.BookRequest
 import dev.benkelenski.booked.models.BookTable
 import dev.benkelenski.booked.models.ShelfTable
@@ -15,8 +16,6 @@ import io.kotest.matchers.be
 import io.kotest.matchers.collections.shouldHaveSize
 import io.kotest.matchers.string.shouldContain
 import org.http4k.base64Encode
-import org.http4k.config.Environment
-import org.http4k.config.Secret
 import org.http4k.core.*
 import org.http4k.kotest.shouldHaveBody
 import org.http4k.kotest.shouldHaveStatus
@@ -31,11 +30,6 @@ import org.testcontainers.containers.PostgreSQLContainer
 import java.security.KeyPairGenerator
 import java.security.interfaces.RSAPrivateKey
 
-private const val ISSUER = "booked_idp"
-private const val AUDIENCE = "booked_app"
-private val GOOGLE_BOOKS_API_HOST = Uri.of("https://www.googleapis.test")
-private val GOOGLE_APIS_KEY = Secret("FAKE_API_KEY")
-
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class BookIntegrationTest {
 
@@ -46,22 +40,24 @@ class BookIntegrationTest {
     private val keyPair =
         KeyPairGenerator.getInstance("RSA").apply { initialize(2048) }.generateKeyPair()
 
+    private val config = loadConfig("test")
+
     private fun createToken(userId: String): String {
         val algorithm = Algorithm.RSA256(null, keyPair.private as RSAPrivateKey)
         return JWT.create()
-            .withIssuer(ISSUER)
-            .withAudience(AUDIENCE)
+            .withIssuer(config.server.auth.issuer)
+            .withAudience(config.server.auth.audience)
             .withSubject(userId)
             .sign(algorithm)
     }
 
     @BeforeAll
-    fun setupDb() {
+    fun setupApp() {
         postgres =
             PostgreSQLContainer("postgres:17.5-alpine3.21").apply {
-                withDatabaseName("testdb")
-                withUsername("test")
-                withPassword("test")
+                withDatabaseName(config.database.url)
+                withUsername(config.database.user)
+                withPassword(config.database.password)
                 start()
             }
 
@@ -72,17 +68,12 @@ class BookIntegrationTest {
             password = postgres.password,
         )
 
+        config.apply { server.auth.publicKey = keyPair.public.encoded.base64Encode() }
         app =
             createApp(
-                env =
-                    Environment.defaults(
-                        publicKey of keyPair.public.encoded.base64Encode(),
-                        issuer of ISSUER,
-                        audience of AUDIENCE,
-                        googleApisHost of GOOGLE_BOOKS_API_HOST,
-                        googleApisKey of GOOGLE_APIS_KEY,
-                    ),
-                internet = reverseProxy(GOOGLE_BOOKS_API_HOST.host to fakeGoogleBooks()),
+                config = config,
+                internet =
+                    reverseProxy(Uri.of(config.client.googleApisHost).host to fakeGoogleBooks()),
             )
     }
 

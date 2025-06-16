@@ -30,7 +30,11 @@ dependencies {
     // Auth
     implementation("com.auth0:java-jwt:4.5.0")
     implementation("com.auth0:jwks-rsa:0.22.1")
+    // Config
+    implementation("com.sksamuel.hoplite:hoplite-core:2.9.0")
+    implementation("com.sksamuel.hoplite:hoplite-hocon:2.9.0")
 
+    // Testing
     testImplementation("org.http4k:http4k-testing-kotest")
     testImplementation("org.testcontainers:postgresql:1.21.0")
     testImplementation(kotlin("test"))

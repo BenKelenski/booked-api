@@ -4,6 +4,8 @@ import com.auth0.jwk.JwkProviderBuilder
 import com.auth0.jwt.JWT
 import com.auth0.jwt.algorithms.Algorithm
 import com.auth0.jwt.interfaces.RSAKeyProvider
+import com.sksamuel.hoplite.ConfigLoaderBuilder
+import com.sksamuel.hoplite.addResourceSource
 import dev.benkelenski.booked.clients.GoogleBooksClient
 import dev.benkelenski.booked.repos.BookRepo
 import dev.benkelenski.booked.repos.ShelfRepo
@@ -14,14 +16,8 @@ import dev.benkelenski.booked.services.ShelfService
 import io.github.oshai.kotlinlogging.KotlinLogging
 import org.http4k.base64DecodedArray
 import org.http4k.client.OkHttp
-import org.http4k.config.Environment
-import org.http4k.config.EnvironmentKey
 import org.http4k.core.HttpHandler
 import org.http4k.core.Uri
-import org.http4k.lens.base64
-import org.http4k.lens.secret
-import org.http4k.lens.string
-import org.http4k.lens.uri
 import org.http4k.routing.RoutingHttpHandler
 import org.http4k.routing.bind
 import org.http4k.routing.routes
@@ -34,43 +30,41 @@ import java.security.interfaces.RSAPublicKey
 import java.security.spec.X509EncodedKeySpec
 import java.util.concurrent.TimeUnit
 
-val dbUrl = EnvironmentKey.string().required("DB_URL")
-val dbUser = EnvironmentKey.string().required("DB_USER")
-val dbPass = EnvironmentKey.secret().required("DB_PASS")
-val publicKey = EnvironmentKey.base64().optional("PUBLIC_KEY")
-val jwksUri = EnvironmentKey.uri().required("JWKS_URI")
-val issuer = EnvironmentKey.string().required("ISSUER")
-val audience = EnvironmentKey.string().required("AUDIENCE")
-val redirectUri = EnvironmentKey.uri().required("REDIRECT_URI")
-val googleApisHost =
-    EnvironmentKey.uri().defaulted("GOOGLE_APIS_HOST", Uri.of("https://www.googleapis.com"))
-val googleApisKey = EnvironmentKey.secret().required("GOOGLE_APIS_KEY")
-
 val logger = KotlinLogging.logger {}
 
 private fun withPrefix(prefix: String, vararg routes: RoutingHttpHandler): RoutingHttpHandler {
     return prefix bind routes(*routes)
 }
 
-private fun createDbConn(env: Environment) {
+fun loadConfig(profile: String? = null): Config {
+    val loader = ConfigLoaderBuilder.default()
+
+    return if (profile != null) {
+        loader.addResourceSource("/application-$profile.conf").build().loadConfigOrThrow<Config>()
+    } else {
+        loader.addResourceSource("/application.conf").build().loadConfigOrThrow<Config>()
+    }
+}
+
+fun createDbConn(config: Config) {
     Database.connect(
-        url = env[dbUrl],
-        driver = "org.postgresql.Driver",
-        user = env[dbUser],
-        password = env[dbPass].use { it },
+        url = config.database.url,
+        driver = config.database.driver,
+        user = config.database.user,
+        password = config.database.password,
     )
 }
 
-fun createApp(env: Environment, internet: HttpHandler): RoutingHttpHandler {
+fun createApp(config: Config, internet: HttpHandler): RoutingHttpHandler {
     val algorithm =
-        env[publicKey]?.let { publicKey ->
+        config.server.auth.publicKey?.let { publicKey ->
             val keySpec = X509EncodedKeySpec(publicKey.base64DecodedArray())
             val javaPublicKey = KeyFactory.getInstance("RSA").generatePublic(keySpec)
             Algorithm.RSA256(javaPublicKey as RSAPublicKey, null)
         }
             ?: run {
                 val provider =
-                    JwkProviderBuilder(URI.create(env[jwksUri].toString()).toURL())
+                    JwkProviderBuilder(URI.create(config.server.auth.jwksUri).toURL())
                         .cached(10, 24, TimeUnit.HOURS)
                         .rateLimited(10, 1, TimeUnit.MINUTES)
                         .build()
@@ -89,7 +83,10 @@ fun createApp(env: Environment, internet: HttpHandler): RoutingHttpHandler {
             }
 
     val verifier =
-        JWT.require(algorithm).withIssuer(env[issuer]).withAudience(env[audience]).build()
+        JWT.require(algorithm)
+            .withIssuer(config.server.auth.issuer)
+            .withAudience(config.server.auth.audience)
+            .build()
 
     val bookService =
         BookService(
@@ -97,8 +94,8 @@ fun createApp(env: Environment, internet: HttpHandler): RoutingHttpHandler {
             jwtVerifier = verifier,
             googleBooksClient =
                 GoogleBooksClient(
-                    host = env[googleApisHost],
-                    apiKey = env[googleApisKey].use { it },
+                    host = config.client.googleApisHost.toUri(),
+                    apiKey = config.client.googleApisKey,
                     internet = internet,
                 ),
         )
@@ -125,15 +122,16 @@ fun createApp(env: Environment, internet: HttpHandler): RoutingHttpHandler {
 }
 
 fun main() {
-    val port = 8080
-    val env = Environment.ENV
+    val config = loadConfig()
 
     logger.info { "creating database connection" }
-    createDbConn(env = env)
+    createDbConn(config = config)
     logger.info { "creating app" }
-    val app = createApp(env = env, internet = OkHttp())
-    val webApp = webApp(env[audience], env[redirectUri])
+    val app = createApp(config = config, internet = OkHttp())
+    val webApp = webApp(config.server.auth.audience, config.server.auth.redirectUri.toUri())
 
-    logger.info { "starting app on port: $port" }
-    routes(app, webApp).asServer(Jetty(port)).start()
+    logger.info { "starting app on port: ${config.server.port}" }
+    routes(app, webApp).asServer(Jetty(config.server.port)).start()
 }
+
+fun String.toUri(): Uri = Uri.of(this)
