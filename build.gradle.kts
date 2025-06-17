@@ -1,13 +1,14 @@
 plugins {
     application
     kotlin("jvm") version "2.1.20"
+    id("com.gradleup.shadow") version "8.3.6"
 }
 
-application { mainClass.set("dev.benkelenski.booked.AppKt") }
+application { mainClass = "dev.benkelenski.booked.AppKt" }
 
-group = "org.example"
+group = "dev.benkelenski"
 
-version = "1.0-SNAPSHOT"
+version = "1.0"
 
 repositories { mavenCentral() }
 
