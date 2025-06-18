@@ -47,37 +47,6 @@ fun createDbConn(config: Config) {
 }
 
 fun createApp(config: Config, internet: HttpHandler): RoutingHttpHandler {
-    //    val algorithm =
-    //        config.server.auth.publicKey?.let { publicKey ->
-    //            val keySpec = X509EncodedKeySpec(publicKey.base64DecodedArray())
-    //            val javaPublicKey = KeyFactory.getInstance("RSA").generatePublic(keySpec)
-    //            Algorithm.RSA256(javaPublicKey as RSAPublicKey, null)
-    //        }
-    //            ?: run {
-    //                val provider =
-    //                    JwkProviderBuilder(URI.create(config.server.auth.jwksUri).toURL())
-    //                        .cached(10, 24, TimeUnit.HOURS)
-    //                        .rateLimited(10, 1, TimeUnit.MINUTES)
-    //                        .build()
-    //
-    //                val rsaKeyProvider =
-    //                    object : RSAKeyProvider {
-    //                        override fun getPublicKeyById(keyId: String?) =
-    //                            provider.get(keyId).publicKey as RSAPublicKey
-    //
-    //                        override fun getPrivateKey() = null
-    //
-    //                        override fun getPrivateKeyId() = null
-    //                    }
-    //
-    //                Algorithm.RSA256(rsaKeyProvider)
-    //            }
-    //
-    //    val verifier =
-    //        JWT.require(algorithm)
-    //            .withIssuer(config.server.auth.issuer)
-    //            .withAudience(config.server.auth.audience)
-    //            .build()
 
     val authProvider =
         AuthProvider(
