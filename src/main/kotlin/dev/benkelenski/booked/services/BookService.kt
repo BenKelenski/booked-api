@@ -21,9 +21,6 @@ typealias DeleteBook = (userId: String, id: Int) -> DeleteResult
 /** alias for [BookService.searchBooks] */
 typealias SearchBooks = (query: String?) -> Array<DataBook>?
 
-/** alias for [BookService.verify] */
-typealias Verify = (token: String) -> String?
-
 class BookService(
     private val bookRepo: BookRepo,
     private val googleBooksClient: GoogleBooksClient,
