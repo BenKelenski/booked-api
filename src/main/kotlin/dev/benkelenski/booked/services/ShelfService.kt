@@ -16,7 +16,7 @@ typealias CreateShelf = (shelfRequest: ShelfRequest) -> Shelf?
 /** alias for [ShelfService.deleteShelf] */
 typealias DeleteShelf = (id: Int) -> Boolean
 
-class ShelfService(val shelfRepo: ShelfRepo) {
+class ShelfService(private val shelfRepo: ShelfRepo) {
 
     fun getShelf(id: Int): Shelf? = shelfRepo.getShelfById(id)
 

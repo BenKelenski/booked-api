@@ -1,7 +1,5 @@
 package dev.benkelenski.booked.services
 
-import com.auth0.jwt.JWTVerifier
-import com.auth0.jwt.exceptions.JWTVerificationException
 import dev.benkelenski.booked.clients.GoogleBooksClient
 import dev.benkelenski.booked.models.Book
 import dev.benkelenski.booked.models.BookRequest
@@ -28,7 +26,6 @@ typealias Verify = (token: String) -> String?
 
 class BookService(
     private val bookRepo: BookRepo,
-    private val jwtVerifier: JWTVerifier,
     private val googleBooksClient: GoogleBooksClient,
 ) {
 
@@ -55,14 +52,6 @@ class BookService(
     }
 
     fun searchBooks(query: String?): Array<DataBook>? = googleBooksClient.search(query)
-
-    fun verify(token: String): String? {
-        return try {
-            jwtVerifier.verify(token).subject
-        } catch (e: JWTVerificationException) {
-            null
-        }
-    }
 }
 
 sealed class DeleteResult {
