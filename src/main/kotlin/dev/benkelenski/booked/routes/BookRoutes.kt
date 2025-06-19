@@ -1,5 +1,6 @@
 package dev.benkelenski.booked.routes
 
+import dev.benkelenski.booked.auth.Verify
 import dev.benkelenski.booked.models.Book
 import dev.benkelenski.booked.models.BookRequest
 import dev.benkelenski.booked.models.DataBook
@@ -28,7 +29,7 @@ fun bookRoutes(
     verify: Verify,
 ): RoutingHttpHandler {
     val userIdLens = RequestKey.required<String>("userId")
-    val authFiler = ServerFilters.BearerAuth(userIdLens, verify)
+    val authFilter = ServerFilters.BearerAuth(userIdLens, verify)
 
     fun handleGetAllBooks(request: Request): Response {
         return getAllBooks().let { Response(Status.OK).with(booksLens of it.toTypedArray()) }
@@ -71,8 +72,8 @@ fun bookRoutes(
                 "/" bind Method.GET to ::handleGetAllBooks,
                 "/search" bind Method.GET to ::handleSearchGoogleBooks,
                 "/$bookIdLens" bind Method.GET to ::handleGetBook,
-                "/" bind Method.POST to authFiler.then(::handleCreateBook),
-                "/$bookIdLens" bind Method.DELETE to authFiler.then(::handleDeleteBook),
+                "/" bind Method.POST to authFilter.then(::handleCreateBook),
+                "/$bookIdLens" bind Method.DELETE to authFilter.then(::handleDeleteBook),
             )
     )
 }

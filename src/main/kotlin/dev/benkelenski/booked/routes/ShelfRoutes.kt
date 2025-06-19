@@ -1,11 +1,17 @@
 package dev.benkelenski.booked.routes
 
+import dev.benkelenski.booked.auth.Verify
 import dev.benkelenski.booked.models.Shelf
 import dev.benkelenski.booked.models.ShelfRequest
-import dev.benkelenski.booked.services.*
+import dev.benkelenski.booked.services.CreateShelf
+import dev.benkelenski.booked.services.DeleteShelf
+import dev.benkelenski.booked.services.GetAllShelves
+import dev.benkelenski.booked.services.GetShelf
 import org.http4k.core.*
+import org.http4k.filter.ServerFilters
 import org.http4k.format.Moshi.auto
 import org.http4k.lens.Path
+import org.http4k.lens.RequestKey
 import org.http4k.lens.int
 import org.http4k.routing.RoutingHttpHandler
 import org.http4k.routing.bind
@@ -23,6 +29,8 @@ fun shelfRoutes(
     deleteShelf: DeleteShelf,
     verify: Verify,
 ): RoutingHttpHandler {
+    val userIdLens = RequestKey.required<String>("userId")
+    val authFilter = ServerFilters.BearerAuth(userIdLens, verify)
 
     fun handleGetAllShelves(request: Request): Response {
         return getAllShelves().let { Response(Status.OK).with(shelvesLens of it.toTypedArray()) }
@@ -50,8 +58,8 @@ fun shelfRoutes(
             routes(
                 "/" bind Method.GET to ::handleGetAllShelves,
                 "/$shelfIdLens" bind Method.GET to ::handleGetShelf,
-                "/" bind Method.POST to ::handleCreateShelf,
-                "/$shelfIdLens" bind Method.DELETE to ::handleDeleteShelf,
+                "/" bind Method.POST to authFilter.then(::handleCreateShelf),
+                "/$shelfIdLens" bind Method.DELETE to authFilter.then(::handleDeleteShelf),
             )
     )
 }
