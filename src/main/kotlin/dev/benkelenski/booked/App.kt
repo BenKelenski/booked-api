@@ -21,31 +21,80 @@ import org.http4k.server.Jetty
 import org.http4k.server.asServer
 import org.jetbrains.exposed.sql.Database
 
-val logger = KotlinLogging.logger {}
+private val logger = KotlinLogging.logger {}
 
+/** Constants used throughout the application */
+private object AppConstants {
+    const val API_PREFIX = "/api/v1"
+    const val DEFAULT_CONFIG_PATH = "/application.conf"
+    const val PROFILE_CONFIG_PATH_FORMAT = "/application-%s.conf"
+}
+
+/**
+ * Combines routes with a common prefix
+ *
+ * @param prefix The common prefix for all routes
+ * @param routes The routes to be combined
+ * @return A RoutingHttpHandler with all routes under the specified prefix
+ */
 private fun withPrefix(prefix: String, vararg routes: RoutingHttpHandler): RoutingHttpHandler {
     return prefix bind routes(*routes)
 }
 
+/**
+ * Loads application configuration from resources
+ *
+ * @param profile Optional profile name for environment-specific configuration
+ * @return Loaded configuration
+ * @throws Exception if configuration loading fails
+ */
 fun loadConfig(profile: String? = null): Config {
-    val loader = ConfigLoaderBuilder.default()
-
-    return if (profile != null) {
-        loader.addResourceSource("/application-$profile.conf").build().loadConfigOrThrow<Config>()
-    } else {
-        loader.addResourceSource("/application.conf").build().loadConfigOrThrow<Config>()
+    return try {
+        val loader = ConfigLoaderBuilder.default()
+        if (profile != null) {
+            loader
+                .addResourceSource(AppConstants.PROFILE_CONFIG_PATH_FORMAT.format(profile))
+                .build()
+                .loadConfigOrThrow<Config>()
+        } else {
+            loader
+                .addResourceSource(AppConstants.DEFAULT_CONFIG_PATH)
+                .build()
+                .loadConfigOrThrow<Config>()
+        }
+    } catch (e: Exception) {
+        logger.error(e) { "Failed to load configuration" }
+        throw e
     }
 }
 
+/**
+ * Establishes database connection using the provided configuration
+ *
+ * @param config Application configuration containing database details
+ * @throws Exception if a database connection fails
+ */
 fun createDbConn(config: Config) {
-    Database.connect(
-        url = config.database.url,
-        driver = config.database.driver,
-        user = config.database.user,
-        password = config.database.password,
-    )
+    try {
+        Database.connect(
+            url = config.database.url,
+            driver = config.database.driver,
+            user = config.database.user,
+            password = config.database.password,
+        )
+    } catch (e: Exception) {
+        logger.error(e) { "Failed to establish database connection" }
+        throw e
+    }
 }
 
+/**
+ * Creates the main application with all routes and services
+ *
+ * @param config Application configuration
+ * @param internet HTTP client for external communications
+ * @return Configured RoutingHttpHandler
+ */
 fun createApp(config: Config, internet: HttpHandler): RoutingHttpHandler {
 
     val authProvider =
@@ -70,7 +119,7 @@ fun createApp(config: Config, internet: HttpHandler): RoutingHttpHandler {
     val shelfService = ShelfService(shelfRepo = ShelfRepo())
 
     return withPrefix(
-        "/api/v1",
+        AppConstants.API_PREFIX,
         bookRoutes(
             bookService::getBook,
             bookService::getAllBooks,
@@ -90,16 +139,22 @@ fun createApp(config: Config, internet: HttpHandler): RoutingHttpHandler {
 }
 
 fun main() {
-    val config = loadConfig()
+    try {
+        val config = loadConfig()
 
-    logger.info { "creating database connection" }
-    createDbConn(config = config)
-    logger.info { "creating app" }
-    val app = createApp(config = config, internet = OkHttp())
-    val webApp = webApp(config.server.auth.audience, config.server.auth.redirectUri.toUri())
+        logger.info { "creating database connection" }
+        createDbConn(config = config)
+        logger.info { "creating app" }
+        val app = createApp(config = config, internet = OkHttp())
+        val webApp = webApp(config.server.auth.audience, config.server.auth.redirectUri.toUri())
 
-    logger.info { "starting app on port: ${config.server.port}" }
-    routes(app, webApp).asServer(Jetty(config.server.port)).start()
+        logger.info { "starting app on port: ${config.server.port}" }
+        routes(app, webApp).asServer(Jetty(config.server.port)).start()
+    } catch (e: Exception) {
+        logger.error(e) { "Failed to start application" }
+        throw e
+    }
 }
 
+/** Extension function to convert String to URI */
 fun String.toUri(): Uri = Uri.of(this)
