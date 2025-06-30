@@ -1,12 +1,11 @@
 package integration
 
+import TestUtils
 import com.auth0.jwt.JWT
 import com.auth0.jwt.algorithms.Algorithm
 import dev.benkelenski.booked.createApp
 import dev.benkelenski.booked.loadConfig
 import dev.benkelenski.booked.models.BookRequest
-import dev.benkelenski.booked.models.BookTable
-import dev.benkelenski.booked.models.ShelfTable
 import dev.benkelenski.booked.repos.BookRepo
 import dev.benkelenski.booked.repos.ShelfRepo
 import dev.benkelenski.booked.routes.bookLens
@@ -23,8 +22,6 @@ import org.http4k.lens.bearerAuth
 import org.http4k.routing.RoutingHttpHandler
 import org.http4k.routing.reverseProxy
 import org.jetbrains.exposed.sql.Database
-import org.jetbrains.exposed.sql.SchemaUtils
-import org.jetbrains.exposed.sql.transactions.transaction
 import org.junit.jupiter.api.*
 import org.testcontainers.containers.PostgreSQLContainer
 import java.security.KeyPairGenerator
@@ -79,12 +76,12 @@ class BookIntegrationTest {
 
     @BeforeEach
     fun setup() {
-        transaction { SchemaUtils.create(BookTable, ShelfTable) }
+        TestUtils.buildTables()
     }
 
     @AfterEach
     fun teardown() {
-        transaction { SchemaUtils.drop(BookTable, ShelfTable) }
+        TestUtils.dropTables()
     }
 
     @AfterAll
