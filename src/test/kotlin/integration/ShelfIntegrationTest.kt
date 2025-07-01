@@ -89,7 +89,7 @@ class ShelfIntegrationTest {
 
     @Test
     fun `get all shelves`() {
-        repeat(3) { ShelfRepo().addShelf(name = "shelf $it", description = null) }
+        repeat(3) { ShelfRepo().addShelf(userId = "user1", name = "shelf $it", description = null) }
 
         val response = app(Request(Method.GET, "/api/v1/shelves"))
 
@@ -114,9 +114,9 @@ class ShelfIntegrationTest {
 
     @Test
     fun `get shelf - found`() {
-        val shelf = ShelfRepo().addShelf(name = "shelf 1", description = null)
-        ShelfRepo().addShelf(name = "shelf 2", description = null)
-        ShelfRepo().addShelf(name = "shelf 3", description = null)
+        val shelf = ShelfRepo().addShelf(userId = "user1", name = "shelf 1", description = null)
+        ShelfRepo().addShelf(userId = "user1", name = "shelf 2", description = null)
+        ShelfRepo().addShelf(userId = "user1", name = "shelf 3", description = null)
 
         val response = app(Request(Method.GET, "/api/v1/shelves/${shelf?.id}"))
 
@@ -153,10 +153,41 @@ class ShelfIntegrationTest {
     }
 
     @Test
-    fun `delete book - unauthorized due to bad token`() {
+    fun `delete shelf - unauthorized due to bad token`() {
         Request(Method.DELETE, "/api/v1/shelves/999")
             .bearerAuth("foo")
             .let(app)
             .shouldHaveStatus(Status.UNAUTHORIZED)
+    }
+
+    @Test
+    fun `delete shelf - not found`() {
+        Request(Method.DELETE, "/api/v1/shelves/999")
+            .bearerAuth(createToken("user1"))
+            .let(app)
+            .shouldHaveStatus(Status.NOT_FOUND)
+    }
+
+    @Test
+    fun `delete shelf - forbidden`() {
+        val shelf = ShelfRepo().addShelf(userId = "user1", name = "shelf 1", description = null)
+
+        Request(Method.DELETE, "/api/v1/shelves/${shelf?.id}")
+            .bearerAuth(createToken("user2"))
+            .let(app)
+            .shouldHaveStatus(Status.FORBIDDEN)
+    }
+
+    @Test
+    fun `delete shelf - success`() {
+        val shelf = ShelfRepo().addShelf(userId = "user1", name = "shelf 1", description = null)
+        ShelfRepo().addShelf(userId = "user1", name = "shelf 2", description = null)
+
+        Request(Method.DELETE, "/api/v1/shelves/${shelf?.id}")
+            .bearerAuth(createToken("user1"))
+            .let(app)
+            .shouldHaveStatus(Status.NO_CONTENT)
+
+        ShelfRepo().getAllShelves() shouldHaveSize 1
     }
 }

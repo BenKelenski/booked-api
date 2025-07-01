@@ -5,6 +5,7 @@ CREATE DATABASE booked;
 CREATE TABLE IF NOT EXISTS shelf
 (
     id          SERIAL PRIMARY KEY,
+    user_id     VARCHAR(128) NOT NULL,
     name        VARCHAR(150) NOT NULL,
     description VARCHAR(250) NULL,
     created_at  TIMESTAMPTZ  NOT NULL

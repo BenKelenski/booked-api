@@ -19,9 +19,10 @@ class ShelfRepo {
         ShelfTable.selectAll().where { ShelfTable.id eq id }.map { it.toShelf() }.singleOrNull()
     }
 
-    fun addShelf(name: String, description: String?): Shelf? = transaction {
+    fun addShelf(userId: String, name: String, description: String?): Shelf? = transaction {
         addLogger(StdOutSqlLogger)
         ShelfTable.insertReturning {
+                it[ShelfTable.userId] = userId
                 it[ShelfTable.name] = name
                 it[ShelfTable.description] = description
                 it[ShelfTable.createdAt] = CurrentTimestampWithTimeZone
@@ -39,6 +40,7 @@ class ShelfRepo {
 fun ResultRow.toShelf() =
     Shelf(
         id = this[ShelfTable.id],
+        userId = this[ShelfTable.userId],
         name = this[ShelfTable.name],
         description = this[ShelfTable.description],
         createdAt = this[ShelfTable.createdAt].toInstant(),

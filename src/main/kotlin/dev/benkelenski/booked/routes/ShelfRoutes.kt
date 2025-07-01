@@ -3,10 +3,7 @@ package dev.benkelenski.booked.routes
 import dev.benkelenski.booked.auth.Verify
 import dev.benkelenski.booked.models.Shelf
 import dev.benkelenski.booked.models.ShelfRequest
-import dev.benkelenski.booked.services.CreateShelf
-import dev.benkelenski.booked.services.DeleteShelf
-import dev.benkelenski.booked.services.GetAllShelves
-import dev.benkelenski.booked.services.GetShelf
+import dev.benkelenski.booked.services.*
 import org.http4k.core.*
 import org.http4k.filter.ServerFilters
 import org.http4k.format.Moshi.auto
@@ -42,14 +39,20 @@ fun shelfRoutes(
     }
 
     fun handleCreateShelf(request: Request): Response {
-        return createShelf(shelfRequestLens(request))?.let {
+        val userId = userIdLens(request)
+        return createShelf(userId, shelfRequestLens(request))?.let {
             Response(Status.CREATED).with(shelfLens of it)
         } ?: Response(Status.EXPECTATION_FAILED)
     }
 
     fun handleDeleteShelf(request: Request): Response {
-        return deleteShelf(shelfIdLens(request)).let {
-            Response(Status.OK).body("Shelf successfully deleted: $it")
+        val userId = userIdLens(request)
+
+        return when (deleteShelf(userId, shelfIdLens(request))) {
+            is ShelfDeleteResult.Success -> Response(Status.NO_CONTENT)
+            is ShelfDeleteResult.NotFound -> Response(Status.NOT_FOUND)
+            is ShelfDeleteResult.Forbidden -> Response(Status.FORBIDDEN)
+            is ShelfDeleteResult.Failure -> Response(Status.INTERNAL_SERVER_ERROR)
         }
     }
 

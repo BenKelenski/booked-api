@@ -91,7 +91,7 @@ class BookIntegrationTest {
 
     @Test
     fun `get all books`() {
-        val shelf = ShelfRepo().addShelf(name = "test", description = null)
+        val shelf = ShelfRepo().addShelf(userId = "user1", name = "test", description = null)
 
         val book1 =
             BookRepo()
@@ -124,7 +124,7 @@ class BookIntegrationTest {
 
     @Test
     fun `get book - found`() {
-        val shelf = ShelfRepo().addShelf(name = "test", description = null)
+        val shelf = ShelfRepo().addShelf(userId = "user1", name = "test", description = null)
 
         val book1 =
             BookRepo()
@@ -155,7 +155,7 @@ class BookIntegrationTest {
 
     @Test
     fun `create book`() {
-        val shelf = ShelfRepo().addShelf(name = "test", description = null)
+        val shelf = ShelfRepo().addShelf(userId = "user1", name = "test", description = null)
 
         val response =
             app(
@@ -200,26 +200,26 @@ class BookIntegrationTest {
 
     @Test
     fun `delete book - forbidden`() {
-        val shelf = ShelfRepo().addShelf(name = "test", description = null)
+        val shelf = ShelfRepo().addShelf(userId = "user1", name = "test", description = null)
 
         val book =
             BookRepo()
                 .saveBook(
-                    userId = "user2",
+                    userId = "user1",
                     title = "test book 1",
                     author = "test author 1",
                     shelfId = shelf!!.id,
                 )
 
         Request(Method.DELETE, "/api/v1/books/${book?.id}")
-            .bearerAuth(createToken("user1"))
+            .bearerAuth(createToken("user2"))
             .let(app)
             .shouldHaveStatus(Status.FORBIDDEN)
     }
 
     @Test
     fun `delete book - success`() {
-        val shelf = ShelfRepo().addShelf(name = "test", description = null)
+        val shelf = ShelfRepo().addShelf(userId = "user1", name = "test", description = null)
 
         BookRepo()
             .saveBook(

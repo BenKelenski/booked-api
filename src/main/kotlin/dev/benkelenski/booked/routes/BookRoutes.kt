@@ -51,10 +51,10 @@ fun bookRoutes(
         val userId = userIdLens(request)
 
         return when (deleteBook(userId, bookIdLens(request))) {
-            is DeleteResult.Success -> Response(Status.NO_CONTENT)
-            is DeleteResult.NotFound -> Response(Status.NOT_FOUND)
-            is DeleteResult.Forbidden -> Response(Status.FORBIDDEN)
-            is DeleteResult.Failure -> Response(Status.INTERNAL_SERVER_ERROR)
+            is BookDeleteResult.Success -> Response(Status.NO_CONTENT)
+            is BookDeleteResult.NotFound -> Response(Status.NOT_FOUND)
+            is BookDeleteResult.Forbidden -> Response(Status.FORBIDDEN)
+            is BookDeleteResult.Failure -> Response(Status.INTERNAL_SERVER_ERROR)
         }
     }
 

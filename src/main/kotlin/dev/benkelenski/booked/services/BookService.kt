@@ -7,7 +7,7 @@ import dev.benkelenski.booked.models.DataBook
 import dev.benkelenski.booked.repos.BookRepo
 
 /** alias for [BookService.getBook] */
-typealias GetBook = (id: Int) -> Book?
+typealias GetBook = (bookId: Int) -> Book?
 
 /** alias for [BookService.getAllBooks] */
 typealias GetAllBooks = () -> List<Book>
@@ -16,7 +16,7 @@ typealias GetAllBooks = () -> List<Book>
 typealias CreateBook = (userId: String, bookRequest: BookRequest) -> Book?
 
 /** alias for [BookService.deleteBook] */
-typealias DeleteBook = (userId: String, id: Int) -> DeleteResult
+typealias DeleteBook = (userId: String, bookId: Int) -> BookDeleteResult
 
 /** alias for [BookService.searchBooks] */
 typealias SearchBooks = (query: String?) -> Array<DataBook>?
@@ -26,7 +26,7 @@ class BookService(
     private val googleBooksClient: GoogleBooksClient,
 ) {
 
-    fun getBook(id: Int): Book? = bookRepo.getBookById(id)
+    fun getBook(bookId: Int): Book? = bookRepo.getBookById(bookId)
 
     fun getAllBooks(): List<Book> = bookRepo.getAllBooks()
 
@@ -38,25 +38,25 @@ class BookService(
             shelfId = bookRequest.shelfId,
         )
 
-    fun deleteBook(userId: String, id: Int): DeleteResult {
-        val book = bookRepo.getBookById(id) ?: return DeleteResult.NotFound
-        if (book.userId != userId) return DeleteResult.Forbidden
-        return if (bookRepo.deleteBook(id) == 1) {
-            DeleteResult.Success
+    fun deleteBook(userId: String, bookId: Int): BookDeleteResult {
+        val book = bookRepo.getBookById(bookId) ?: return BookDeleteResult.NotFound
+        if (book.userId != userId) return BookDeleteResult.Forbidden
+        return if (bookRepo.deleteBook(bookId) == 1) {
+            BookDeleteResult.Success
         } else {
-            DeleteResult.Failure("Failed to delete $book")
+            BookDeleteResult.Failure("Failed to delete $book")
         }
     }
 
     fun searchBooks(query: String?): Array<DataBook>? = googleBooksClient.search(query)
 }
 
-sealed class DeleteResult {
-    object Success : DeleteResult()
+sealed class BookDeleteResult {
+    object Success : BookDeleteResult()
 
-    object NotFound : DeleteResult()
+    object NotFound : BookDeleteResult()
 
-    object Forbidden : DeleteResult()
+    object Forbidden : BookDeleteResult()
 
-    data class Failure(val reason: String) : DeleteResult()
+    data class Failure(val reason: String) : BookDeleteResult()
 }
