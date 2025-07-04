@@ -3,9 +3,9 @@ package integration
 import dev.benkelenski.booked.clients.googleBooksResponseLens
 import dev.benkelenski.booked.clients.projectionLens
 import dev.benkelenski.booked.clients.queryLens
-import dev.benkelenski.booked.models.DataBook
-import dev.benkelenski.booked.models.GoogleBooksResponse
-import dev.benkelenski.booked.models.VolumeInfo
+import dev.benkelenski.booked.domain.DataBook
+import dev.benkelenski.booked.domain.GoogleBooksResponse
+import dev.benkelenski.booked.domain.VolumeInfo
 import org.http4k.core.Method
 import org.http4k.core.Response
 import org.http4k.core.Status

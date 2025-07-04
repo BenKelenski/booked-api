@@ -1,4 +1,4 @@
-package dev.benkelenski.booked.models
+package dev.benkelenski.booked.domain
 
 data class GoogleBooksResponse(val items: List<DataBook>)
 

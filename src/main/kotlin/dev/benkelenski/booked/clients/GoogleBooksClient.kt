@@ -1,7 +1,7 @@
 package dev.benkelenski.booked.clients
 
-import dev.benkelenski.booked.models.DataBook
-import dev.benkelenski.booked.models.GoogleBooksResponse
+import dev.benkelenski.booked.domain.DataBook
+import dev.benkelenski.booked.domain.GoogleBooksResponse
 import io.github.oshai.kotlinlogging.KotlinLogging
 import org.http4k.core.*
 import org.http4k.format.Moshi.auto

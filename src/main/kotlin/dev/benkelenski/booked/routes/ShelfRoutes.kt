@@ -1,8 +1,8 @@
 package dev.benkelenski.booked.routes
 
 import dev.benkelenski.booked.auth.Verify
-import dev.benkelenski.booked.models.Shelf
-import dev.benkelenski.booked.models.ShelfRequest
+import dev.benkelenski.booked.domain.Shelf
+import dev.benkelenski.booked.domain.ShelfRequest
 import dev.benkelenski.booked.services.*
 import org.http4k.core.*
 import org.http4k.filter.ServerFilters

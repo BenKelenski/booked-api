@@ -1,6 +1,6 @@
 package dev.benkelenski.booked.repos
 
-import dev.benkelenski.booked.models.Shelf
+import dev.benkelenski.booked.domain.Shelf
 import dev.benkelenski.booked.models.ShelfTable
 import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq

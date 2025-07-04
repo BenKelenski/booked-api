@@ -1,7 +1,7 @@
 package dev.benkelenski.booked.services
 
-import dev.benkelenski.booked.models.Shelf
-import dev.benkelenski.booked.models.ShelfRequest
+import dev.benkelenski.booked.domain.Shelf
+import dev.benkelenski.booked.domain.ShelfRequest
 import dev.benkelenski.booked.repos.ShelfRepo
 
 /** alias for [ShelfService.getShelf] */

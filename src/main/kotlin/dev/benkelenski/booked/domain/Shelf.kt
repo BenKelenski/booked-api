@@ -1,4 +1,4 @@
-package dev.benkelenski.booked.models
+package dev.benkelenski.booked.domain
 
 import com.squareup.moshi.Json
 import java.time.Instant

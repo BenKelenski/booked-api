@@ -4,8 +4,8 @@ import TestUtils
 import com.auth0.jwt.JWT
 import com.auth0.jwt.algorithms.Algorithm
 import dev.benkelenski.booked.createApp
+import dev.benkelenski.booked.domain.ShelfRequest
 import dev.benkelenski.booked.loadConfig
-import dev.benkelenski.booked.models.ShelfRequest
 import dev.benkelenski.booked.repos.ShelfRepo
 import dev.benkelenski.booked.routes.shelfLens
 import dev.benkelenski.booked.routes.shelfRequestLens

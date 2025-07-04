@@ -1,9 +1,9 @@
 package dev.benkelenski.booked.services
 
 import dev.benkelenski.booked.clients.GoogleBooksClient
-import dev.benkelenski.booked.models.Book
-import dev.benkelenski.booked.models.BookRequest
-import dev.benkelenski.booked.models.DataBook
+import dev.benkelenski.booked.domain.Book
+import dev.benkelenski.booked.domain.BookRequest
+import dev.benkelenski.booked.domain.DataBook
 import dev.benkelenski.booked.repos.BookRepo
 
 /** alias for [BookService.getBook] */
