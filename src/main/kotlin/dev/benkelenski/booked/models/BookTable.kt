@@ -4,7 +4,7 @@ import org.jetbrains.exposed.sql.ReferenceOption
 import org.jetbrains.exposed.sql.Table
 import org.jetbrains.exposed.sql.kotlin.datetime.timestampWithTimeZone
 
-object BookTable : Table("book") {
+object BookTable : Table("books") {
     val id = integer("id").autoIncrement()
     val userId = varchar("user_id", 128)
     val title = varchar("title", 250)
