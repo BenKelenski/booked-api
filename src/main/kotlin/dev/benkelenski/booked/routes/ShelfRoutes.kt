@@ -20,7 +20,7 @@ val shelfLens = Body.auto<Shelf>().toLens()
 val shelfRequestLens = Body.auto<ShelfRequest>().toLens()
 
 fun shelfRoutes(
-    getShelf: GetShelf,
+    getShelfById: GetShelfById,
     getAllShelves: GetAllShelves,
     createShelf: CreateShelf,
     deleteShelf: DeleteShelf,
@@ -34,7 +34,7 @@ fun shelfRoutes(
     }
 
     fun handleGetShelf(request: Request): Response {
-        return getShelf(shelfIdLens(request))?.let { Response(Status.OK).with(shelfLens of it) }
+        return getShelfById(shelfIdLens(request))?.let { Response(Status.OK).with(shelfLens of it) }
             ?: Response(Status.NOT_FOUND)
     }
 

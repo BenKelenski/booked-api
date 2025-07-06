@@ -121,7 +121,7 @@ fun createApp(config: Config, internet: HttpHandler): RoutingHttpHandler {
     return withPrefix(
         AppConstants.API_PREFIX,
         bookRoutes(
-            bookService::getBook,
+            bookService::getBookById,
             bookService::getAllBooks,
             bookService::createBook,
             bookService::deleteBook,
@@ -129,7 +129,7 @@ fun createApp(config: Config, internet: HttpHandler): RoutingHttpHandler {
             authProvider::verify,
         ),
         shelfRoutes(
-            shelfService::getShelf,
+            shelfService::getShelfById,
             shelfService::getAllShelves,
             shelfService::createShelf,
             shelfService::deleteShelf,

@@ -4,8 +4,8 @@ import dev.benkelenski.booked.domain.Shelf
 import dev.benkelenski.booked.domain.ShelfRequest
 import dev.benkelenski.booked.repos.ShelfRepo
 
-/** alias for [ShelfService.getShelf] */
-typealias GetShelf = (shelfId: Int) -> Shelf?
+/** alias for [ShelfService.getShelfById] */
+typealias GetShelfById = (shelfId: Int) -> Shelf?
 
 /** alias for [ShelfService.getAllShelves] */
 typealias GetAllShelves = () -> List<Shelf>
@@ -18,7 +18,7 @@ typealias DeleteShelf = (userId: String, shelfId: Int) -> ShelfDeleteResult
 
 class ShelfService(private val shelfRepo: ShelfRepo) {
 
-    fun getShelf(shelfId: Int): Shelf? = shelfRepo.getShelfById(shelfId)
+    fun getShelfById(shelfId: Int): Shelf? = shelfRepo.getShelfById(shelfId)
 
     fun getAllShelves(): List<Shelf> = shelfRepo.getAllShelves()
 

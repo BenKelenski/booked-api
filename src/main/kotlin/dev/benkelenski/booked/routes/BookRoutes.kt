@@ -21,7 +21,7 @@ val searchQueryLens = Query.string().optional("query")
 val dataBooksLens = Body.auto<Array<DataBook>>().toLens()
 
 fun bookRoutes(
-    getBook: GetBook,
+    getBookById: GetBookById,
     getAllBooks: GetAllBooks,
     createBook: CreateBook,
     deleteBook: DeleteBook,
@@ -36,7 +36,7 @@ fun bookRoutes(
     }
 
     fun handleGetBook(request: Request): Response {
-        return getBook(bookIdLens(request))?.let { Response(Status.OK).with(bookLens of it) }
+        return getBookById(bookIdLens(request))?.let { Response(Status.OK).with(bookLens of it) }
             ?: Response(Status.NOT_FOUND)
     }
 

@@ -6,8 +6,8 @@ import dev.benkelenski.booked.domain.BookRequest
 import dev.benkelenski.booked.domain.DataBook
 import dev.benkelenski.booked.repos.BookRepo
 
-/** alias for [BookService.getBook] */
-typealias GetBook = (bookId: Int) -> Book?
+/** alias for [BookService.getBookById] */
+typealias GetBookById = (bookId: Int) -> Book?
 
 /** alias for [BookService.getAllBooks] */
 typealias GetAllBooks = () -> List<Book>
@@ -26,7 +26,7 @@ class BookService(
     private val googleBooksClient: GoogleBooksClient,
 ) {
 
-    fun getBook(bookId: Int): Book? = bookRepo.getBookById(bookId)
+    fun getBookById(bookId: Int): Book? = bookRepo.getBookById(bookId)
 
     fun getAllBooks(): List<Book> = bookRepo.getAllBooks()
 
