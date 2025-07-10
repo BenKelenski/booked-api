@@ -1,32 +1,30 @@
 package dev.benkelenski.booked.repos
 
 import dev.benkelenski.booked.domain.Book
-import dev.benkelenski.booked.models.BookTable
+import dev.benkelenski.booked.models.Books
 import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
-import org.jetbrains.exposed.sql.kotlin.datetime.CurrentTimestampWithTimeZone
 import org.jetbrains.exposed.sql.transactions.transaction
 
 class BookRepo {
 
     fun getAllBooks(): List<Book> = transaction {
         addLogger(StdOutSqlLogger)
-        BookTable.selectAll().map { it.toBook() }
+        Books.selectAll().map { it.toBook() }
     }
 
     fun getBookById(id: Int): Book? = transaction {
         addLogger(StdOutSqlLogger)
-        BookTable.selectAll().where { BookTable.id eq id }.map { it.toBook() }.singleOrNull()
+        Books.selectAll().where { Books.id eq id }.map { it.toBook() }.singleOrNull()
     }
 
-    fun saveBook(userId: String, title: String, author: String, shelfId: Int): Book? = transaction {
+    fun saveBook(userId: Int, title: String, author: String, shelfId: Int): Book? = transaction {
         addLogger(StdOutSqlLogger)
-        BookTable.insertReturning {
-                it[BookTable.userId] = userId
-                it[BookTable.title] = title
-                it[BookTable.author] = author
-                it[BookTable.createdAt] = CurrentTimestampWithTimeZone
-                it[BookTable.shelfId] = shelfId
+        Books.insertReturning {
+                it[Books.userId] = userId
+                it[Books.title] = title
+                it[Books.author] = author
+                it[Books.shelfId] = shelfId
             }
             .map { it.toBook() }
             .singleOrNull()
@@ -34,16 +32,16 @@ class BookRepo {
 
     fun deleteBook(id: Int): Int = transaction {
         addLogger(StdOutSqlLogger)
-        BookTable.deleteWhere { BookTable.id eq id }
+        Books.deleteWhere { Books.id eq id }
     }
 }
 
 fun ResultRow.toBook() =
     Book(
-        id = this[BookTable.id],
-        userId = this[BookTable.userId],
-        title = this[BookTable.title],
-        author = this[BookTable.author],
-        createdAt = this[BookTable.createdAt].toInstant(),
-        shelfId = this[BookTable.shelfId],
+        id = this[Books.id],
+        userId = this[Books.userId],
+        title = this[Books.title],
+        author = this[Books.author],
+        createdAt = this[Books.createdAt].toInstant(),
+        shelfId = this[Books.shelfId],
     )

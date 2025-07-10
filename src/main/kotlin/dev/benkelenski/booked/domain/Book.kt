@@ -5,7 +5,7 @@ import java.time.Instant
 
 data class Book(
     val id: Int,
-    @Json(name = "user_id") val userId: String,
+    @Json(name = "user_id") val userId: Int,
     val title: String,
     val author: String,
     @Json(name = "created_at") val createdAt: Instant,

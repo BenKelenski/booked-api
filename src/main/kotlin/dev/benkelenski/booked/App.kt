@@ -2,14 +2,17 @@ package dev.benkelenski.booked
 
 import com.sksamuel.hoplite.ConfigLoaderBuilder
 import com.sksamuel.hoplite.addResourceSource
-import dev.benkelenski.booked.auth.AuthProvider
+import dev.benkelenski.booked.auth.GoogleAuthProvider
 import dev.benkelenski.booked.clients.GoogleBooksClient
 import dev.benkelenski.booked.repos.BookRepo
 import dev.benkelenski.booked.repos.ShelfRepo
+import dev.benkelenski.booked.repos.UserRepo
+import dev.benkelenski.booked.routes.authRoutes
 import dev.benkelenski.booked.routes.bookRoutes
 import dev.benkelenski.booked.routes.shelfRoutes
 import dev.benkelenski.booked.services.BookService
 import dev.benkelenski.booked.services.ShelfService
+import dev.benkelenski.booked.services.UserService
 import io.github.oshai.kotlinlogging.KotlinLogging
 import org.http4k.client.OkHttp
 import org.http4k.core.HttpHandler
@@ -97,13 +100,16 @@ fun createDbConn(config: Config) {
  */
 fun createApp(config: Config, internet: HttpHandler): RoutingHttpHandler {
 
-    val authProvider =
-        AuthProvider(
+    val googleAuthProvider =
+        GoogleAuthProvider(
             publicKey = config.server.auth.publicKey,
             jwksUri = config.server.auth.jwksUri,
             issuer = config.server.auth.issuer,
             audience = config.server.auth.audience,
+            userRepo = UserRepo(),
         )
+
+    val authProviders = mapOf("google" to googleAuthProvider)
 
     val bookService =
         BookService(
@@ -118,6 +124,8 @@ fun createApp(config: Config, internet: HttpHandler): RoutingHttpHandler {
 
     val shelfService = ShelfService(shelfRepo = ShelfRepo())
 
+    val userService = UserService(userRepo = UserRepo())
+
     return withPrefix(
         AppConstants.API_PREFIX,
         bookRoutes(
@@ -126,14 +134,20 @@ fun createApp(config: Config, internet: HttpHandler): RoutingHttpHandler {
             bookService::createBook,
             bookService::deleteBook,
             bookService::searchBooks,
-            authProvider::verify,
+            //            authProvider::verifyToken,
         ),
         shelfRoutes(
             shelfService::getShelfById,
             shelfService::getAllShelves,
             shelfService::createShelf,
             shelfService::deleteShelf,
-            authProvider::verify,
+            //            authProvider::verifyToken,
+        ),
+        authRoutes(
+            userService::registerWithEmail,
+            userService::loginWithEmail,
+            userService::authenticateOrRegister,
+            authProviders = authProviders,
         ),
     )
 }

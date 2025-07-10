@@ -1,12 +1,11 @@
 package dev.benkelenski.booked.routes
 
-import dev.benkelenski.booked.auth.Verify
+// import dev.benkelenski.booked.auth.Verify
 import dev.benkelenski.booked.domain.Book
 import dev.benkelenski.booked.domain.BookRequest
 import dev.benkelenski.booked.domain.DataBook
 import dev.benkelenski.booked.services.*
 import org.http4k.core.*
-import org.http4k.filter.ServerFilters
 import org.http4k.format.Moshi.auto
 import org.http4k.lens.*
 import org.http4k.routing.RoutingHttpHandler
@@ -26,10 +25,10 @@ fun bookRoutes(
     createBook: CreateBook,
     deleteBook: DeleteBook,
     searchBooks: SearchBooks,
-    verify: Verify,
+    //    verify: Verify,
 ): RoutingHttpHandler {
-    val userIdLens = RequestKey.required<String>("userId")
-    val authFilter = ServerFilters.BearerAuth(userIdLens, verify)
+    val userIdLens = RequestKey.required<Int>("userId")
+    //    val authFilter = ServerFilters.BearerAuth(userIdLens, verify)
 
     fun handleGetAllBooks(request: Request): Response {
         return getAllBooks().let { Response(Status.OK).with(booksLens of it.toTypedArray()) }
@@ -41,14 +40,14 @@ fun bookRoutes(
     }
 
     fun handleCreateBook(request: Request): Response {
-        val userId = userIdLens(request)
+        val userId = 1 // TODO
         return createBook(userId, bookRequestLens(request))?.let {
             Response(Status.CREATED).with(bookLens of it)
         } ?: Response(Status.EXPECTATION_FAILED)
     }
 
     fun handleDeleteBook(request: Request): Response {
-        val userId = userIdLens(request)
+        val userId = 1 // TODO
 
         return when (deleteBook(userId, bookIdLens(request))) {
             is BookDeleteResult.Success -> Response(Status.NO_CONTENT)
@@ -72,8 +71,8 @@ fun bookRoutes(
                 "/" bind Method.GET to ::handleGetAllBooks,
                 "/search" bind Method.GET to ::handleSearchGoogleBooks,
                 "/$bookIdLens" bind Method.GET to ::handleGetBook,
-                "/" bind Method.POST to authFilter.then(::handleCreateBook),
-                "/$bookIdLens" bind Method.DELETE to authFilter.then(::handleDeleteBook),
+                "/" bind Method.POST to ::handleCreateBook,
+                "/$bookIdLens" bind Method.DELETE to ::handleDeleteBook,
             )
     )
 }

@@ -13,10 +13,10 @@ typealias GetBookById = (bookId: Int) -> Book?
 typealias GetAllBooks = () -> List<Book>
 
 /** alias for [BookService.createBook] */
-typealias CreateBook = (userId: String, bookRequest: BookRequest) -> Book?
+typealias CreateBook = (userId: Int, bookRequest: BookRequest) -> Book?
 
 /** alias for [BookService.deleteBook] */
-typealias DeleteBook = (userId: String, bookId: Int) -> BookDeleteResult
+typealias DeleteBook = (userId: Int, bookId: Int) -> BookDeleteResult
 
 /** alias for [BookService.searchBooks] */
 typealias SearchBooks = (query: String?) -> Array<DataBook>?
@@ -30,7 +30,7 @@ class BookService(
 
     fun getAllBooks(): List<Book> = bookRepo.getAllBooks()
 
-    fun createBook(userId: String, bookRequest: BookRequest): Book? =
+    fun createBook(userId: Int, bookRequest: BookRequest): Book? =
         bookRepo.saveBook(
             userId = userId,
             title = bookRequest.title,
@@ -38,7 +38,7 @@ class BookService(
             shelfId = bookRequest.shelfId,
         )
 
-    fun deleteBook(userId: String, bookId: Int): BookDeleteResult {
+    fun deleteBook(userId: Int, bookId: Int): BookDeleteResult {
         val book = bookRepo.getBookById(bookId) ?: return BookDeleteResult.NotFound
         if (book.userId != userId) return BookDeleteResult.Forbidden
         return if (bookRepo.deleteBook(bookId) == 1) {

@@ -1,11 +1,10 @@
 package dev.benkelenski.booked.routes
 
-import dev.benkelenski.booked.auth.Verify
+// import dev.benkelenski.booked.auth.Verify
 import dev.benkelenski.booked.domain.Shelf
 import dev.benkelenski.booked.domain.ShelfRequest
 import dev.benkelenski.booked.services.*
 import org.http4k.core.*
-import org.http4k.filter.ServerFilters
 import org.http4k.format.Moshi.auto
 import org.http4k.lens.Path
 import org.http4k.lens.RequestKey
@@ -24,10 +23,10 @@ fun shelfRoutes(
     getAllShelves: GetAllShelves,
     createShelf: CreateShelf,
     deleteShelf: DeleteShelf,
-    verify: Verify,
+    //    verify: Verify,
 ): RoutingHttpHandler {
-    val userIdLens = RequestKey.required<String>("userId")
-    val authFilter = ServerFilters.BearerAuth(userIdLens, verify)
+    val userIdLens = RequestKey.required<Int>("userId")
+    //    val authFilter = ServerFilters.BearerAuth(userIdLens, verify)
 
     fun handleGetAllShelves(request: Request): Response {
         return getAllShelves().let { Response(Status.OK).with(shelvesLens of it.toTypedArray()) }
@@ -39,14 +38,14 @@ fun shelfRoutes(
     }
 
     fun handleCreateShelf(request: Request): Response {
-        val userId = userIdLens(request)
+        val userId = 1 // TODO
         return createShelf(userId, shelfRequestLens(request))?.let {
             Response(Status.CREATED).with(shelfLens of it)
         } ?: Response(Status.EXPECTATION_FAILED)
     }
 
     fun handleDeleteShelf(request: Request): Response {
-        val userId = userIdLens(request)
+        val userId = 1 // TODO
 
         return when (deleteShelf(userId, shelfIdLens(request))) {
             is ShelfDeleteResult.Success -> Response(Status.NO_CONTENT)
@@ -61,8 +60,8 @@ fun shelfRoutes(
             routes(
                 "/" bind Method.GET to ::handleGetAllShelves,
                 "/$shelfIdLens" bind Method.GET to ::handleGetShelf,
-                "/" bind Method.POST to authFilter.then(::handleCreateShelf),
-                "/$shelfIdLens" bind Method.DELETE to authFilter.then(::handleDeleteShelf),
+                "/" bind Method.POST to ::handleCreateShelf,
+                "/$shelfIdLens" bind Method.DELETE to ::handleDeleteShelf,
             )
     )
 }

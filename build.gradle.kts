@@ -31,6 +31,7 @@ dependencies {
     // Auth
     implementation("com.auth0:java-jwt:4.5.0")
     implementation("com.auth0:jwks-rsa:0.22.1")
+    implementation("at.favre.lib:bcrypt:0.10.2")
     // Config
     implementation("com.sksamuel.hoplite:hoplite-core:2.9.0")
     implementation("com.sksamuel.hoplite:hoplite-hocon:2.9.0")
