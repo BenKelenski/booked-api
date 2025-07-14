@@ -13,7 +13,7 @@ import java.security.spec.X509EncodedKeySpec
 import java.util.*
 
 object JwtUtils {
-    private const val ISSUER = "your-app"
+    private const val ISSUER = "booked-app"
     private const val ACCESS_EXPIRATION_MS = 15 * 60 * 1000 // 15 minutes
     private const val REFRESH_EXPIRATION_MS = 7 * 24 * 60 * 60 * 1000L // 7 days
 

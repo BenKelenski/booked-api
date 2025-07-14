@@ -7,8 +7,8 @@ import com.auth0.jwt.algorithms.Algorithm
 import com.auth0.jwt.exceptions.JWTVerificationException
 import com.auth0.jwt.interfaces.DecodedJWT
 import com.auth0.jwt.interfaces.RSAKeyProvider
+import dev.benkelenski.booked.domain.User
 import dev.benkelenski.booked.repos.UserRepo
-import dev.benkelenski.booked.utils.JwtUtils
 import org.http4k.base64DecodedArray
 import java.net.URI
 import java.security.KeyFactory
@@ -19,8 +19,8 @@ import java.util.concurrent.TimeUnit
 class GoogleAuthProvider(
     private val publicKey: String?,
     private val jwksUri: String,
-    private val issuer: String,
-    private val audience: String,
+    issuer: String,
+    audience: String,
     private val userRepo: UserRepo,
 ) : AuthProvider {
 
@@ -61,35 +61,18 @@ class GoogleAuthProvider(
         }
     }
 
-    override fun authenticate(idToken: String): AuthProvider.SessionResult? {
+    override fun authenticate(idToken: String): User? {
         val decoded = verify(idToken) ?: return null
-        //        val userId = decoded.subject ?: return null
 
         val providerUserId = decoded.subject ?: return null
         val email = decoded.getClaim("email").asString()
         val name = decoded.getClaim("name").asString()
 
-        val user =
-            userRepo.getOrCreateUser(
-                provider = "google",
-                providerUserId = providerUserId,
-                email = email,
-                name = name,
-            )
-
-        val accessToken = JwtUtils.generateAccessToken(user.id)
-        val refreshTokenId =
-            refreshTokenRepository.create(
-                userId = user.id,
-                rawToken = accessToken,
-                expiresAt = Instant.now().plus(Duration.ofDays(7)),
-            )
-        val refreshToken = JwtUtils.generateRefreshToken(user.id, refreshTokenId)
-
-        return AuthProvider.SessionResult(
-            user = user,
-            accessToken = accessToken,
-            refreshToken = refreshToken,
+        return userRepo.getOrCreateUser(
+            provider = "google",
+            providerUserId = providerUserId,
+            email = email,
+            name = name,
         )
     }
 }

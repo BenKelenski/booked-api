@@ -1,4 +1,4 @@
-package integration
+package utils
 
 import dev.benkelenski.booked.clients.googleBooksResponseLens
 import dev.benkelenski.booked.clients.projectionLens

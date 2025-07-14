@@ -1,8 +1,8 @@
 package dev.benkelenski.booked.models
 
 import org.jetbrains.exposed.sql.Table
-import org.jetbrains.exposed.sql.kotlin.datetime.CurrentTimestampWithTimeZone
-import org.jetbrains.exposed.sql.kotlin.datetime.timestampWithTimeZone
+import org.jetbrains.exposed.sql.javatime.CurrentTimestampWithTimeZone
+import org.jetbrains.exposed.sql.javatime.timestampWithTimeZone
 
 object Shelves : Table("shelves") {
     val id = integer("id").autoIncrement()

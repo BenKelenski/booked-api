@@ -3,16 +3,20 @@ package dev.benkelenski.booked
 import com.sksamuel.hoplite.ConfigLoaderBuilder
 import com.sksamuel.hoplite.addResourceSource
 import dev.benkelenski.booked.auth.GoogleAuthProvider
+import dev.benkelenski.booked.auth.JwtTokenProvider
+import dev.benkelenski.booked.auth.TokenProvider
 import dev.benkelenski.booked.clients.GoogleBooksClient
+import dev.benkelenski.booked.middleware.authMiddleware
 import dev.benkelenski.booked.repos.BookRepo
+import dev.benkelenski.booked.repos.RefreshTokenRepo
 import dev.benkelenski.booked.repos.ShelfRepo
 import dev.benkelenski.booked.repos.UserRepo
 import dev.benkelenski.booked.routes.authRoutes
 import dev.benkelenski.booked.routes.bookRoutes
 import dev.benkelenski.booked.routes.shelfRoutes
+import dev.benkelenski.booked.services.AuthService
 import dev.benkelenski.booked.services.BookService
 import dev.benkelenski.booked.services.ShelfService
-import dev.benkelenski.booked.services.UserService
 import io.github.oshai.kotlinlogging.KotlinLogging
 import org.http4k.client.OkHttp
 import org.http4k.core.HttpHandler
@@ -96,24 +100,42 @@ fun createDbConn(config: Config) {
  *
  * @param config Application configuration
  * @param internet HTTP client for external communications
+ * @param tokenProvider JWT token provider for access/refresh token generation
  * @return Configured RoutingHttpHandler
  */
-fun createApp(config: Config, internet: HttpHandler): RoutingHttpHandler {
+fun createApp(
+    config: Config,
+    internet: HttpHandler,
+    tokenProvider: TokenProvider,
+): RoutingHttpHandler {
 
+    // Repos
+    val userRepo = UserRepo()
+    val refreshTokenRepo = RefreshTokenRepo()
+    val bookRepo = BookRepo()
+    val shelfRepo = ShelfRepo()
+
+    // Auth
     val googleAuthProvider =
         GoogleAuthProvider(
-            publicKey = config.server.auth.publicKey,
-            jwksUri = config.server.auth.jwksUri,
-            issuer = config.server.auth.issuer,
-            audience = config.server.auth.audience,
-            userRepo = UserRepo(),
+            publicKey = config.server.auth.google.publicKey,
+            jwksUri = config.server.auth.google.jwksUri,
+            issuer = config.server.auth.google.issuer,
+            audience = config.server.auth.google.audience,
+            userRepo = userRepo,
         )
 
-    val authProviders = mapOf("google" to googleAuthProvider)
+    val authService =
+        AuthService(
+            userRepo = userRepo,
+            refreshTokenRepo = refreshTokenRepo,
+            googleAuthProvider = googleAuthProvider,
+            tokenProvider = tokenProvider,
+        )
 
     val bookService =
         BookService(
-            bookRepo = BookRepo(),
+            bookRepo = bookRepo,
             googleBooksClient =
                 GoogleBooksClient(
                     host = config.client.googleApisHost.toUri(),
@@ -122,9 +144,9 @@ fun createApp(config: Config, internet: HttpHandler): RoutingHttpHandler {
                 ),
         )
 
-    val shelfService = ShelfService(shelfRepo = ShelfRepo())
+    val shelfService = ShelfService(shelfRepo = shelfRepo)
 
-    val userService = UserService(userRepo = UserRepo())
+    //    val userService = UserService(userRepo = userRepo)
 
     return withPrefix(
         AppConstants.API_PREFIX,
@@ -134,20 +156,19 @@ fun createApp(config: Config, internet: HttpHandler): RoutingHttpHandler {
             bookService::createBook,
             bookService::deleteBook,
             bookService::searchBooks,
-            //            authProvider::verifyToken,
+            authMiddleware(tokenProvider),
         ),
         shelfRoutes(
             shelfService::getShelfById,
             shelfService::getAllShelves,
             shelfService::createShelf,
             shelfService::deleteShelf,
-            //            authProvider::verifyToken,
+            authMiddleware(tokenProvider),
         ),
         authRoutes(
-            userService::registerWithEmail,
-            userService::loginWithEmail,
-            userService::authenticateOrRegister,
-            authProviders = authProviders,
+            authService::registerWithEmail,
+            authService::loginWithEmail,
+            authService::authenticateWith,
         ),
     )
 }
@@ -159,8 +180,13 @@ fun main() {
         logger.info { "creating database connection" }
         createDbConn(config = config)
         logger.info { "creating app" }
-        val app = createApp(config = config, internet = OkHttp())
-        val webApp = webApp(config.server.auth.audience, config.server.auth.redirectUri.toUri())
+        val app =
+            createApp(config = config, internet = OkHttp(), tokenProvider = JwtTokenProvider())
+        val webApp =
+            webApp(
+                config.server.auth.google.audience,
+                config.server.auth.google.redirectUri.toUri(),
+            )
 
         logger.info { "starting app on port: ${config.server.port}" }
         routes(app, webApp).asServer(Jetty(config.server.port)).start()

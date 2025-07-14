@@ -50,8 +50,5 @@ CREATE TABLE IF NOT EXISTS books
     author     VARCHAR(250) NOT NULL,
     created_at TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
-    shelf_id   INTEGER      NOT NULL,
-    FOREIGN KEY (shelf_id)
-        REFERENCES shelves (id)
-        ON DELETE CASCADE
+    shelf_id   INTEGER      NOT NULL REFERENCES shelves (id) ON DELETE CASCADE
 );

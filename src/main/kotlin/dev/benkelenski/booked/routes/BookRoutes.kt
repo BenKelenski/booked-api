@@ -1,13 +1,16 @@
 package dev.benkelenski.booked.routes
 
-// import dev.benkelenski.booked.auth.Verify
 import dev.benkelenski.booked.domain.Book
 import dev.benkelenski.booked.domain.BookRequest
 import dev.benkelenski.booked.domain.DataBook
+import dev.benkelenski.booked.middleware.AuthMiddleware
 import dev.benkelenski.booked.services.*
 import org.http4k.core.*
 import org.http4k.format.Moshi.auto
-import org.http4k.lens.*
+import org.http4k.lens.Path
+import org.http4k.lens.Query
+import org.http4k.lens.int
+import org.http4k.lens.string
 import org.http4k.routing.RoutingHttpHandler
 import org.http4k.routing.bind
 import org.http4k.routing.routes
@@ -25,10 +28,8 @@ fun bookRoutes(
     createBook: CreateBook,
     deleteBook: DeleteBook,
     searchBooks: SearchBooks,
-    //    verify: Verify,
+    authMiddleware: AuthMiddleware,
 ): RoutingHttpHandler {
-    val userIdLens = RequestKey.required<Int>("userId")
-    //    val authFilter = ServerFilters.BearerAuth(userIdLens, verify)
 
     fun handleGetAllBooks(request: Request): Response {
         return getAllBooks().let { Response(Status.OK).with(booksLens of it.toTypedArray()) }
@@ -40,14 +41,16 @@ fun bookRoutes(
     }
 
     fun handleCreateBook(request: Request): Response {
-        val userId = 1 // TODO
+        val userId =
+            request.header("X-User-Id")?.toIntOrNull() ?: return Response(Status.UNAUTHORIZED)
         return createBook(userId, bookRequestLens(request))?.let {
             Response(Status.CREATED).with(bookLens of it)
         } ?: Response(Status.EXPECTATION_FAILED)
     }
 
     fun handleDeleteBook(request: Request): Response {
-        val userId = 1 // TODO
+        val userId =
+            request.header("X-User-Id")?.toIntOrNull() ?: return Response(Status.UNAUTHORIZED)
 
         return when (deleteBook(userId, bookIdLens(request))) {
             is BookDeleteResult.Success -> Response(Status.NO_CONTENT)
@@ -71,8 +74,12 @@ fun bookRoutes(
                 "/" bind Method.GET to ::handleGetAllBooks,
                 "/search" bind Method.GET to ::handleSearchGoogleBooks,
                 "/$bookIdLens" bind Method.GET to ::handleGetBook,
-                "/" bind Method.POST to ::handleCreateBook,
-                "/$bookIdLens" bind Method.DELETE to ::handleDeleteBook,
+                authMiddleware.then(
+                    routes(
+                        "/" bind Method.POST to ::handleCreateBook,
+                        "/$bookIdLens" bind Method.DELETE to ::handleDeleteBook,
+                    )
+                ),
             )
     )
 }

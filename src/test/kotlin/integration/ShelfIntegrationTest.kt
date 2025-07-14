@@ -1,8 +1,5 @@
 package integration
 
-import TestUtils
-import com.auth0.jwt.JWT
-import com.auth0.jwt.algorithms.Algorithm
 import dev.benkelenski.booked.createApp
 import dev.benkelenski.booked.domain.ShelfRequest
 import dev.benkelenski.booked.loadConfig
@@ -12,9 +9,11 @@ import dev.benkelenski.booked.routes.shelfRequestLens
 import dev.benkelenski.booked.routes.shelvesLens
 import io.kotest.matchers.collections.shouldHaveSize
 import io.kotest.matchers.shouldBe
-import io.kotest.matchers.string.shouldContain
+import io.kotest.matchers.shouldNotBe
 import org.http4k.base64Encode
 import org.http4k.core.*
+import org.http4k.core.cookie.Cookie
+import org.http4k.core.cookie.cookie
 import org.http4k.kotest.shouldHaveStatus
 import org.http4k.lens.bearerAuth
 import org.http4k.routing.RoutingHttpHandler
@@ -22,8 +21,10 @@ import org.http4k.routing.reverseProxy
 import org.jetbrains.exposed.sql.Database
 import org.junit.jupiter.api.*
 import org.testcontainers.containers.PostgreSQLContainer
+import utils.FakeDbUtils
+import utils.FakeTokenProvider
+import utils.fakeGoogleBooks
 import java.security.KeyPairGenerator
-import java.security.interfaces.RSAPrivateKey
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class ShelfIntegrationTest {
@@ -37,14 +38,7 @@ class ShelfIntegrationTest {
 
     private val config = loadConfig("test")
 
-    private fun createToken(userId: String): String {
-        val algorithm = Algorithm.RSA256(null, keyPair.private as RSAPrivateKey)
-        return JWT.create()
-            .withIssuer(config.server.auth.issuer)
-            .withAudience(config.server.auth.audience)
-            .withSubject(userId)
-            .sign(algorithm)
-    }
+    private val fakeTokenProvider = FakeTokenProvider()
 
     @BeforeAll
     fun setupApp() {
@@ -63,23 +57,24 @@ class ShelfIntegrationTest {
             password = postgres.password,
         )
 
-        config.apply { server.auth.publicKey = keyPair.public.encoded.base64Encode() }
+        config.apply { server.auth.google.publicKey = keyPair.public.encoded.base64Encode() }
         app =
             createApp(
                 config = config,
                 internet =
                     reverseProxy(Uri.of(config.client.googleApisHost).host to fakeGoogleBooks()),
+                fakeTokenProvider,
             )
     }
 
     @BeforeEach
     fun setup() {
-        TestUtils.buildTables()
+        FakeDbUtils.buildTables()
     }
 
     @AfterEach
     fun teardown() {
-        TestUtils.dropTables()
+        FakeDbUtils.dropTables()
     }
 
     @AfterAll
@@ -89,7 +84,7 @@ class ShelfIntegrationTest {
 
     @Test
     fun `get all shelves`() {
-        repeat(3) { ShelfRepo().addShelf(userId = "user1", name = "shelf $it", description = null) }
+        repeat(3) { ShelfRepo().addShelf(userId = 1, name = "shelf $it", description = null) }
 
         val response = app(Request(Method.GET, "/api/v1/shelves"))
 
@@ -114,9 +109,9 @@ class ShelfIntegrationTest {
 
     @Test
     fun `get shelf - found`() {
-        val shelf = ShelfRepo().addShelf(userId = "user1", name = "shelf 1", description = null)
-        ShelfRepo().addShelf(userId = "user1", name = "shelf 2", description = null)
-        ShelfRepo().addShelf(userId = "user1", name = "shelf 3", description = null)
+        val shelf = ShelfRepo().addShelf(userId = 1, name = "shelf 1", description = null)
+        ShelfRepo().addShelf(userId = 1, name = "shelf 2", description = null)
+        ShelfRepo().addShelf(userId = 1, name = "shelf 3", description = null)
 
         val response = app(Request(Method.GET, "/api/v1/shelves/${shelf?.id}"))
 
@@ -136,15 +131,22 @@ class ShelfIntegrationTest {
 
     @Test
     fun `create shelf`() {
+        val userId = 1
         val response =
             app(
                 Request(Method.POST, "/api/v1/shelves")
                     .with(shelfRequestLens of ShelfRequest("shelf 1", null))
-                    .bearerAuth(createToken("user1"))
+                    .cookie(Cookie("access_token", fakeTokenProvider.generateAccessToken(userId)))
             )
 
+        val responseBody = shelfLens(response)
+
         response shouldHaveStatus Status.CREATED
-        response.bodyString() shouldContain "shelf 1"
+        responseBody.id shouldBe 1
+        responseBody.name shouldBe "shelf 1"
+        responseBody.description shouldBe null
+        responseBody.createdAt shouldNotBe null
+        responseBody.userId shouldBe userId
     }
 
     @Test
@@ -163,28 +165,30 @@ class ShelfIntegrationTest {
     @Test
     fun `delete shelf - not found`() {
         Request(Method.DELETE, "/api/v1/shelves/999")
-            .bearerAuth(createToken("user1"))
+            .cookie(Cookie("access_token", fakeTokenProvider.generateAccessToken(1)))
             .let(app)
             .shouldHaveStatus(Status.NOT_FOUND)
     }
 
     @Test
     fun `delete shelf - forbidden`() {
-        val shelf = ShelfRepo().addShelf(userId = "user1", name = "shelf 1", description = null)
+        val shelf = ShelfRepo().addShelf(userId = 1, name = "shelf 1", description = null)
 
         Request(Method.DELETE, "/api/v1/shelves/${shelf?.id}")
-            .bearerAuth(createToken("user2"))
+            .cookie(Cookie("access_token", fakeTokenProvider.generateAccessToken(2)))
             .let(app)
             .shouldHaveStatus(Status.FORBIDDEN)
     }
 
     @Test
     fun `delete shelf - success`() {
-        val shelf = ShelfRepo().addShelf(userId = "user1", name = "shelf 1", description = null)
-        ShelfRepo().addShelf(userId = "user1", name = "shelf 2", description = null)
+        val userId = 1
+
+        val shelf = ShelfRepo().addShelf(userId = userId, name = "shelf 1", description = null)
+        ShelfRepo().addShelf(userId = userId, name = "shelf 2", description = null)
 
         Request(Method.DELETE, "/api/v1/shelves/${shelf?.id}")
-            .bearerAuth(createToken("user1"))
+            .cookie(Cookie("access_token", fakeTokenProvider.generateAccessToken(userId)))
             .let(app)
             .shouldHaveStatus(Status.NO_CONTENT)
 

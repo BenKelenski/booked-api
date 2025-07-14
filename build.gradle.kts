@@ -22,7 +22,7 @@ dependencies {
     implementation("org.http4k:http4k-config")
     // DB
     implementation("org.jetbrains.exposed:exposed-core:0.61.0")
-    implementation("org.jetbrains.exposed:exposed-kotlin-datetime:0.61.0")
+    implementation("org.jetbrains.exposed:exposed-java-time:0.61.0")
     runtimeOnly("org.jetbrains.exposed:exposed-jdbc:0.61.0")
     runtimeOnly("org.postgresql:postgresql:42.7.2")
     // logging

@@ -1,16 +1,17 @@
 package dev.benkelenski.booked.routes
 
-import dev.benkelenski.booked.auth.AuthProvider
 import dev.benkelenski.booked.domain.AuthPayload
 import dev.benkelenski.booked.domain.UserResponse
 import dev.benkelenski.booked.domain.requests.LoginRequest
 import dev.benkelenski.booked.domain.requests.OAuthRequest
 import dev.benkelenski.booked.domain.requests.RegisterRequest
-import dev.benkelenski.booked.services.AuthenticateOrRegister
+import dev.benkelenski.booked.services.AuthResult
+import dev.benkelenski.booked.services.AuthenticateWith
 import dev.benkelenski.booked.services.LoginWithEmail
 import dev.benkelenski.booked.services.RegisterWithEmail
-import dev.benkelenski.booked.utils.JwtUtils
+import dev.benkelenski.booked.utils.CookieUtils
 import org.http4k.core.*
+import org.http4k.core.cookie.cookie
 import org.http4k.format.Moshi.auto
 import org.http4k.routing.RoutingHttpHandler
 import org.http4k.routing.bind
@@ -25,8 +26,7 @@ val userResLens = Body.auto<UserResponse>().toLens()
 fun authRoutes(
     registerWithEmail: RegisterWithEmail,
     loginWithEmail: LoginWithEmail,
-    authenticateOrRegister: AuthenticateOrRegister,
-    authProviders: Map<String, AuthProvider>,
+    authenticateWith: AuthenticateWith,
 ): RoutingHttpHandler {
 
     return routes(
@@ -36,44 +36,67 @@ fun authRoutes(
                     Method.POST to
                     { request ->
                         val registerRequest = registerRequestLens(request)
-                        val res =
-                            registerWithEmail(
-                                registerRequest.email,
-                                registerRequest.password,
-                                registerRequest.name,
-                            )
-
-                        val token = JwtUtils.generateAccessToken(res.id)
-                        println("Generated token: $token for user ${res.name} (${res.id})")
-                        Response(Status.OK).with(userResLens of res)
+                        when (
+                            val result =
+                                registerWithEmail(
+                                    registerRequest.email,
+                                    registerRequest.password,
+                                    registerRequest.name,
+                                )
+                        ) {
+                            is AuthResult.Success -> {
+                                val s = result.session
+                                Response(Status.OK)
+                                    .cookie(CookieUtils.accessTokenCookie(s.accessToken))
+                                    .cookie(CookieUtils.refreshTokenCookie(s.refreshToken))
+                                    .with(userResLens of UserResponse.from(s.user))
+                            }
+                            is AuthResult.Failure -> {
+                                Response(Status.BAD_REQUEST).body(result.reason)
+                            }
+                        }
                     },
                 "/login" bind
                     Method.POST to
                     { request ->
                         val loginRequest = loginRequestLens(request)
-                        loginWithEmail(loginRequest.email, loginRequest.password).let {
-                            Response(Status.OK).with(userResLens of it)
+                        when (
+                            val result = loginWithEmail(loginRequest.email, loginRequest.password)
+                        ) {
+                            is AuthResult.Success -> {
+                                val s = result.session
+                                Response(Status.OK)
+                                    .cookie(CookieUtils.accessTokenCookie(s.accessToken))
+                                    .cookie(CookieUtils.refreshTokenCookie(s.refreshToken))
+                                    .with(userResLens of UserResponse.from(s.user))
+                            }
+                            is AuthResult.Failure -> {
+                                Response(Status.BAD_REQUEST).body(result.reason)
+                            }
                         }
                     },
                 "/oauth" bind
                     Method.POST to
                     { request ->
                         val authRequest = authRequestLens(request)
-                        val provider = authRequest.provider
-                        val providerToken = authRequest.token
-                        val authProvider =
-                            authProviders[provider] ?: throw RuntimeException("Provider not found")
-                        authProvider.authenticate(providerToken)
 
-                        authenticateOrRegister(
-                                AuthPayload(
-                                    provider = authRequest.provider,
-                                    providerUserId = authRequest.providerUserId,
-                                    name = authRequest.name,
-                                    email = authRequest.email,
+                        when (
+                            val result =
+                                authenticateWith(
+                                    AuthPayload(authRequest.provider, authRequest.token)
                                 )
-                            )
-                            .let { Response(Status.OK).with(userResLens of it) }
+                        ) {
+                            is AuthResult.Success -> {
+                                val s = result.session
+                                Response(Status.OK)
+                                    .cookie(CookieUtils.accessTokenCookie(s.accessToken))
+                                    .cookie(CookieUtils.refreshTokenCookie(s.refreshToken))
+                                    .with(userResLens of UserResponse.from(s.user))
+                            }
+                            is AuthResult.Failure -> {
+                                Response(Status.BAD_REQUEST).body(result.reason)
+                            }
+                        }
                     },
             )
     )

@@ -1,0 +1,27 @@
+### POST register user
+POST {{baseUrl}}{{basePath}}/auth/register
+Content-Type: application/json
+
+{
+  "email": "jane@example.com",
+  "password": "securepass",
+  "name": "Jane"
+}
+
+### POST login user
+POST {{baseUrl}}{{basePath}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "jane@example.com",
+  "password": "securepass"
+}
+
+### POST oauth authenticate
+POST {{baseUrl}}{{basePath}}/auth/oauth
+Content-Type: application/json
+
+{
+  "provider": "google",
+  "token": ""
+}

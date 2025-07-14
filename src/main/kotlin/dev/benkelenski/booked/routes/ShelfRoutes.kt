@@ -3,6 +3,7 @@ package dev.benkelenski.booked.routes
 // import dev.benkelenski.booked.auth.Verify
 import dev.benkelenski.booked.domain.Shelf
 import dev.benkelenski.booked.domain.ShelfRequest
+import dev.benkelenski.booked.middleware.AuthMiddleware
 import dev.benkelenski.booked.services.*
 import org.http4k.core.*
 import org.http4k.format.Moshi.auto
@@ -23,7 +24,7 @@ fun shelfRoutes(
     getAllShelves: GetAllShelves,
     createShelf: CreateShelf,
     deleteShelf: DeleteShelf,
-    //    verify: Verify,
+    authMiddleware: AuthMiddleware,
 ): RoutingHttpHandler {
     val userIdLens = RequestKey.required<Int>("userId")
     //    val authFilter = ServerFilters.BearerAuth(userIdLens, verify)
@@ -38,14 +39,16 @@ fun shelfRoutes(
     }
 
     fun handleCreateShelf(request: Request): Response {
-        val userId = 1 // TODO
+        val userId =
+            request.header("X-User-Id")?.toIntOrNull() ?: return Response(Status.UNAUTHORIZED)
         return createShelf(userId, shelfRequestLens(request))?.let {
             Response(Status.CREATED).with(shelfLens of it)
         } ?: Response(Status.EXPECTATION_FAILED)
     }
 
     fun handleDeleteShelf(request: Request): Response {
-        val userId = 1 // TODO
+        val userId =
+            request.header("X-User-Id")?.toIntOrNull() ?: return Response(Status.UNAUTHORIZED)
 
         return when (deleteShelf(userId, shelfIdLens(request))) {
             is ShelfDeleteResult.Success -> Response(Status.NO_CONTENT)
@@ -60,8 +63,12 @@ fun shelfRoutes(
             routes(
                 "/" bind Method.GET to ::handleGetAllShelves,
                 "/$shelfIdLens" bind Method.GET to ::handleGetShelf,
-                "/" bind Method.POST to ::handleCreateShelf,
-                "/$shelfIdLens" bind Method.DELETE to ::handleDeleteShelf,
+                authMiddleware.then(
+                    routes(
+                        "/" bind Method.POST to ::handleCreateShelf,
+                        "/$shelfIdLens" bind Method.DELETE to ::handleDeleteShelf,
+                    )
+                ),
             )
     )
 }
