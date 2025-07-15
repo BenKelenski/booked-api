@@ -45,3 +45,7 @@ bin/
 
 ### Keys ###
 /keys/
+
+### ENV
+.env
+http-client.env.json
