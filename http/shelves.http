@@ -1,11 +1,11 @@
 ### GET all shelves
-GET {{baseUrl}}{{basePath}}/shelves
+GET {{API_URL}}/shelves
 
 ### GET get shelf by ID
-GET {{baseUrl}}{{basePath}}/shelves/1
+GET {{API_URL}}/shelves/1
 
 ### POST add new shelf
-POST {{baseUrl}}{{basePath}}/shelves
+POST {{API_URL}}/shelves
 Content-Type: application/json
 
 {
@@ -13,4 +13,4 @@ Content-Type: application/json
 }
 
 ### DELETE remove shelf
-DELETE {{baseUrl}}{{basePath}}/shelves/1
+DELETE {{API_URL}}/shelves/1

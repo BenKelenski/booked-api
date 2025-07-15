@@ -1,5 +1,5 @@
 ### POST register user
-POST {{baseUrl}}{{basePath}}/auth/register
+POST {{API_URL}}/auth/register
 Content-Type: application/json
 
 {
@@ -9,7 +9,7 @@ Content-Type: application/json
 }
 
 ### POST login user
-POST {{baseUrl}}{{basePath}}/auth/login
+POST {{API_URL}}/auth/login
 Content-Type: application/json
 
 {
@@ -18,7 +18,7 @@ Content-Type: application/json
 }
 
 ### POST oauth authenticate
-POST {{baseUrl}}{{basePath}}/auth/oauth
+POST {{API_URL}}/auth/oauth
 Content-Type: application/json
 
 {

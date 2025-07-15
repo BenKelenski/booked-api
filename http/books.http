@@ -1,11 +1,11 @@
 ### GET all books
-GET {{baseUrl}}{{basePath}}/books
+GET {{API_URL}}/books
 
 ### GET get book by ID
-GET {{baseUrl}}{{basePath}}/books/1
+GET {{API_URL}}/books/1
 
 ### POST save book 1
-POST {{baseUrl}}{{basePath}}/books
+POST {{API_URL}}/books
 Content-Type: application/json
 
 {
@@ -15,7 +15,7 @@ Content-Type: application/json
 }
 
 ### POST save book 2
-POST {{baseUrl}}{{basePath}}/books
+POST {{API_URL}}/books
 Content-Type: application/json
 
 {
@@ -25,7 +25,7 @@ Content-Type: application/json
 }
 
 ### DELETE book by ID
-DELETE {{baseUrl}}{{basePath}}/books/1
+DELETE {{API_URL}}/books/1
 
 ### GET Search google books
-GET {{baseUrl}}{{basePath}}/books/search?query=flowers+inauthor:keyes
+GET {{API_URL}}/books/search?query=flowers+inauthor:keyes
