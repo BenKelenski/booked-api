@@ -16,8 +16,6 @@ fun authMiddleware(tokenProvider: TokenProvider): Filter = Filter { next ->
             req.cookie("access_token")?.value
                 ?: return@Filter Response(Status.UNAUTHORIZED).body("Missing access token")
 
-        println("token: $token")
-
         val userId =
             tokenProvider.extractUserId(token)
                 ?: return@Filter Response(Status.UNAUTHORIZED).body("Invalid or expired token")
