@@ -18,4 +18,13 @@ object PasswordUtils {
 
     fun verify(password: String, hash: String): Boolean =
         BCrypt.verifyer().verify(password.toCharArray(), hash).verified
+
+    fun verifyRefreshToken(rawToken: String, storedHash: String): Boolean {
+        val sha256 =
+            MessageDigest.getInstance("SHA-256").digest(rawToken.toByteArray(Charsets.UTF_8))
+
+        val hex = sha256.joinToString("") { byte -> "%02x".format(byte) }
+
+        return BCrypt.verifyer().verify(hex.toCharArray(), storedHash).verified
+    }
 }

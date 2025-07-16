@@ -169,6 +169,8 @@ fun createApp(
             authService::registerWithEmail,
             authService::loginWithEmail,
             authService::authenticateWith,
+            authService::refresh,
+            authService::logout,
         ),
     )
 }

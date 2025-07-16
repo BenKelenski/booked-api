@@ -6,6 +6,7 @@ GET {{API_URL}}/shelves/1
 
 ### POST add new shelf
 POST {{API_URL}}/shelves
+Cookie: access_token={{ACCESS_TOKEN}}
 Content-Type: application/json
 
 {

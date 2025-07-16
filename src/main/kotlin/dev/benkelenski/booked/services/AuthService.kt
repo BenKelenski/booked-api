@@ -19,6 +19,12 @@ typealias LoginWithEmail = (email: String, password: String) -> AuthResult
 /** alias for [AuthService.authenticateWith] */
 typealias AuthenticateWith = (authPayload: AuthPayload) -> AuthResult
 
+/** alias for [AuthService.refresh] */
+typealias Refresh = (refreshToken: String) -> AuthResult
+
+/** alias for [AuthService.logout] */
+typealias Logout = (userId: Int) -> Unit
+
 class AuthService(
     private val userRepo: UserRepo,
     private val refreshTokenRepo: RefreshTokenRepo,
@@ -88,6 +94,27 @@ class AuthService(
         val (accessToken, refreshToken) = getTokens(user.id)
 
         return AuthResult.Success(session = SessionResult(user, accessToken, refreshToken))
+    }
+
+    fun refresh(refreshToken: String): AuthResult {
+
+        val tokenId =
+            tokenProvider.getTokenId(refreshToken)
+                ?: return AuthResult.Failure("Invalid refresh token")
+
+        val userId =
+            refreshTokenRepo.validateAndDelete(refreshToken, tokenId)
+                ?: return AuthResult.Failure("Failure to delete refresh token")
+
+        val (accessToken, refreshToken) = getTokens(userId)
+
+        val user = userRepo.getUserById(userId) ?: return AuthResult.Failure("User not found")
+
+        return AuthResult.Success(SessionResult(user, accessToken, refreshToken))
+    }
+
+    fun logout(userId: Int) {
+        refreshTokenRepo.deleteAllForUser(userId)
     }
 
     private fun getTokens(userId: Int): Pair<String, String> {

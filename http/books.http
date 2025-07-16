@@ -6,6 +6,7 @@ GET {{API_URL}}/books/1
 
 ### POST save book 1
 POST {{API_URL}}/books
+Cookie: access_token={{ACCESS_TOKEN}}
 Content-Type: application/json
 
 {
@@ -16,6 +17,7 @@ Content-Type: application/json
 
 ### POST save book 2
 POST {{API_URL}}/books
+Cookie: access_token={{ACCESS_TOKEN}}
 Content-Type: application/json
 
 {

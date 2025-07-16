@@ -25,3 +25,7 @@ Content-Type: application/json
   "provider": "google",
   "token": "{{PROVIDER_TOKEN}}"
 }
+
+### POST logout user
+POST {{API_URL}}/auth/logout
+Set-Cookie:

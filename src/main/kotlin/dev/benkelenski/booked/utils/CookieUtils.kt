@@ -25,4 +25,15 @@ object CookieUtils {
             sameSite = SameSite.Strict,
             maxAge = 7 * 24 * 60 * 60,
         )
+
+    fun expireCookie(name: String): Cookie =
+        Cookie(
+            name = name,
+            value = "", // empty value
+            path = "/",
+            maxAge = 0, // expire immediately
+            secure = true,
+            httpOnly = true,
+            sameSite = SameSite.Strict,
+        )
 }
