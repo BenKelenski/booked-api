@@ -38,17 +38,6 @@ private object AppConstants {
 }
 
 /**
- * Combines routes with a common prefix
- *
- * @param prefix The common prefix for all routes
- * @param routes The routes to be combined
- * @return A RoutingHttpHandler with all routes under the specified prefix
- */
-private fun withPrefix(prefix: String, vararg routes: RoutingHttpHandler): RoutingHttpHandler {
-    return prefix bind routes(*routes)
-}
-
-/**
  * Loads application configuration from resources
  *
  * @param profile Optional profile name for environment-specific configuration
@@ -148,31 +137,31 @@ fun createApp(
 
     //    val userService = UserService(userRepo = userRepo)
 
-    return withPrefix(
-        AppConstants.API_PREFIX,
-        bookRoutes(
-            bookService::getBookById,
-            bookService::getAllBooks,
-            bookService::createBook,
-            bookService::deleteBook,
-            bookService::searchBooks,
-            authMiddleware(tokenProvider),
-        ),
-        shelfRoutes(
-            shelfService::getShelfById,
-            shelfService::getAllShelves,
-            shelfService::createShelf,
-            shelfService::deleteShelf,
-            authMiddleware(tokenProvider),
-        ),
-        authRoutes(
-            authService::registerWithEmail,
-            authService::loginWithEmail,
-            authService::authenticateWith,
-            authService::refresh,
-            authService::logout,
-        ),
-    )
+    return AppConstants.API_PREFIX bind
+        routes(
+            bookRoutes(
+                bookService::getBookById,
+                bookService::getAllBooks,
+                bookService::createBook,
+                bookService::deleteBook,
+                bookService::searchBooks,
+                authMiddleware(tokenProvider),
+            ),
+            shelfRoutes(
+                shelfService::getShelfById,
+                shelfService::getAllShelves,
+                shelfService::createShelf,
+                shelfService::deleteShelf,
+                authMiddleware(tokenProvider),
+            ),
+            authRoutes(
+                authService::registerWithEmail,
+                authService::loginWithEmail,
+                authService::authenticateWith,
+                authService::refresh,
+                authService::logout,
+            ),
+        )
 }
 
 fun main() {
