@@ -28,6 +28,7 @@ Content-Type: application/json
 
 ### DELETE book by ID
 DELETE {{API_URL}}/books/1
+Cookie: access_token={{ACCESS_TOKEN}}
 
 ### GET Search google books
 GET {{API_URL}}/books/search?query=flowers+inauthor:keyes
