@@ -1,3 +1,6 @@
+import groovy.json.JsonSlurper
+import org.gradle.api.tasks.testing.logging.TestLogEvent
+
 plugins {
     application
     kotlin("jvm") version "2.1.20"
@@ -42,6 +45,32 @@ dependencies {
     testImplementation(kotlin("test"))
 }
 
-tasks.test { useJUnitPlatform() }
+// lazily fetch Colima’s IP once
+val colimaHost: String by lazy {
+    val proc =
+        ProcessBuilder("colima", "ls", "-j").redirectErrorStream(true).start().apply { waitFor() }
+    val json = JsonSlurper().parseText(proc.inputStream.bufferedReader().readText()) as Map<*, *>
+    json["address"] as String
+}
+
+tasks.test {
+    // point Docker client at Colima’s socket
+    environment(
+        "DOCKER_HOST",
+        "unix://${System.getProperty("user.home")}/.colima/default/docker.sock",
+    )
+    // tell Testcontainers to bind inside container to /var/run/docker.sock
+    environment("TESTCONTAINERS_DOCKER_SOCKET_OVERRIDE", "/var/run/docker.sock")
+    // tell Testcontainers the host address of the Colima VM
+    environment("TESTCONTAINERS_HOST_OVERRIDE", colimaHost)
+
+    testLogging {
+        events = setOf(TestLogEvent.PASSED, TestLogEvent.SKIPPED, TestLogEvent.FAILED)
+        // show System.out/System.err for every test
+        showStandardStreams = true
+    }
+
+    useJUnitPlatform()
+}
 
 kotlin { jvmToolchain(21) }
