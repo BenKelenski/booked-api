@@ -2,24 +2,22 @@ package dev.benkelenski.booked.repos
 
 import dev.benkelenski.booked.domain.Book
 import dev.benkelenski.booked.models.Books
-import org.jetbrains.exposed.sql.*
+import org.jetbrains.exposed.sql.ResultRow
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
+import org.jetbrains.exposed.sql.deleteWhere
+import org.jetbrains.exposed.sql.insertReturning
+import org.jetbrains.exposed.sql.selectAll
 import org.jetbrains.exposed.sql.transactions.transaction
 
 class BookRepo {
 
-    fun getAllBooks(): List<Book> = transaction {
-        addLogger(StdOutSqlLogger)
-        Books.selectAll().map { it.toBook() }
-    }
+    fun getAllBooks(): List<Book> = transaction { Books.selectAll().map { it.toBook() } }
 
     fun getBookById(id: Int): Book? = transaction {
-        addLogger(StdOutSqlLogger)
         Books.selectAll().where { Books.id eq id }.map { it.toBook() }.singleOrNull()
     }
 
     fun saveBook(userId: Int, title: String, author: String, shelfId: Int): Book? = transaction {
-        addLogger(StdOutSqlLogger)
         Books.insertReturning {
                 it[Books.userId] = userId
                 it[Books.title] = title
@@ -30,10 +28,7 @@ class BookRepo {
             .singleOrNull()
     }
 
-    fun deleteBook(id: Int): Int = transaction {
-        addLogger(StdOutSqlLogger)
-        Books.deleteWhere { Books.id eq id }
-    }
+    fun deleteBook(id: Int): Int = transaction { Books.deleteWhere { Books.id eq id } }
 }
 
 fun ResultRow.toBook() =

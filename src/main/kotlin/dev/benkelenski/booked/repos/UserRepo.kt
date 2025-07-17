@@ -10,13 +10,9 @@ import org.jetbrains.exposed.sql.transactions.transaction
 
 class UserRepo {
 
-    fun getAllUsers(): List<User> = transaction {
-        addLogger(StdOutSqlLogger)
-        Users.selectAll().map { it.toUser() }
-    }
+    fun getAllUsers(): List<User> = transaction { Users.selectAll().map { it.toUser() } }
 
     fun getUserById(id: Int): User? = transaction {
-        addLogger(StdOutSqlLogger)
         Users.selectAll().where { Users.id eq id }.map { it.toUser() }.singleOrNull()
     }
 
@@ -94,10 +90,7 @@ class UserRepo {
             .singleOrNull()
     }
 
-    fun deleteUser(id: Int): Int = transaction {
-        addLogger(StdOutSqlLogger)
-        Users.deleteWhere { Users.id eq id }
-    }
+    fun deleteUser(id: Int): Int = transaction { Users.deleteWhere { Users.id eq id } }
 }
 
 fun ResultRow.toUser() =
