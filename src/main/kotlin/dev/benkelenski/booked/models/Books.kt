@@ -7,7 +7,6 @@ import org.jetbrains.exposed.sql.javatime.timestampWithTimeZone
 
 object Books : Table("books") {
     val id = integer("id").autoIncrement()
-    val userId = integer("user_id")
     val title = varchar("title", 250)
     val author = varchar("author", 250)
     val createdAt =

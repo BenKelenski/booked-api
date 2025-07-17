@@ -90,21 +90,10 @@ class BookIntegrationTest {
 
         val book1 =
             BookRepo()
-                .saveBook(
-                    userId = 1,
-                    title = "test book 1",
-                    author = "test author 1",
-                    shelfId = shelf!!.id,
-                )
+                .saveBook(title = "test book 1", author = "test author 1", shelfId = shelf!!.id)
 
         val book2 =
-            BookRepo()
-                .saveBook(
-                    userId = 1,
-                    title = "test book 2",
-                    author = "test author 2",
-                    shelfId = shelf.id,
-                )
+            BookRepo().saveBook(title = "test book 2", author = "test author 2", shelfId = shelf.id)
 
         val response = app(Request(Method.GET, "/api/v1/books"))
 
@@ -123,12 +112,7 @@ class BookIntegrationTest {
 
         val book1 =
             BookRepo()
-                .saveBook(
-                    userId = 1,
-                    title = "test book 1",
-                    author = "test author 1",
-                    shelfId = shelf!!.id,
-                )
+                .saveBook(title = "test book 1", author = "test author 1", shelfId = shelf!!.id)
 
         val response = app(Request(Method.GET, "/api/v1/books/${book1?.id}"))
 
@@ -171,7 +155,6 @@ class BookIntegrationTest {
 
         response shouldHaveStatus Status.CREATED
         responseBody.id shouldBe 1
-        responseBody.userId shouldBe userId
         responseBody.shelfId shouldBe shelf.id
         responseBody.title shouldBe "Red Rising"
         responseBody.author shouldBe "Pierce Brown"
@@ -205,12 +188,7 @@ class BookIntegrationTest {
 
         val book =
             BookRepo()
-                .saveBook(
-                    userId = 1,
-                    title = "test book 1",
-                    author = "test author 1",
-                    shelfId = shelf!!.id,
-                )
+                .saveBook(title = "test book 1", author = "test author 1", shelfId = shelf!!.id)
 
         Request(Method.DELETE, "/api/v1/books/${book?.id}")
             .cookie(Cookie("access_token", fakeTokenProvider.generateAccessToken(2)))
@@ -224,16 +202,9 @@ class BookIntegrationTest {
 
         val shelf = ShelfRepo().addShelf(userId, name = "test", description = null)
 
-        BookRepo()
-            .saveBook(
-                userId = 1,
-                title = "test book 1",
-                author = "test author 1",
-                shelfId = shelf!!.id,
-            )
+        BookRepo().saveBook(title = "test book 1", author = "test author 1", shelfId = shelf!!.id)
 
-        val book2 =
-            BookRepo().saveBook(userId = userId, "test book 2", "test author 2", shelfId = shelf.id)
+        val book2 = BookRepo().saveBook("test book 2", "test author 2", shelfId = shelf.id)
 
         val response =
             app(

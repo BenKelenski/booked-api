@@ -36,7 +36,7 @@ CREATE TABLE IF NOT EXISTS refresh_tokens
 CREATE TABLE IF NOT EXISTS shelves
 (
     id          SERIAL PRIMARY KEY,
-    user_id     INTEGER      NOT NULL,
+    user_id     INTEGER      NOT NULL REFERENCES users (id) ON DELETE CASCADE,
     name        VARCHAR(150) NOT NULL,
     description VARCHAR(250) NULL,
     created_at  TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP
@@ -45,7 +45,6 @@ CREATE TABLE IF NOT EXISTS shelves
 CREATE TABLE IF NOT EXISTS books
 (
     id         SERIAL PRIMARY KEY,
-    user_id    INTEGER      NOT NULL,
     title      VARCHAR(250) NOT NULL,
     author     VARCHAR(250) NOT NULL,
     created_at TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP,

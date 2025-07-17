@@ -17,9 +17,8 @@ class BookRepo {
         Books.selectAll().where { Books.id eq id }.map { it.toBook() }.singleOrNull()
     }
 
-    fun saveBook(userId: Int, title: String, author: String, shelfId: Int): Book? = transaction {
+    fun saveBook(title: String, author: String, shelfId: Int): Book? = transaction {
         Books.insertReturning {
-                it[Books.userId] = userId
                 it[Books.title] = title
                 it[Books.author] = author
                 it[Books.shelfId] = shelfId
@@ -34,7 +33,6 @@ class BookRepo {
 fun ResultRow.toBook() =
     Book(
         id = this[Books.id],
-        userId = this[Books.userId],
         title = this[Books.title],
         author = this[Books.author],
         createdAt = this[Books.createdAt].toInstant(),

@@ -28,16 +28,15 @@ class BookService(
     private val googleBooksClient: GoogleBooksClient,
 ) {
 
-    fun getBookById(bookId: Int): Book? = bookRepo.getBookById(bookId)
-
     fun getAllBooks(): List<Book> = bookRepo.getAllBooks()
 
+    fun getBookById(bookId: Int): Book? = bookRepo.getBookById(bookId)
+
     fun createBook(userId: Int, bookRequest: BookRequest): BookCreateResult {
-        shelfRepo.getShelfById(bookRequest.shelfId) ?: return BookCreateResult.ShelfNotFound
+        shelfRepo.getShelfById(userId, bookRequest.shelfId) ?: return BookCreateResult.ShelfNotFound
 
         val newBook =
             bookRepo.saveBook(
-                userId = userId,
                 title = bookRequest.title,
                 author = bookRequest.author,
                 shelfId = bookRequest.shelfId,
@@ -48,7 +47,7 @@ class BookService(
 
     fun deleteBook(userId: Int, bookId: Int): BookDeleteResult {
         val book = bookRepo.getBookById(bookId) ?: return BookDeleteResult.NotFound
-        if (book.userId != userId) return BookDeleteResult.Forbidden
+        //        if (book.userId != userId) return BookDeleteResult.Forbidden
         return if (bookRepo.deleteBook(bookId) == 1) {
             BookDeleteResult.Success
         } else {

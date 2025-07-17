@@ -18,15 +18,15 @@ typealias DeleteShelf = (userId: Int, shelfId: Int) -> ShelfDeleteResult
 
 class ShelfService(private val shelfRepo: ShelfRepo) {
 
-    fun getShelfById(shelfId: Int): Shelf? = shelfRepo.getShelfById(shelfId)
+    fun getShelfById(userId: Int, shelfId: Int): Shelf? = shelfRepo.getShelfById(userId, shelfId)
 
-    fun getAllShelves(): List<Shelf> = shelfRepo.getAllShelves()
+    fun getAllShelves(userId: Int): List<Shelf> = shelfRepo.getAllShelves(userId)
 
     fun createShelf(userId: Int, shelfRequest: ShelfRequest): Shelf? =
         shelfRepo.addShelf(userId, shelfRequest.name, shelfRequest.description)
 
     fun deleteShelf(userId: Int, shelfId: Int): ShelfDeleteResult {
-        val shelf = shelfRepo.getShelfById(shelfId) ?: return ShelfDeleteResult.NotFound
+        val shelf = shelfRepo.getShelfById(userId, shelfId) ?: return ShelfDeleteResult.NotFound
         if (shelf.userId != userId) return ShelfDeleteResult.Forbidden
         return if (shelfRepo.deleteShelf(shelfId) == 1) {
             ShelfDeleteResult.Success

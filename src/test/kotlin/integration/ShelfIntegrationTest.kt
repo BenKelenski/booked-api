@@ -192,6 +192,6 @@ class ShelfIntegrationTest {
             .let(app)
             .shouldHaveStatus(Status.NO_CONTENT)
 
-        ShelfRepo().getAllShelves() shouldHaveSize 1
+        ShelfRepo().getAllShelves(userId) shouldHaveSize 1
     }
 }
