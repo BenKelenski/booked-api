@@ -125,6 +125,7 @@ fun createApp(
     val bookService =
         BookService(
             bookRepo = bookRepo,
+            shelfRepo = shelfRepo,
             googleBooksClient =
                 GoogleBooksClient(
                     host = config.client.googleApisHost.toUri(),

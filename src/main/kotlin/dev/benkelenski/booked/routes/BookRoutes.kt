@@ -43,9 +43,14 @@ fun bookRoutes(
     fun handleCreateBook(request: Request): Response {
         val userId =
             request.header("X-User-Id")?.toIntOrNull() ?: return Response(Status.UNAUTHORIZED)
-        return createBook(userId, bookRequestLens(request))?.let {
-            Response(Status.CREATED).with(bookLens of it)
-        } ?: Response(Status.EXPECTATION_FAILED)
+        return when (val result = createBook(userId, bookRequestLens(request))) {
+            is BookCreateResult.Success -> Response(Status.CREATED).with(bookLens of result.book)
+            is BookCreateResult.ShelfNotFound ->
+                Response(Status.NOT_FOUND).body("Unable to add book to shelf. Shelf not found.")
+            is BookCreateResult.DatabaseError ->
+                Response(Status.INTERNAL_SERVER_ERROR)
+                    .body("Error occurred trying to add book to shelf.")
+        }
     }
 
     fun handleDeleteBook(request: Request): Response {
