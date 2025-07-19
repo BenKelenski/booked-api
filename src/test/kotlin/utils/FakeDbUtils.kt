@@ -1,12 +1,15 @@
 package utils
 
-import dev.benkelenski.booked.models.Books
-import dev.benkelenski.booked.models.Shelves
+import dev.benkelenski.booked.models.*
 import org.jetbrains.exposed.sql.SchemaUtils
 import org.jetbrains.exposed.sql.transactions.transaction
 
 object FakeDbUtils {
-    fun buildTables() = transaction { SchemaUtils.create(Books, Shelves) }
+    fun buildTables() = transaction {
+        SchemaUtils.create(AuthIdentities, Books, RefreshTokens, Shelves, Users)
+    }
 
-    fun dropTables() = transaction { SchemaUtils.drop(Books, Shelves) }
+    fun dropTables() = transaction {
+        SchemaUtils.drop(AuthIdentities, Books, RefreshTokens, Shelves, Users)
+    }
 }

@@ -29,7 +29,13 @@ class ShelfRepo {
             .singleOrNull()
     }
 
-    fun deleteShelf(id: Int): Int = transaction { Shelves.deleteWhere { Shelves.id eq id } }
+    fun deleteByIdAndUser(userId: Int, shelfId: Int): Int = transaction {
+        Shelves.deleteWhere { (Shelves.id eq shelfId) and (Shelves.userId eq userId) }
+    }
+
+    fun existsById(id: Int): Boolean = transaction {
+        Shelves.selectAll().where { Shelves.id eq id }.any()
+    }
 }
 
 fun ResultRow.toShelf() =

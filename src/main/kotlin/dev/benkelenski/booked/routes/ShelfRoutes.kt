@@ -8,7 +8,6 @@ import dev.benkelenski.booked.services.*
 import org.http4k.core.*
 import org.http4k.format.Moshi.auto
 import org.http4k.lens.Path
-import org.http4k.lens.RequestKey
 import org.http4k.lens.int
 import org.http4k.routing.RoutingHttpHandler
 import org.http4k.routing.bind
@@ -25,50 +24,61 @@ fun shelfRoutes(
     createShelf: CreateShelf,
     deleteShelf: DeleteShelf,
     authMiddleware: AuthMiddleware,
-): RoutingHttpHandler {
-    val userIdLens = RequestKey.required<Int>("userId")
-    //    val authFilter = ServerFilters.BearerAuth(userIdLens, verify)
-
-    fun handleGetAllShelves(request: Request): Response {
-        return getAllShelves().let { Response(Status.OK).with(shelvesLens of it.toTypedArray()) }
-    }
-
-    fun handleGetShelf(request: Request): Response {
-        return getShelfById(shelfIdLens(request))?.let { Response(Status.OK).with(shelfLens of it) }
-            ?: Response(Status.NOT_FOUND)
-    }
-
-    fun handleCreateShelf(request: Request): Response {
-        val userId =
-            request.header("X-User-Id")?.toIntOrNull() ?: return Response(Status.UNAUTHORIZED)
-        return createShelf(userId, shelfRequestLens(request))?.let {
-            Response(Status.CREATED).with(shelfLens of it)
-        } ?: Response(Status.EXPECTATION_FAILED)
-    }
-
-    fun handleDeleteShelf(request: Request): Response {
-        val userId =
-            request.header("X-User-Id")?.toIntOrNull() ?: return Response(Status.UNAUTHORIZED)
-
-        return when (deleteShelf(userId, shelfIdLens(request))) {
-            is ShelfDeleteResult.Success -> Response(Status.NO_CONTENT)
-            is ShelfDeleteResult.NotFound -> Response(Status.NOT_FOUND)
-            is ShelfDeleteResult.Forbidden -> Response(Status.FORBIDDEN)
-            is ShelfDeleteResult.Failure -> Response(Status.INTERNAL_SERVER_ERROR)
-        }
-    }
-
-    return routes(
+): RoutingHttpHandler =
+    routes(
         "/shelves" bind
-            routes(
-                "/" bind Method.GET to ::handleGetAllShelves,
-                "/$shelfIdLens" bind Method.GET to ::handleGetShelf,
-                authMiddleware.then(
-                    routes(
-                        "/" bind Method.POST to ::handleCreateShelf,
-                        "/$shelfIdLens" bind Method.DELETE to ::handleDeleteShelf,
-                    )
-                ),
+            authMiddleware.then(
+                routes(
+                    "/" bind
+                        Method.GET to
+                        { request ->
+                            val userId =
+                                request.header("X-User-Id")?.toIntOrNull()
+                                    ?: return@to Response(Status.UNAUTHORIZED)
+
+                            getAllShelves(userId).let {
+                                Response(Status.OK).with(shelvesLens of it.toTypedArray())
+                            }
+                        },
+                    "/$shelfIdLens" bind
+                        Method.GET to
+                        { request ->
+                            val userId =
+                                request.header("X-User-Id")?.toIntOrNull()
+                                    ?: return@to Response(Status.UNAUTHORIZED)
+
+                            getShelfById(userId, shelfIdLens(request))?.let {
+                                Response(Status.OK).with(shelfLens of it)
+                            } ?: Response(Status.NOT_FOUND)
+                        },
+                    "/" bind
+                        Method.POST to
+                        { request ->
+                            val userId =
+                                request.header("X-User-Id")?.toIntOrNull()
+                                    ?: return@to Response(Status.UNAUTHORIZED)
+                            createShelf(userId, shelfRequestLens(request))?.let {
+                                Response(Status.CREATED).with(shelfLens of it)
+                            } ?: Response(Status.EXPECTATION_FAILED)
+                        },
+                    "/$shelfIdLens" bind
+                        Method.DELETE to
+                        { request ->
+                            val userId =
+                                request.header("X-User-Id")?.toIntOrNull()
+                                    ?: return@to Response(Status.UNAUTHORIZED)
+                            val shelfId = shelfIdLens(request)
+
+                            when (deleteShelf(userId, shelfId)) {
+                                is ShelfDeleteResult.Success -> Response(Status.NO_CONTENT)
+                                is ShelfDeleteResult.NotFound -> Response(Status.NOT_FOUND)
+                                is ShelfDeleteResult.Forbidden ->
+                                    Response(Status.FORBIDDEN)
+                                        .body("Cannot delete another user's shelf.")
+                                is ShelfDeleteResult.DatabaseError ->
+                                    Response(Status.INTERNAL_SERVER_ERROR)
+                            }
+                        },
+                )
             )
     )
-}
