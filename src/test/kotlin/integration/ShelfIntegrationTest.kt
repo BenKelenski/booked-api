@@ -11,7 +11,6 @@ import dev.benkelenski.booked.routes.shelvesLens
 import io.kotest.matchers.collections.shouldHaveSize
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
-import java.security.KeyPairGenerator
 import org.http4k.base64Encode
 import org.http4k.core.*
 import org.http4k.core.cookie.Cookie
@@ -26,6 +25,7 @@ import org.testcontainers.containers.PostgreSQLContainer
 import utils.FakeDbUtils
 import utils.FakeTokenProvider
 import utils.fakeGoogleBooks
+import java.security.KeyPairGenerator
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class ShelfIntegrationTest {
@@ -237,15 +237,14 @@ class ShelfIntegrationTest {
 
     @Test
     fun `delete shelf - forbidden`() {
-        val user =
-            UserRepo()
-                .getOrCreateUser(
-                    provider = "email",
-                    providerUserId = "test@test.com",
-                    email = "test@test.com",
-                    name = "testuser",
-                    password = "securepass",
-                )
+        UserRepo()
+            .getOrCreateUser(
+                provider = "email",
+                providerUserId = "test@test.com",
+                email = "test@test.com",
+                name = "testuser",
+                password = "securepass",
+            )
 
         val shelf = ShelfRepo().addShelf(userId = 1, name = "shelf 1", description = null)
 
