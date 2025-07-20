@@ -6,6 +6,7 @@ import dev.benkelenski.booked.domain.BookRequest
 import dev.benkelenski.booked.domain.DataBook
 import dev.benkelenski.booked.repos.BookRepo
 import dev.benkelenski.booked.repos.ShelfRepo
+import io.github.oshai.kotlinlogging.KotlinLogging
 
 /** alias for [BookService.getBookById] */
 typealias GetBookById = (bookId: Int) -> Book?
@@ -28,6 +29,10 @@ class BookService(
     private val googleBooksClient: GoogleBooksClient,
 ) {
 
+    companion object {
+        private val logger = KotlinLogging.logger {}
+    }
+
     fun getAllBooks(): List<Book> = bookRepo.getAllBooks()
 
     fun getBookById(bookId: Int): Book? = bookRepo.getBookById(bookId)
@@ -45,15 +50,19 @@ class BookService(
         return BookCreateResult.Success(newBook)
     }
 
-    fun deleteBook(userId: Int, bookId: Int): BookDeleteResult {
-        val book = bookRepo.getBookById(bookId) ?: return BookDeleteResult.NotFound
-        //        if (book.userId != userId) return BookDeleteResult.Forbidden
-        return if (bookRepo.deleteBook(bookId) == 1) {
-            BookDeleteResult.Success
-        } else {
-            BookDeleteResult.Failure("Failed to delete $book")
+    fun deleteBook(userId: Int, bookId: Int): BookDeleteResult =
+        try {
+            val deletedCount = bookRepo.deleteByIdAndUser(bookId, userId)
+
+            when {
+                deletedCount == 1 -> BookDeleteResult.Success
+                !bookRepo.existsById(bookId) -> BookDeleteResult.NotFound
+                else -> BookDeleteResult.Forbidden
+            }
+        } catch (e: Exception) {
+            logger.error(e) { "Failed to delete book: $bookId" }
+            BookDeleteResult.DatabaseError
         }
-    }
 
     fun searchBooks(query: String?): Array<DataBook>? = googleBooksClient.search(query)
 }
@@ -73,5 +82,5 @@ sealed class BookDeleteResult {
 
     object Forbidden : BookDeleteResult()
 
-    data class Failure(val reason: String) : BookDeleteResult()
+    object DatabaseError : BookDeleteResult()
 }

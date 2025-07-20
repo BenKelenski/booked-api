@@ -2,11 +2,8 @@ package dev.benkelenski.booked.repos
 
 import dev.benkelenski.booked.domain.Book
 import dev.benkelenski.booked.models.Books
-import org.jetbrains.exposed.sql.ResultRow
-import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
-import org.jetbrains.exposed.sql.deleteWhere
-import org.jetbrains.exposed.sql.insertReturning
-import org.jetbrains.exposed.sql.selectAll
+import dev.benkelenski.booked.models.Shelves
+import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.transactions.transaction
 
 class BookRepo {
@@ -27,7 +24,15 @@ class BookRepo {
             .singleOrNull()
     }
 
-    fun deleteBook(id: Int): Int = transaction { Books.deleteWhere { Books.id eq id } }
+    fun deleteByIdAndUser(userId: Int, bookId: Int): Int = transaction {
+        (Shelves.join(Books, JoinType.INNER, Shelves.id, Books.shelfId)).delete(Books) {
+            (Books.id eq bookId) and (Shelves.userId eq userId)
+        }
+    }
+
+    fun existsById(id: Int): Boolean = transaction {
+        Books.selectAll().where { Books.id eq id }.any()
+    }
 }
 
 fun ResultRow.toBook() =

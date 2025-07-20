@@ -5,6 +5,7 @@ import dev.benkelenski.booked.domain.BookRequest
 import dev.benkelenski.booked.loadConfig
 import dev.benkelenski.booked.repos.BookRepo
 import dev.benkelenski.booked.repos.ShelfRepo
+import dev.benkelenski.booked.repos.UserRepo
 import dev.benkelenski.booked.routes.bookLens
 import dev.benkelenski.booked.routes.bookRequestLens
 import dev.benkelenski.booked.routes.booksLens
@@ -86,7 +87,17 @@ class BookIntegrationTest {
 
     @Test
     fun `get all books`() {
-        val shelf = ShelfRepo().addShelf(userId = 1, name = "test", description = null)
+        val user =
+            UserRepo()
+                .getOrCreateUser(
+                    provider = "email",
+                    providerUserId = "test@test.com",
+                    email = "test@test.com",
+                    name = "testuser",
+                    password = "securepass",
+                )
+
+        val shelf = ShelfRepo().addShelf(userId = user.id, name = "test", description = null)
 
         val book1 =
             BookRepo()
@@ -108,7 +119,17 @@ class BookIntegrationTest {
 
     @Test
     fun `get book - found`() {
-        val shelf = ShelfRepo().addShelf(userId = 1, name = "test", description = null)
+        val user =
+            UserRepo()
+                .getOrCreateUser(
+                    provider = "email",
+                    providerUserId = "test@test.com",
+                    email = "test@test.com",
+                    name = "testuser",
+                    password = "securepass",
+                )
+
+        val shelf = ShelfRepo().addShelf(userId = user.id, name = "test", description = null)
 
         val book1 =
             BookRepo()
@@ -134,8 +155,17 @@ class BookIntegrationTest {
 
     @Test
     fun `create book`() {
-        val userId = 1
-        val shelf = ShelfRepo().addShelf(userId = userId, name = "test", description = null)
+        val user =
+            UserRepo()
+                .getOrCreateUser(
+                    provider = "email",
+                    providerUserId = "test@test.com",
+                    email = "test@test.com",
+                    name = "testuser",
+                    password = "securepass",
+                )
+
+        val shelf = ShelfRepo().addShelf(userId = user.id, name = "test", description = null)
 
         val response =
             app(
@@ -148,7 +178,7 @@ class BookIntegrationTest {
                                 shelfId = shelf!!.id,
                             )
                     )
-                    .cookie(Cookie("access_token", fakeTokenProvider.generateAccessToken(userId)))
+                    .cookie(Cookie("access_token", fakeTokenProvider.generateAccessToken(user.id)))
             )
 
         val responseBody = bookLens(response)
@@ -184,7 +214,17 @@ class BookIntegrationTest {
 
     @Test
     fun `delete book - forbidden`() {
-        val shelf = ShelfRepo().addShelf(userId = 1, name = "test", description = null)
+        val user =
+            UserRepo()
+                .getOrCreateUser(
+                    provider = "email",
+                    providerUserId = "test@test.com",
+                    email = "test@test.com",
+                    name = "testuser",
+                    password = "securepass",
+                )
+
+        val shelf = ShelfRepo().addShelf(userId = user.id, name = "test", description = null)
 
         val book =
             BookRepo()
@@ -198,18 +238,28 @@ class BookIntegrationTest {
 
     @Test
     fun `delete book - success`() {
-        val userId = 1
+        val user =
+            UserRepo()
+                .getOrCreateUser(
+                    provider = "email",
+                    providerUserId = "test@test.com",
+                    email = "test@test.com",
+                    name = "testuser",
+                    password = "securepass",
+                )
 
-        val shelf = ShelfRepo().addShelf(userId, name = "test", description = null)
+        val shelf = ShelfRepo().addShelf(user.id, name = "test", description = null)
 
-        BookRepo().saveBook(title = "test book 1", author = "test author 1", shelfId = shelf!!.id)
+        val book =
+            BookRepo()
+                .saveBook(title = "test book 1", author = "test author 1", shelfId = shelf!!.id)
 
-        val book2 = BookRepo().saveBook("test book 2", "test author 2", shelfId = shelf.id)
+        BookRepo().saveBook(title = "test book 2", author = "test author 2", shelfId = shelf.id)
 
         val response =
             app(
-                Request(Method.DELETE, "/api/v1/books/${book2?.id}")
-                    .cookie(Cookie("access_token", fakeTokenProvider.generateAccessToken(userId)))
+                Request(Method.DELETE, "/api/v1/books/${book?.id}")
+                    .cookie(Cookie("access_token", fakeTokenProvider.generateAccessToken(user.id)))
             )
 
         response shouldHaveStatus Status.NO_CONTENT

@@ -31,58 +31,70 @@ fun bookRoutes(
     authMiddleware: AuthMiddleware,
 ): RoutingHttpHandler {
 
-    fun handleGetAllBooks(request: Request): Response {
-        return getAllBooks().let { Response(Status.OK).with(booksLens of it.toTypedArray()) }
-    }
-
-    fun handleGetBook(request: Request): Response {
-        return getBookById(bookIdLens(request))?.let { Response(Status.OK).with(bookLens of it) }
-            ?: Response(Status.NOT_FOUND)
-    }
-
-    fun handleCreateBook(request: Request): Response {
-        val userId =
-            request.header("X-User-Id")?.toIntOrNull() ?: return Response(Status.UNAUTHORIZED)
-        return when (val result = createBook(userId, bookRequestLens(request))) {
-            is BookCreateResult.Success -> Response(Status.CREATED).with(bookLens of result.book)
-            is BookCreateResult.ShelfNotFound ->
-                Response(Status.NOT_FOUND).body("Unable to add book to shelf. Shelf not found.")
-            is BookCreateResult.DatabaseError ->
-                Response(Status.INTERNAL_SERVER_ERROR)
-                    .body("Error occurred trying to add book to shelf.")
-        }
-    }
-
-    fun handleDeleteBook(request: Request): Response {
-        val userId =
-            request.header("X-User-Id")?.toIntOrNull() ?: return Response(Status.UNAUTHORIZED)
-
-        return when (deleteBook(userId, bookIdLens(request))) {
-            is BookDeleteResult.Success -> Response(Status.NO_CONTENT)
-            is BookDeleteResult.NotFound -> Response(Status.NOT_FOUND)
-            is BookDeleteResult.Forbidden -> Response(Status.FORBIDDEN)
-            is BookDeleteResult.Failure -> Response(Status.INTERNAL_SERVER_ERROR)
-        }
-    }
-
-    fun handleSearchGoogleBooks(request: Request): Response {
-        val query = searchQueryLens(request)
-        println(query)
-
-        return searchBooks(query)?.let { Response(Status.OK).with(dataBooksLens of it) }
-            ?: Response(Status.NOT_FOUND)
-    }
-
     return routes(
         "/books" bind
             routes(
-                "/" bind Method.GET to ::handleGetAllBooks,
-                "/search" bind Method.GET to ::handleSearchGoogleBooks,
-                "/$bookIdLens" bind Method.GET to ::handleGetBook,
+                "/" bind
+                    Method.GET to
+                    {
+                        getAllBooks().let {
+                            Response(Status.OK).with(booksLens of it.toTypedArray())
+                        }
+                    },
+                "/search" bind
+                    Method.GET to
+                    { request ->
+                        val query = searchQueryLens(request)
+
+                        searchBooks(query)?.let { Response(Status.OK).with(dataBooksLens of it) }
+                            ?: Response(Status.NOT_FOUND)
+                    },
+                "/$bookIdLens" bind
+                    Method.GET to
+                    { request ->
+                        val bookId = bookIdLens(request)
+
+                        getBookById(bookId)?.let { Response(Status.OK).with(bookLens of it) }
+                            ?: Response(Status.NOT_FOUND)
+                    },
                 authMiddleware.then(
                     routes(
-                        "/" bind Method.POST to ::handleCreateBook,
-                        "/$bookIdLens" bind Method.DELETE to ::handleDeleteBook,
+                        "/" bind
+                            Method.POST to
+                            { request ->
+                                val userId =
+                                    request.header("X-User-Id")?.toIntOrNull()
+                                        ?: return@to Response(Status.UNAUTHORIZED)
+                                val bookRequest = bookRequestLens(request)
+
+                                when (val result = createBook(userId, bookRequest)) {
+                                    is BookCreateResult.Success ->
+                                        Response(Status.CREATED).with(bookLens of result.book)
+                                    is BookCreateResult.ShelfNotFound ->
+                                        Response(Status.NOT_FOUND)
+                                            .body("Unable to add book to shelf. Shelf not found.")
+                                    is BookCreateResult.DatabaseError ->
+                                        Response(Status.INTERNAL_SERVER_ERROR)
+                                            .body("Error occurred trying to add book to shelf.")
+                                }
+                            },
+                        "/$bookIdLens" bind
+                            Method.DELETE to
+                            { request ->
+                                val userId =
+                                    request.header("X-User-Id")?.toIntOrNull()
+                                        ?: return@to Response(Status.UNAUTHORIZED)
+                                val bookId = bookIdLens(request)
+
+                                when (deleteBook(userId, bookId)) {
+                                    is BookDeleteResult.Success -> Response(Status.NO_CONTENT)
+                                    is BookDeleteResult.NotFound -> Response(Status.NOT_FOUND)
+                                    is BookDeleteResult.Forbidden -> Response(Status.FORBIDDEN)
+                                    is BookDeleteResult.DatabaseError ->
+                                        Response(Status.INTERNAL_SERVER_ERROR)
+                                            .body("Error occurred trying to delete book.")
+                                }
+                            },
                     )
                 ),
             )
