@@ -134,7 +134,7 @@ fun createApp(
                 ),
         )
 
-    val shelfService = ShelfService(shelfRepo = shelfRepo)
+    val shelfService = ShelfService(shelfRepo = shelfRepo, bookRepo = bookRepo)
 
     //    val userService = UserService(userRepo = userRepo)
 
@@ -153,6 +153,7 @@ fun createApp(
                 shelfService::getAllShelves,
                 shelfService::createShelf,
                 shelfService::deleteShelf,
+                shelfService::getBooksByShelf,
                 authMiddleware(tokenProvider),
             ),
             authRoutes(

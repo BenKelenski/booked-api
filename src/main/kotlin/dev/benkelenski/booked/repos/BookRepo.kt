@@ -33,6 +33,14 @@ class BookRepo {
     fun existsById(id: Int): Boolean = transaction {
         Books.selectAll().where { Books.id eq id }.any()
     }
+
+    fun findAllByShelfAndUser(shelfId: Int, userId: Int): List<Book> = transaction {
+        addLogger(StdOutSqlLogger)
+        (Books innerJoin Shelves)
+            .selectAll()
+            .where { (Books.shelfId eq shelfId) and (Shelves.userId eq userId) }
+            .map { it.toBook() }
+    }
 }
 
 fun ResultRow.toBook() =

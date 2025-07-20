@@ -1,7 +1,9 @@
 package dev.benkelenski.booked.services
 
+import dev.benkelenski.booked.domain.Book
 import dev.benkelenski.booked.domain.Shelf
 import dev.benkelenski.booked.domain.ShelfRequest
+import dev.benkelenski.booked.repos.BookRepo
 import dev.benkelenski.booked.repos.ShelfRepo
 import io.github.oshai.kotlinlogging.KotlinLogging
 
@@ -17,7 +19,10 @@ typealias CreateShelf = (userId: Int, shelfRequest: ShelfRequest) -> Shelf?
 /** alias for [ShelfService.deleteShelf] */
 typealias DeleteShelf = (userId: Int, shelfId: Int) -> ShelfDeleteResult
 
-class ShelfService(private val shelfRepo: ShelfRepo) {
+/** alias for [ShelfService.getBooksByShelf] */
+typealias GetBooksByShelf = (userId: Int, shelfId: Int) -> List<Book>
+
+class ShelfService(private val shelfRepo: ShelfRepo, private val bookRepo: BookRepo) {
 
     companion object {
         private val logger = KotlinLogging.logger {}
@@ -43,6 +48,10 @@ class ShelfService(private val shelfRepo: ShelfRepo) {
             logger.error(e) { "Failed to delete shelf $shelfId" }
             ShelfDeleteResult.DatabaseError
         }
+
+    fun getBooksByShelf(userId: Int, shelfId: Int): List<Book> {
+        return bookRepo.findAllByShelfAndUser(shelfId, userId)
+    }
 }
 
 sealed class ShelfDeleteResult {

@@ -23,6 +23,7 @@ fun shelfRoutes(
     getAllShelves: GetAllShelves,
     createShelf: CreateShelf,
     deleteShelf: DeleteShelf,
+    getBooksByShelf: GetBooksByShelf,
     authMiddleware: AuthMiddleware,
 ): RoutingHttpHandler =
     routes(
@@ -40,6 +41,16 @@ fun shelfRoutes(
                                 Response(Status.OK).with(shelvesLens of it.toTypedArray())
                             }
                         },
+                    "/" bind
+                        Method.POST to
+                        { request ->
+                            val userId =
+                                request.header("X-User-Id")?.toIntOrNull()
+                                    ?: return@to Response(Status.UNAUTHORIZED)
+                            createShelf(userId, shelfRequestLens(request))?.let {
+                                Response(Status.CREATED).with(shelfLens of it)
+                            } ?: Response(Status.EXPECTATION_FAILED)
+                        },
                     "/$shelfIdLens" bind
                         Method.GET to
                         { request ->
@@ -50,16 +61,6 @@ fun shelfRoutes(
                             getShelfById(userId, shelfIdLens(request))?.let {
                                 Response(Status.OK).with(shelfLens of it)
                             } ?: Response(Status.NOT_FOUND)
-                        },
-                    "/" bind
-                        Method.POST to
-                        { request ->
-                            val userId =
-                                request.header("X-User-Id")?.toIntOrNull()
-                                    ?: return@to Response(Status.UNAUTHORIZED)
-                            createShelf(userId, shelfRequestLens(request))?.let {
-                                Response(Status.CREATED).with(shelfLens of it)
-                            } ?: Response(Status.EXPECTATION_FAILED)
                         },
                     "/$shelfIdLens" bind
                         Method.DELETE to
@@ -78,6 +79,17 @@ fun shelfRoutes(
                                 is ShelfDeleteResult.DatabaseError ->
                                     Response(Status.INTERNAL_SERVER_ERROR)
                             }
+                        },
+                    "/$shelfIdLens/books" bind
+                        Method.GET to
+                        { request ->
+                            val userId =
+                                request.header("X-User-Id")?.toIntOrNull()
+                                    ?: return@to Response(Status.UNAUTHORIZED)
+                            val shelfId = shelfIdLens(request)
+                            val books = getBooksByShelf(userId, shelfId)
+
+                            Response(Status.OK).with(booksLens of books.toTypedArray())
                         },
                 )
             )
