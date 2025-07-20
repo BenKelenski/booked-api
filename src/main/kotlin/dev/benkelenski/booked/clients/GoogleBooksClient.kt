@@ -13,8 +13,6 @@ val projectionLens = Query.string().optional("projection")
 val apikeyLens = Query.string().required("key")
 val googleBooksResponseLens = Body.auto<GoogleBooksResponse>().toLens()
 
-val logger = KotlinLogging.logger {}
-
 class GoogleBooksClient(
     private val host: Uri,
     private val apiKey: String,
@@ -22,6 +20,7 @@ class GoogleBooksClient(
 ) {
 
     companion object {
+        private val logger = KotlinLogging.logger {}
         private const val PROJECTION = "lite"
     }
 
