@@ -7,11 +7,18 @@ import org.jetbrains.exposed.sql.javatime.timestampWithTimeZone
 
 object Books : Table("books") {
     val id = integer("id").autoIncrement()
-    val title = varchar("title", 250)
-    val author = varchar("author", 250)
+    val googleId = text("google_id")
+    val title = text("title")
+    val authors = array<String>("authors")
+    val thumbnailUrl = text("thumbnail_url").nullable()
     val createdAt =
         timestampWithTimeZone("created_at").defaultExpression(CurrentTimestampWithTimeZone)
+    val userId = reference("user_id", Users.id, ReferenceOption.CASCADE)
     val shelfId = reference("shelf_id", Shelves.id, ReferenceOption.CASCADE)
 
     override val primaryKey = PrimaryKey(id)
+
+    init {
+        uniqueIndex("uq_books_user_google", userId, googleId)
+    }
 }

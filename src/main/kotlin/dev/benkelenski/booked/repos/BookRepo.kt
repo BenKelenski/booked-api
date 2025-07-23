@@ -2,8 +2,8 @@ package dev.benkelenski.booked.repos
 
 import dev.benkelenski.booked.domain.Book
 import dev.benkelenski.booked.models.Books
-import dev.benkelenski.booked.models.Shelves
 import org.jetbrains.exposed.sql.*
+import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
 import org.jetbrains.exposed.sql.transactions.transaction
 
 class BookRepo {
@@ -14,20 +14,28 @@ class BookRepo {
         Books.selectAll().where { Books.id eq id }.map { it.toBook() }.singleOrNull()
     }
 
-    fun saveBook(title: String, author: String, shelfId: Int): Book? = transaction {
+    fun saveBook(
+        userId: Int,
+        shelfId: Int,
+        googleId: String,
+        title: String,
+        authors: List<String>,
+        thumbnailUrl: String? = null,
+    ): Book? = transaction {
         Books.insertReturning {
-                it[Books.title] = title
-                it[Books.author] = author
-                it[Books.shelfId] = shelfId
+                it[this.userId] = userId
+                it[this.googleId] = googleId
+                it[this.title] = title
+                it[this.authors] = authors
+                it[this.shelfId] = shelfId
+                it[this.thumbnailUrl] = thumbnailUrl
             }
             .map { it.toBook() }
             .singleOrNull()
     }
 
     fun deleteByIdAndUser(userId: Int, bookId: Int): Int = transaction {
-        (Shelves.join(Books, JoinType.INNER, Shelves.id, Books.shelfId)).delete(Books) {
-            (Books.id eq bookId) and (Shelves.userId eq userId)
-        }
+        Books.deleteWhere { (Books.userId eq userId) and (Books.id eq bookId) }
     }
 
     fun existsById(id: Int): Boolean = transaction {
@@ -35,10 +43,8 @@ class BookRepo {
     }
 
     fun findAllByShelfAndUser(shelfId: Int, userId: Int): List<Book> = transaction {
-        addLogger(StdOutSqlLogger)
-        (Books innerJoin Shelves)
-            .selectAll()
-            .where { (Books.shelfId eq shelfId) and (Shelves.userId eq userId) }
+        Books.selectAll()
+            .where { (Books.userId eq userId) and (Books.shelfId eq shelfId) }
             .map { it.toBook() }
     }
 }
@@ -46,8 +52,11 @@ class BookRepo {
 fun ResultRow.toBook() =
     Book(
         id = this[Books.id],
+        googleId = this[Books.googleId],
         title = this[Books.title],
-        author = this[Books.author],
+        authors = this[Books.authors],
+        thumbnailUrl = this[Books.thumbnailUrl],
         createdAt = this[Books.createdAt].toInstant(),
+        userId = this[Books.userId],
         shelfId = this[Books.shelfId],
     )

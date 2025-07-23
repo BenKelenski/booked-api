@@ -1,8 +1,7 @@
 package dev.benkelenski.booked.routes
 
 import dev.benkelenski.booked.domain.Book
-import dev.benkelenski.booked.domain.BookRequest
-import dev.benkelenski.booked.domain.DataBook
+import dev.benkelenski.booked.external.google.dto.VolumeDto
 import dev.benkelenski.booked.middleware.AuthMiddleware
 import dev.benkelenski.booked.services.*
 import org.http4k.core.*
@@ -18,20 +17,17 @@ import org.http4k.routing.routes
 val bookIdLens = Path.int().of("book_id")
 val booksLens = Body.auto<Array<Book>>().toLens()
 val bookLens = Body.auto<Book>().toLens()
-val bookRequestLens = Body.auto<BookRequest>().toLens()
 val searchQueryLens = Query.string().optional("query")
-val dataBooksLens = Body.auto<Array<DataBook>>().toLens()
+val dataBooksLens = Body.auto<Array<VolumeDto>>().toLens()
 
 fun bookRoutes(
     getBookById: GetBookById,
     getAllBooks: GetAllBooks,
-    createBook: CreateBook,
     deleteBook: DeleteBook,
     searchBooks: SearchBooks,
     authMiddleware: AuthMiddleware,
-): RoutingHttpHandler {
-
-    return routes(
+): RoutingHttpHandler =
+    routes(
         "/books" bind
             routes(
                 "/" bind
@@ -59,25 +55,6 @@ fun bookRoutes(
                     },
                 authMiddleware.then(
                     routes(
-                        "/" bind
-                            Method.POST to
-                            { request ->
-                                val userId =
-                                    request.header("X-User-Id")?.toIntOrNull()
-                                        ?: return@to Response(Status.UNAUTHORIZED)
-                                val bookRequest = bookRequestLens(request)
-
-                                when (val result = createBook(userId, bookRequest)) {
-                                    is BookCreateResult.Success ->
-                                        Response(Status.CREATED).with(bookLens of result.book)
-                                    is BookCreateResult.ShelfNotFound ->
-                                        Response(Status.NOT_FOUND)
-                                            .body("Unable to add book to shelf. Shelf not found.")
-                                    is BookCreateResult.DatabaseError ->
-                                        Response(Status.INTERNAL_SERVER_ERROR)
-                                            .body("Error occurred trying to add book to shelf.")
-                                }
-                            },
                         "/$bookIdLens" bind
                             Method.DELETE to
                             { request ->
@@ -94,9 +71,8 @@ fun bookRoutes(
                                         Response(Status.INTERNAL_SERVER_ERROR)
                                             .body("Error occurred trying to delete book.")
                                 }
-                            },
+                            }
                     )
                 ),
             )
     )
-}

@@ -44,10 +44,15 @@ CREATE TABLE IF NOT EXISTS shelves
 
 CREATE TABLE IF NOT EXISTS books
 (
-    id         SERIAL PRIMARY KEY,
-    title      VARCHAR(250) NOT NULL,
-    author     VARCHAR(250) NOT NULL,
-    created_at TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP,
-
-    shelf_id   INTEGER      NOT NULL REFERENCES shelves (id) ON DELETE CASCADE
+    id            SERIAL PRIMARY KEY,
+    google_id     VARCHAR(250) NOT NULL,
+    title         TEXT         NOT NULL,
+    authors       TEXT[]       NOT NULL,
+    thumbnail_url TEXT,
+    created_at    TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    user_id       INTEGER      NOT NULL REFERENCES users (id) ON DELETE CASCADE,
+    shelf_id      INTEGER      NOT NULL REFERENCES shelves (id) ON DELETE CASCADE
 );
+
+ALTER TABLE books
+    ADD CONSTRAINT uq_books_user_google UNIQUE (user_id, google_id);

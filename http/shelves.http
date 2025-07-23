@@ -13,6 +13,16 @@ Content-Type: application/json
   "name": "my shelf"
 }
 
+### POST add book to a shelf
+POST {{API_URL}}/shelves/1/books
+Cookie: access_token={{ACCESS_TOKEN}}
+Content-Type: application/json
+
+{
+  "volume_id": "nPF9n0SwstMC"
+}
+
+
 ### DELETE remove shelf
 DELETE {{API_URL}}/shelves/1
 Cookie: access_token={{ACCESS_TOKEN}}

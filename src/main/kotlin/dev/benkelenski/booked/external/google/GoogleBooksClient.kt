@@ -1,7 +1,7 @@
-package dev.benkelenski.booked.clients
+package dev.benkelenski.booked.external.google
 
-import dev.benkelenski.booked.domain.DataBook
-import dev.benkelenski.booked.domain.GoogleBooksResponse
+import dev.benkelenski.booked.external.google.dto.SearchResultDto
+import dev.benkelenski.booked.external.google.dto.VolumeDto
 import io.github.oshai.kotlinlogging.KotlinLogging
 import org.http4k.core.*
 import org.http4k.format.Moshi.auto
@@ -11,7 +11,8 @@ import org.http4k.lens.string
 val queryLens = Query.string().optional("q")
 val projectionLens = Query.string().optional("projection")
 val apikeyLens = Query.string().required("key")
-val googleBooksResponseLens = Body.auto<GoogleBooksResponse>().toLens()
+val searchResultDtoLens = Body.auto<SearchResultDto>().toLens()
+val volumeDtoLens = Body.auto<VolumeDto>().toLens()
 
 class GoogleBooksClient(
     private val host: Uri,
@@ -24,7 +25,7 @@ class GoogleBooksClient(
         private const val PROJECTION = "lite"
     }
 
-    fun search(query: String?): Array<DataBook>? {
+    fun search(query: String?): Array<VolumeDto>? {
         logger.info { "Searching for $query..." }
         val request =
             Request(Method.GET, host.path("/books/v1/volumes"))
@@ -39,8 +40,26 @@ class GoogleBooksClient(
             throw RuntimeException("Error performing search: ${response.bodyString()}")
         }
 
-        val googleBooksResponse: GoogleBooksResponse? = googleBooksResponseLens(response)
+        val searchResultDto: SearchResultDto? = searchResultDtoLens(response)
 
-        return googleBooksResponse?.items?.toTypedArray()
+        return searchResultDto?.items?.toTypedArray()
+    }
+
+    fun getVolume(id: String): VolumeDto? {
+        val request =
+            Request(Method.GET, host.path("/books/v1/volumes/$id")).with(apikeyLens of apiKey)
+
+        val response = internet(request)
+
+        if (!response.status.successful) {
+            logger.error { "Error performing search: ${response.bodyString()}" }
+            throw RuntimeException("Error performing search: ${response.bodyString()}")
+        }
+
+        logger.info { "Received response: ${response.bodyString()}" }
+
+        val volumeDto: VolumeDto? = volumeDtoLens(response)
+
+        return volumeDto
     }
 }

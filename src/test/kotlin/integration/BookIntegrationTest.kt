@@ -1,20 +1,19 @@
 package integration
 
 import dev.benkelenski.booked.createApp
-import dev.benkelenski.booked.domain.BookRequest
 import dev.benkelenski.booked.loadConfig
 import dev.benkelenski.booked.repos.BookRepo
 import dev.benkelenski.booked.repos.ShelfRepo
 import dev.benkelenski.booked.repos.UserRepo
 import dev.benkelenski.booked.routes.bookLens
-import dev.benkelenski.booked.routes.bookRequestLens
 import dev.benkelenski.booked.routes.booksLens
 import io.kotest.matchers.be
 import io.kotest.matchers.collections.shouldHaveSize
-import io.kotest.matchers.shouldBe
-import io.kotest.matchers.shouldNotBe
 import org.http4k.base64Encode
-import org.http4k.core.*
+import org.http4k.core.Method
+import org.http4k.core.Request
+import org.http4k.core.Status
+import org.http4k.core.Uri
 import org.http4k.core.cookie.Cookie
 import org.http4k.core.cookie.cookie
 import org.http4k.kotest.shouldHaveBody
@@ -101,10 +100,25 @@ class BookIntegrationTest {
 
         val book1 =
             BookRepo()
-                .saveBook(title = "test book 1", author = "test author 1", shelfId = shelf!!.id)
+                .saveBook(
+                    userId = user.id,
+                    googleId = "google1",
+                    title = "test book 1",
+                    authors = listOf("test author 1"),
+                    shelfId = shelf!!.id,
+                    thumbnailUrl = null,
+                )
 
         val book2 =
-            BookRepo().saveBook(title = "test book 2", author = "test author 2", shelfId = shelf.id)
+            BookRepo()
+                .saveBook(
+                    userId = user.id,
+                    googleId = "google1",
+                    title = "test book 2",
+                    authors = listOf("test author 2"),
+                    shelfId = shelf.id,
+                    thumbnailUrl = null,
+                )
 
         val response = app(Request(Method.GET, "/api/v1/books"))
 
@@ -133,62 +147,19 @@ class BookIntegrationTest {
 
         val book1 =
             BookRepo()
-                .saveBook(title = "test book 1", author = "test author 1", shelfId = shelf!!.id)
+                .saveBook(
+                    userId = user.id,
+                    googleId = "google1",
+                    title = "test book 1",
+                    authors = listOf("test author 1"),
+                    shelfId = shelf!!.id,
+                    thumbnailUrl = null,
+                )
 
         val response = app(Request(Method.GET, "/api/v1/books/${book1?.id}"))
 
         response shouldHaveStatus Status.OK
         response.shouldHaveBody(bookLens, be(book1))
-    }
-
-    @Test
-    fun `create book - unauthorized`() {
-
-        Request(Method.POST, "/api/v1/books")
-            .with(
-                bookRequestLens of
-                    BookRequest(title = "Red Rising", author = "Pierce Brown", shelfId = 1)
-            )
-            .let(app)
-            .shouldHaveStatus(Status.UNAUTHORIZED)
-    }
-
-    @Test
-    fun `create book`() {
-        val user =
-            UserRepo()
-                .getOrCreateUser(
-                    provider = "email",
-                    providerUserId = "test@test.com",
-                    email = "test@test.com",
-                    name = "testuser",
-                    password = "securepass",
-                )
-
-        val shelf = ShelfRepo().addShelf(userId = user.id, name = "test", description = null)
-
-        val response =
-            app(
-                Request(Method.POST, "/api/v1/books")
-                    .with(
-                        bookRequestLens of
-                            BookRequest(
-                                title = "Red Rising",
-                                author = "Pierce Brown",
-                                shelfId = shelf!!.id,
-                            )
-                    )
-                    .cookie(Cookie("access_token", fakeTokenProvider.generateAccessToken(user.id)))
-            )
-
-        val responseBody = bookLens(response)
-
-        response shouldHaveStatus Status.CREATED
-        responseBody.id shouldBe 1
-        responseBody.shelfId shouldBe shelf.id
-        responseBody.title shouldBe "Red Rising"
-        responseBody.author shouldBe "Pierce Brown"
-        responseBody.createdAt shouldNotBe null
     }
 
     @Test
@@ -228,7 +199,14 @@ class BookIntegrationTest {
 
         val book =
             BookRepo()
-                .saveBook(title = "test book 1", author = "test author 1", shelfId = shelf!!.id)
+                .saveBook(
+                    userId = user.id,
+                    shelfId = shelf!!.id,
+                    googleId = "google1",
+                    title = "test book 1",
+                    authors = listOf("test author 1"),
+                    thumbnailUrl = null,
+                )
 
         Request(Method.DELETE, "/api/v1/books/${book?.id}")
             .cookie(Cookie("access_token", fakeTokenProvider.generateAccessToken(2)))
@@ -252,9 +230,24 @@ class BookIntegrationTest {
 
         val book =
             BookRepo()
-                .saveBook(title = "test book 1", author = "test author 1", shelfId = shelf!!.id)
+                .saveBook(
+                    userId = user.id,
+                    googleId = "google1",
+                    title = "test book 1",
+                    authors = listOf("test author 1"),
+                    shelfId = shelf!!.id,
+                    thumbnailUrl = null,
+                )
 
-        BookRepo().saveBook(title = "test book 2", author = "test author 2", shelfId = shelf.id)
+        BookRepo()
+            .saveBook(
+                userId = user.id,
+                googleId = "google1",
+                title = "test book 2",
+                authors = listOf("test author 2"),
+                shelfId = shelf.id,
+                thumbnailUrl = null,
+            )
 
         val response =
             app(

@@ -5,7 +5,7 @@ import com.sksamuel.hoplite.addResourceSource
 import dev.benkelenski.booked.auth.GoogleAuthProvider
 import dev.benkelenski.booked.auth.JwtTokenProvider
 import dev.benkelenski.booked.auth.TokenProvider
-import dev.benkelenski.booked.clients.GoogleBooksClient
+import dev.benkelenski.booked.external.google.GoogleBooksClient
 import dev.benkelenski.booked.middleware.authMiddleware
 import dev.benkelenski.booked.repos.BookRepo
 import dev.benkelenski.booked.repos.RefreshTokenRepo
@@ -114,6 +114,14 @@ fun createApp(
             userRepo = userRepo,
         )
 
+    // External
+    val googleBooksClient =
+        GoogleBooksClient(
+            host = config.client.googleApisHost.toUri(),
+            apiKey = config.client.googleApisKey,
+            internet = internet,
+        )
+
     val authService =
         AuthService(
             userRepo = userRepo,
@@ -125,16 +133,16 @@ fun createApp(
     val bookService =
         BookService(
             bookRepo = bookRepo,
-            shelfRepo = shelfRepo,
-            googleBooksClient =
-                GoogleBooksClient(
-                    host = config.client.googleApisHost.toUri(),
-                    apiKey = config.client.googleApisKey,
-                    internet = internet,
-                ),
+            //            shelfRepo = shelfRepo,
+            googleBooksClient = googleBooksClient,
         )
 
-    val shelfService = ShelfService(shelfRepo = shelfRepo, bookRepo = bookRepo)
+    val shelfService =
+        ShelfService(
+            shelfRepo = shelfRepo,
+            bookRepo = bookRepo,
+            googleBooksClient = googleBooksClient,
+        )
 
     //    val userService = UserService(userRepo = userRepo)
 
@@ -143,7 +151,6 @@ fun createApp(
             bookRoutes(
                 bookService::getBookById,
                 bookService::getAllBooks,
-                bookService::createBook,
                 bookService::deleteBook,
                 bookService::searchBooks,
                 authMiddleware(tokenProvider),
@@ -154,6 +161,7 @@ fun createApp(
                 shelfService::createShelf,
                 shelfService::deleteShelf,
                 shelfService::getBooksByShelf,
+                shelfService::addBookToShelf,
                 authMiddleware(tokenProvider),
             ),
             authRoutes(

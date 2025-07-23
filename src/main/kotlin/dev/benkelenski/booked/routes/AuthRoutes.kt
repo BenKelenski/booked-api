@@ -1,10 +1,10 @@
 package dev.benkelenski.booked.routes
 
 import dev.benkelenski.booked.domain.AuthPayload
-import dev.benkelenski.booked.domain.UserResponse
 import dev.benkelenski.booked.domain.requests.LoginRequest
 import dev.benkelenski.booked.domain.requests.OAuthRequest
 import dev.benkelenski.booked.domain.requests.RegisterRequest
+import dev.benkelenski.booked.domain.responses.UserResponse
 import dev.benkelenski.booked.services.*
 import dev.benkelenski.booked.utils.CookieUtils
 import org.http4k.core.*
@@ -26,9 +26,8 @@ fun authRoutes(
     authenticateWith: AuthenticateWith,
     refresh: Refresh,
     logout: Logout,
-): RoutingHttpHandler {
-
-    return routes(
+): RoutingHttpHandler =
+    routes(
         "/auth" bind
             routes(
                 "/register" bind
@@ -128,4 +127,3 @@ fun authRoutes(
                     },
             )
     )
-}

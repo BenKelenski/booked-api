@@ -1,8 +1,8 @@
 package dev.benkelenski.booked.routes
 
-// import dev.benkelenski.booked.auth.Verify
 import dev.benkelenski.booked.domain.Shelf
 import dev.benkelenski.booked.domain.ShelfRequest
+import dev.benkelenski.booked.domain.requests.BookRequest
 import dev.benkelenski.booked.middleware.AuthMiddleware
 import dev.benkelenski.booked.services.*
 import org.http4k.core.*
@@ -17,6 +17,7 @@ val shelfIdLens = Path.int().of("shelf_id")
 val shelvesLens = Body.auto<Array<Shelf>>().toLens()
 val shelfLens = Body.auto<Shelf>().toLens()
 val shelfRequestLens = Body.auto<ShelfRequest>().toLens()
+val bookRequestLens = Body.auto<BookRequest>().toLens()
 
 fun shelfRoutes(
     getShelfById: GetShelfById,
@@ -24,6 +25,7 @@ fun shelfRoutes(
     createShelf: CreateShelf,
     deleteShelf: DeleteShelf,
     getBooksByShelf: GetBooksByShelf,
+    addBookToShelf: AddBookToShelf,
     authMiddleware: AuthMiddleware,
 ): RoutingHttpHandler =
     routes(
@@ -90,6 +92,34 @@ fun shelfRoutes(
                             val books = getBooksByShelf(userId, shelfId)
 
                             Response(Status.OK).with(booksLens of books.toTypedArray())
+                        },
+                    "/$shelfIdLens/books" bind
+                        Method.POST to
+                        { request ->
+                            val userId =
+                                request.header("X-User-Id")?.toIntOrNull()
+                                    ?: return@to Response(Status.UNAUTHORIZED)
+                            val shelfId = shelfIdLens(request)
+                            val bookRequest = bookRequestLens(request)
+
+                            when (
+                                val result = addBookToShelf(userId, shelfId, bookRequest.volumeId)
+                            ) {
+                                is ShelfAddBookResult.Success ->
+                                    Response(Status.OK).with(bookLens of result.book)
+                                is ShelfAddBookResult.ShelfNotFound ->
+                                    Response(Status.NOT_FOUND).body("Shelf not found.")
+                                is ShelfAddBookResult.BookNotFound ->
+                                    Response(Status.NOT_FOUND).body("Book not found.")
+                                is ShelfAddBookResult.Forbidden ->
+                                    Response(Status.FORBIDDEN)
+                                        .body("Cannot add books to another user's shelf.")
+                                is ShelfAddBookResult.DatabaseError ->
+                                    Response(Status.INTERNAL_SERVER_ERROR)
+                                        .body("Error occurred trying to add book to shelf.")
+                            }
+
+                            Response(Status.CREATED)
                         },
                 )
             )
