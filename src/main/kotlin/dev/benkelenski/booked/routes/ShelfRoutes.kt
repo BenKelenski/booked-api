@@ -1,8 +1,8 @@
 package dev.benkelenski.booked.routes
 
-import dev.benkelenski.booked.domain.Shelf
-import dev.benkelenski.booked.domain.ShelfRequest
 import dev.benkelenski.booked.domain.requests.BookRequest
+import dev.benkelenski.booked.domain.requests.ShelfRequest
+import dev.benkelenski.booked.domain.responses.ShelfResponse
 import dev.benkelenski.booked.middleware.AuthMiddleware
 import dev.benkelenski.booked.services.*
 import org.http4k.core.*
@@ -14,8 +14,8 @@ import org.http4k.routing.bind
 import org.http4k.routing.routes
 
 val shelfIdLens = Path.int().of("shelf_id")
-val shelvesLens = Body.auto<Array<Shelf>>().toLens()
-val shelfLens = Body.auto<Shelf>().toLens()
+val shelvesResLens = Body.auto<Array<ShelfResponse>>().toLens()
+val shelfResLens = Body.auto<ShelfResponse>().toLens()
 val shelfRequestLens = Body.auto<ShelfRequest>().toLens()
 val bookRequestLens = Body.auto<BookRequest>().toLens()
 
@@ -40,7 +40,7 @@ fun shelfRoutes(
                                     ?: return@to Response(Status.UNAUTHORIZED)
 
                             getAllShelves(userId).let {
-                                Response(Status.OK).with(shelvesLens of it.toTypedArray())
+                                Response(Status.OK).with(shelvesResLens of it.toTypedArray())
                             }
                         },
                     "/" bind
@@ -50,7 +50,7 @@ fun shelfRoutes(
                                 request.header("X-User-Id")?.toIntOrNull()
                                     ?: return@to Response(Status.UNAUTHORIZED)
                             createShelf(userId, shelfRequestLens(request))?.let {
-                                Response(Status.CREATED).with(shelfLens of it)
+                                Response(Status.CREATED).with(shelfResLens of it)
                             } ?: Response(Status.EXPECTATION_FAILED)
                         },
                     "/$shelfIdLens" bind
@@ -61,7 +61,7 @@ fun shelfRoutes(
                                     ?: return@to Response(Status.UNAUTHORIZED)
 
                             getShelfById(userId, shelfIdLens(request))?.let {
-                                Response(Status.OK).with(shelfLens of it)
+                                Response(Status.OK).with(shelfResLens of it)
                             } ?: Response(Status.NOT_FOUND)
                         },
                     "/$shelfIdLens" bind
@@ -91,7 +91,7 @@ fun shelfRoutes(
                             val shelfId = shelfIdLens(request)
                             val books = getBooksByShelf(userId, shelfId)
 
-                            Response(Status.OK).with(booksLens of books.toTypedArray())
+                            Response(Status.OK).with(booksResLens of books.toTypedArray())
                         },
                     "/$shelfIdLens/books" bind
                         Method.POST to
@@ -106,11 +106,14 @@ fun shelfRoutes(
                                 val result = addBookToShelf(userId, shelfId, bookRequest.volumeId)
                             ) {
                                 is ShelfAddBookResult.Success ->
-                                    Response(Status.OK).with(bookLens of result.book)
+                                    Response(Status.OK).with(bookResLens of result.book)
                                 is ShelfAddBookResult.ShelfNotFound ->
                                     Response(Status.NOT_FOUND).body("Shelf not found.")
                                 is ShelfAddBookResult.BookNotFound ->
-                                    Response(Status.NOT_FOUND).body("Book not found.")
+                                    Response(Status.NOT_FOUND)
+                                        .body(
+                                            "No Google book found with ID=${bookRequest.volumeId}"
+                                        )
                                 is ShelfAddBookResult.Forbidden ->
                                     Response(Status.FORBIDDEN)
                                         .body("Cannot add books to another user's shelf.")
@@ -118,8 +121,6 @@ fun shelfRoutes(
                                     Response(Status.INTERNAL_SERVER_ERROR)
                                         .body("Error occurred trying to add book to shelf.")
                             }
-
-                            Response(Status.CREATED)
                         },
                 )
             )

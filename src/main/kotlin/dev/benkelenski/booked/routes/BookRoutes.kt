@@ -1,6 +1,6 @@
 package dev.benkelenski.booked.routes
 
-import dev.benkelenski.booked.domain.Book
+import dev.benkelenski.booked.domain.responses.BookResponse
 import dev.benkelenski.booked.external.google.dto.VolumeDto
 import dev.benkelenski.booked.middleware.AuthMiddleware
 import dev.benkelenski.booked.services.*
@@ -15,8 +15,8 @@ import org.http4k.routing.bind
 import org.http4k.routing.routes
 
 val bookIdLens = Path.int().of("book_id")
-val booksLens = Body.auto<Array<Book>>().toLens()
-val bookLens = Body.auto<Book>().toLens()
+val booksResLens = Body.auto<Array<BookResponse>>().toLens()
+val bookResLens = Body.auto<BookResponse>().toLens()
 val searchQueryLens = Query.string().optional("query")
 val dataBooksLens = Body.auto<Array<VolumeDto>>().toLens()
 
@@ -34,7 +34,7 @@ fun bookRoutes(
                     Method.GET to
                     {
                         getAllBooks().let {
-                            Response(Status.OK).with(booksLens of it.toTypedArray())
+                            Response(Status.OK).with(booksResLens of it.toTypedArray())
                         }
                     },
                 "/search" bind
@@ -50,7 +50,7 @@ fun bookRoutes(
                     { request ->
                         val bookId = bookIdLens(request)
 
-                        getBookById(bookId)?.let { Response(Status.OK).with(bookLens of it) }
+                        getBookById(bookId)?.let { Response(Status.OK).with(bookResLens of it) }
                             ?: Response(Status.NOT_FOUND)
                     },
                 authMiddleware.then(

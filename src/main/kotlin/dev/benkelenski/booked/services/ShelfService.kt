@@ -1,27 +1,27 @@
 package dev.benkelenski.booked.services
 
-import dev.benkelenski.booked.domain.Book
-import dev.benkelenski.booked.domain.Shelf
-import dev.benkelenski.booked.domain.ShelfRequest
+import dev.benkelenski.booked.domain.requests.ShelfRequest
+import dev.benkelenski.booked.domain.responses.BookResponse
+import dev.benkelenski.booked.domain.responses.ShelfResponse
 import dev.benkelenski.booked.external.google.GoogleBooksClient
 import dev.benkelenski.booked.repos.BookRepo
 import dev.benkelenski.booked.repos.ShelfRepo
 import io.github.oshai.kotlinlogging.KotlinLogging
 
 /** alias for [ShelfService.getShelfById] */
-typealias GetShelfById = (userId: Int, shelfId: Int) -> Shelf?
+typealias GetShelfById = (userId: Int, shelfId: Int) -> ShelfResponse?
 
 /** alias for [ShelfService.getAllShelves] */
-typealias GetAllShelves = (userId: Int) -> List<Shelf>
+typealias GetAllShelves = (userId: Int) -> List<ShelfResponse>
 
 /** alias for [ShelfService.createShelf] */
-typealias CreateShelf = (userId: Int, shelfRequest: ShelfRequest) -> Shelf?
+typealias CreateShelf = (userId: Int, shelfRequest: ShelfRequest) -> ShelfResponse?
 
 /** alias for [ShelfService.deleteShelf] */
 typealias DeleteShelf = (userId: Int, shelfId: Int) -> ShelfDeleteResult
 
 /** alias for [ShelfService.getBooksByShelf] */
-typealias GetBooksByShelf = (userId: Int, shelfId: Int) -> List<Book>
+typealias GetBooksByShelf = (userId: Int, shelfId: Int) -> List<BookResponse>
 
 /** alias for [ShelfService.addBookToShelf] */
 typealias AddBookToShelf = (userId: Int, shelfId: Int, googleVolumeId: String) -> ShelfAddBookResult
@@ -36,12 +36,16 @@ class ShelfService(
         private val logger = KotlinLogging.logger {}
     }
 
-    fun getShelfById(userId: Int, shelfId: Int): Shelf? = shelfRepo.getShelfById(userId, shelfId)
+    fun getShelfById(userId: Int, shelfId: Int): ShelfResponse? =
+        shelfRepo.getShelfById(userId, shelfId)?.let { ShelfResponse.from(it) }
 
-    fun getAllShelves(userId: Int): List<Shelf> = shelfRepo.getAllShelves(userId)
+    fun getAllShelves(userId: Int): List<ShelfResponse> =
+        shelfRepo.getAllShelves(userId).map { ShelfResponse.from(it) }
 
-    fun createShelf(userId: Int, shelfRequest: ShelfRequest): Shelf? =
-        shelfRepo.addShelf(userId, shelfRequest.name, shelfRequest.description)
+    fun createShelf(userId: Int, shelfRequest: ShelfRequest): ShelfResponse? =
+        shelfRepo.addShelf(userId, shelfRequest.name, shelfRequest.description)?.let {
+            ShelfResponse.from(it)
+        }
 
     fun deleteShelf(userId: Int, shelfId: Int): ShelfDeleteResult =
         try {
@@ -57,8 +61,8 @@ class ShelfService(
             ShelfDeleteResult.DatabaseError
         }
 
-    fun getBooksByShelf(userId: Int, shelfId: Int): List<Book> {
-        return bookRepo.findAllByShelfAndUser(shelfId, userId)
+    fun getBooksByShelf(userId: Int, shelfId: Int): List<BookResponse> {
+        return bookRepo.findAllByShelfAndUser(shelfId, userId).map { BookResponse.from(it) }
     }
 
     fun addBookToShelf(userId: Int, shelfId: Int, googleVolumeId: String): ShelfAddBookResult {
@@ -97,12 +101,12 @@ class ShelfService(
                     return ShelfAddBookResult.DatabaseError
                 }
 
-        return ShelfAddBookResult.Success(book)
+        return ShelfAddBookResult.Success(BookResponse.from(book))
     }
 }
 
 sealed class ShelfAddBookResult {
-    data class Success(val book: Book) : ShelfAddBookResult()
+    data class Success(val book: BookResponse) : ShelfAddBookResult()
 
     object ShelfNotFound : ShelfAddBookResult()
 

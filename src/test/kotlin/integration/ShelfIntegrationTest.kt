@@ -1,13 +1,14 @@
 package integration
 
 import dev.benkelenski.booked.createApp
-import dev.benkelenski.booked.domain.ShelfRequest
+import dev.benkelenski.booked.domain.requests.ShelfRequest
+import dev.benkelenski.booked.domain.responses.ShelfResponse
 import dev.benkelenski.booked.loadConfig
 import dev.benkelenski.booked.repos.ShelfRepo
 import dev.benkelenski.booked.repos.UserRepo
-import dev.benkelenski.booked.routes.shelfLens
 import dev.benkelenski.booked.routes.shelfRequestLens
-import dev.benkelenski.booked.routes.shelvesLens
+import dev.benkelenski.booked.routes.shelfResLens
+import dev.benkelenski.booked.routes.shelvesResLens
 import io.kotest.matchers.collections.shouldHaveSize
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
@@ -104,7 +105,7 @@ class ShelfIntegrationTest {
             )
 
         response shouldHaveStatus Status.OK
-        val responseBody = shelvesLens(response)
+        val responseBody = shelvesResLens(response)
         responseBody shouldHaveSize 3
     }
 
@@ -127,7 +128,7 @@ class ShelfIntegrationTest {
             )
 
         response shouldHaveStatus Status.OK
-        val responseBody = shelvesLens(response)
+        val responseBody = shelvesResLens(response)
         responseBody shouldHaveSize 0
     }
 
@@ -165,16 +166,18 @@ class ShelfIntegrationTest {
         ShelfRepo().addShelf(userId = 1, name = "shelf 2", description = null)
         ShelfRepo().addShelf(userId = 1, name = "shelf 3", description = null)
 
+        val expectedShelfRes = ShelfResponse.from(shelf!!)
+
         val response =
             app(
-                Request(Method.GET, "/api/v1/shelves/${shelf?.id}")
+                Request(Method.GET, "/api/v1/shelves/${shelf.id}")
                     .cookie(Cookie("access_token", fakeTokenProvider.generateAccessToken(user.id)))
             )
 
         response shouldHaveStatus Status.OK
-        val responseBody = shelfLens(response)
-        responseBody shouldBe shelf
-        responseBody.name shouldBe shelf?.name
+        val responseBody = shelfResLens(response)
+        responseBody shouldBe expectedShelfRes
+        responseBody.name shouldBe expectedShelfRes.name
     }
 
     @Test
@@ -204,14 +207,12 @@ class ShelfIntegrationTest {
                     .cookie(Cookie("access_token", fakeTokenProvider.generateAccessToken(user.id)))
             )
 
-        val responseBody = shelfLens(response)
+        val responseBody = shelfResLens(response)
 
         response shouldHaveStatus Status.CREATED
-        responseBody.id shouldBe 1
         responseBody.name shouldBe "shelf 1"
         responseBody.description shouldBe null
         responseBody.createdAt shouldNotBe null
-        responseBody.userId shouldBe user.id
     }
 
     @Test

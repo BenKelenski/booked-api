@@ -1,12 +1,13 @@
 package integration
 
 import dev.benkelenski.booked.createApp
+import dev.benkelenski.booked.domain.responses.BookResponse
 import dev.benkelenski.booked.loadConfig
 import dev.benkelenski.booked.repos.BookRepo
 import dev.benkelenski.booked.repos.ShelfRepo
 import dev.benkelenski.booked.repos.UserRepo
-import dev.benkelenski.booked.routes.bookLens
-import dev.benkelenski.booked.routes.booksLens
+import dev.benkelenski.booked.routes.bookResLens
+import dev.benkelenski.booked.routes.booksResLens
 import io.kotest.matchers.be
 import io.kotest.matchers.collections.shouldHaveSize
 import org.http4k.base64Encode
@@ -106,24 +107,27 @@ class BookIntegrationTest {
                     title = "test book 1",
                     authors = listOf("test author 1"),
                     shelfId = shelf!!.id,
-                    thumbnailUrl = null,
+                    thumbnailUrl = "null",
                 )
 
         val book2 =
             BookRepo()
                 .saveBook(
                     userId = user.id,
-                    googleId = "google1",
+                    googleId = "google2",
                     title = "test book 2",
                     authors = listOf("test author 2"),
                     shelfId = shelf.id,
-                    thumbnailUrl = null,
+                    thumbnailUrl = "null",
                 )
 
         val response = app(Request(Method.GET, "/api/v1/books"))
 
         response shouldHaveStatus Status.OK
-        response.shouldHaveBody(booksLens, be(listOf(book1, book2)))
+        response.shouldHaveBody(
+            booksResLens,
+            be(listOf(BookResponse.from(book1!!), BookResponse.from(book2!!))),
+        )
     }
 
     @Test
@@ -156,10 +160,12 @@ class BookIntegrationTest {
                     thumbnailUrl = null,
                 )
 
+        val expectedBookRes = BookResponse.from(book1!!)
+
         val response = app(Request(Method.GET, "/api/v1/books/${book1?.id}"))
 
         response shouldHaveStatus Status.OK
-        response.shouldHaveBody(bookLens, be(book1))
+        response.shouldHaveBody(bookResLens, be(expectedBookRes))
     }
 
     @Test
@@ -242,7 +248,7 @@ class BookIntegrationTest {
         BookRepo()
             .saveBook(
                 userId = user.id,
-                googleId = "google1",
+                googleId = "google2",
                 title = "test book 2",
                 authors = listOf("test author 2"),
                 shelfId = shelf.id,

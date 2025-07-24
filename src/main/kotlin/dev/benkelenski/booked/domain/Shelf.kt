@@ -10,5 +10,3 @@ data class Shelf(
     val description: String?,
     @Json(name = "created_at") val createdAt: Instant,
 )
-
-data class ShelfRequest(val name: String, val description: String?)

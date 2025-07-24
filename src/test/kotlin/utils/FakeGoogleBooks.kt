@@ -11,8 +11,7 @@ import org.http4k.core.Status
 import org.http4k.core.with
 import org.http4k.routing.bind
 import org.http4k.routing.routes
-
-private const val DEFAULT_PROJECTION = "lite"
+import java.util.*
 
 private val fakeSearchResultDto =
     SearchResultDto(
@@ -57,6 +56,21 @@ fun fakeGoogleBooks() =
         "/books/v1/volumes/{volume_id}" bind
             Method.GET to
             {
-                Response(Status.OK).with(volumeDtoLens of fakeVolume)
+                Response(Status.OK)
+                    .with(
+                        volumeDtoLens of
+                            VolumeDto(
+                                id = UUID.randomUUID().toString().replace("-", ""),
+                                kind = "books#volume",
+                                volumeInfo =
+                                    VolumeInfoDto(
+                                        title = "book one",
+                                        authors = listOf("author one"),
+                                        publisher = "book publisher",
+                                        publishedDate = "1990-12-25",
+                                        "A really good book!",
+                                    ),
+                            )
+                    )
             },
     )

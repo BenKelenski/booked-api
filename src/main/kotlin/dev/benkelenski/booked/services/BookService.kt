@@ -1,16 +1,16 @@
 package dev.benkelenski.booked.services
 
-import dev.benkelenski.booked.domain.Book
+import dev.benkelenski.booked.domain.responses.BookResponse
 import dev.benkelenski.booked.external.google.GoogleBooksClient
 import dev.benkelenski.booked.external.google.dto.VolumeDto
 import dev.benkelenski.booked.repos.BookRepo
 import io.github.oshai.kotlinlogging.KotlinLogging
 
 /** alias for [BookService.getBookById] */
-typealias GetBookById = (bookId: Int) -> Book?
+typealias GetBookById = (bookId: Int) -> BookResponse?
 
 /** alias for [BookService.getAllBooks] */
-typealias GetAllBooks = () -> List<Book>
+typealias GetAllBooks = () -> List<BookResponse>
 
 /** alias for [BookService.deleteBook] */
 typealias DeleteBook = (userId: Int, bookId: Int) -> BookDeleteResult
@@ -27,9 +27,10 @@ class BookService(
         private val logger = KotlinLogging.logger {}
     }
 
-    fun getAllBooks(): List<Book> = bookRepo.getAllBooks()
+    fun getAllBooks(): List<BookResponse> = bookRepo.getAllBooks().map { BookResponse.from(it) }
 
-    fun getBookById(bookId: Int): Book? = bookRepo.getBookById(bookId)
+    fun getBookById(bookId: Int): BookResponse? =
+        bookRepo.getBookById(bookId)?.let { BookResponse.from(it) }
 
     fun deleteBook(userId: Int, bookId: Int): BookDeleteResult =
         try {

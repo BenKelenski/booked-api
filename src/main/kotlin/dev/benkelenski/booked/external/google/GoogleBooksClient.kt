@@ -56,10 +56,6 @@ class GoogleBooksClient(
             throw RuntimeException("Error performing search: ${response.bodyString()}")
         }
 
-        logger.info { "Received response: ${response.bodyString()}" }
-
-        val volumeDto: VolumeDto? = volumeDtoLens(response)
-
-        return volumeDto
+        return volumeDtoLens(response)
     }
 }

@@ -1,8 +1,10 @@
 ### GET all shelves
 GET {{API_URL}}/shelves
+Cookie: access_token={{ACCESS_TOKEN}}
 
 ### GET get shelf by ID
 GET {{API_URL}}/shelves/1
+Cookie: access_token={{ACCESS_TOKEN}}
 
 ### POST add new shelf
 POST {{API_URL}}/shelves
