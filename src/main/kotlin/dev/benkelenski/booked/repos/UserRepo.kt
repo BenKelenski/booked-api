@@ -90,6 +90,10 @@ class UserRepo {
             .singleOrNull()
     }
 
+    fun existsById(id: Int): Boolean = transaction {
+        Users.selectAll().where { Users.id eq id }.any()
+    }
+
     fun deleteUser(id: Int): Int = transaction { Users.deleteWhere { Users.id eq id } }
 }
 

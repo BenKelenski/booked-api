@@ -150,7 +150,7 @@ fun createApp(
         routes(
             bookRoutes(
                 bookService::getBookById,
-                bookService::getAllBooks,
+                bookService::getAllBooksForUser,
                 bookService::deleteBook,
                 bookService::searchBooks,
                 authMiddleware(tokenProvider),

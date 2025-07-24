@@ -4,22 +4,24 @@ import dev.benkelenski.booked.domain.responses.BookResponse
 import dev.benkelenski.booked.external.google.GoogleBooksClient
 import dev.benkelenski.booked.external.google.dto.VolumeDto
 import dev.benkelenski.booked.repos.BookRepo
+import dev.benkelenski.booked.repos.UserRepo
 import io.github.oshai.kotlinlogging.KotlinLogging
 
 /** alias for [BookService.getBookById] */
-typealias GetBookById = (bookId: Int) -> BookResponse?
+typealias GetBookById = (userId: Int, bookId: Int) -> BookResponse?
 
-/** alias for [BookService.getAllBooks] */
-typealias GetAllBooks = () -> List<BookResponse>
+/** alias for [BookService.getAllBooksForUser] */
+typealias GetAllBooksForUser = (userId: Int) -> List<BookResponse>
 
 /** alias for [BookService.deleteBook] */
 typealias DeleteBook = (userId: Int, bookId: Int) -> BookDeleteResult
 
 /** alias for [BookService.searchBooks] */
-typealias SearchBooks = (query: String?) -> Array<VolumeDto>?
+typealias SearchBooks = (userId: Int, query: String?) -> Array<VolumeDto>?
 
 class BookService(
     private val bookRepo: BookRepo,
+    private val userRepo: UserRepo,
     private val googleBooksClient: GoogleBooksClient,
 ) {
 
@@ -27,7 +29,9 @@ class BookService(
         private val logger = KotlinLogging.logger {}
     }
 
-    fun getAllBooks(): List<BookResponse> = bookRepo.getAllBooks().map { BookResponse.from(it) }
+    // TODO: do user exist checks for both get functions
+    fun getAllBooksForUser(userId: Int): List<BookResponse> =
+        bookRepo.getAllBooksByUser(userId).map { BookResponse.from(it) }
 
     fun getBookById(bookId: Int): BookResponse? =
         bookRepo.getBookById(bookId)?.let { BookResponse.from(it) }
@@ -46,7 +50,14 @@ class BookService(
             BookDeleteResult.DatabaseError
         }
 
-    fun searchBooks(query: String?): Array<VolumeDto>? = googleBooksClient.search(query)
+    fun searchBooks(userId: Int, query: String?): Array<VolumeDto>? {
+        if (!userRepo.existsById(userId)) {
+            logger.warn { "User $userId not found" }
+            return null
+        }
+
+        return googleBooksClient.search(query)
+    }
 }
 
 sealed class BookDeleteResult {

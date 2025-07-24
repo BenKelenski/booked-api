@@ -8,10 +8,12 @@ import org.jetbrains.exposed.sql.transactions.transaction
 
 class BookRepo {
 
-    fun getAllBooks(): List<Book> = transaction { Books.selectAll().map { it.toBook() } }
+    fun getAllBooksByUser(userId: Int): List<Book> = transaction {
+        Books.selectAll().where { Books.userId eq userId }.map { it.toBook() }
+    }
 
-    fun getBookById(id: Int): Book? = transaction {
-        Books.selectAll().where { Books.id eq id }.map { it.toBook() }.singleOrNull()
+    fun getBookById(bookId: Int): Book? = transaction {
+        Books.selectAll().where { Books.id eq bookId }.map { it.toBook() }.singleOrNull()
     }
 
     fun saveBook(

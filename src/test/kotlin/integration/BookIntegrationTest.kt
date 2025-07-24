@@ -262,6 +262,6 @@ class BookIntegrationTest {
             )
 
         response shouldHaveStatus Status.NO_CONTENT
-        BookRepo().getAllBooks() shouldHaveSize 1
+        BookRepo().getAllBooksByUser() shouldHaveSize 1
     }
 }
