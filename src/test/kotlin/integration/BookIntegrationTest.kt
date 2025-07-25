@@ -121,7 +121,11 @@ class BookIntegrationTest {
                     thumbnailUrl = "null",
                 )
 
-        val response = app(Request(Method.GET, "/api/v1/books"))
+        val response =
+            app(
+                Request(Method.GET, "/api/v1/books")
+                    .cookie(Cookie("access_token", fakeTokenProvider.generateAccessToken(user.id)))
+            )
 
         response shouldHaveStatus Status.OK
         response.shouldHaveBody(
@@ -162,7 +166,11 @@ class BookIntegrationTest {
 
         val expectedBookRes = BookResponse.from(book1!!)
 
-        val response = app(Request(Method.GET, "/api/v1/books/${book1?.id}"))
+        val response =
+            app(
+                Request(Method.GET, "/api/v1/books/${book1.id}")
+                    .cookie(Cookie("access_token", fakeTokenProvider.generateAccessToken(user.id)))
+            )
 
         response shouldHaveStatus Status.OK
         response.shouldHaveBody(bookResLens, be(expectedBookRes))
@@ -262,6 +270,6 @@ class BookIntegrationTest {
             )
 
         response shouldHaveStatus Status.NO_CONTENT
-        BookRepo().getAllBooksByUser() shouldHaveSize 1
+        BookRepo().getAllBooksByUser(userId = user.id) shouldHaveSize 1
     }
 }

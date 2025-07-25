@@ -13,9 +13,11 @@ import dev.benkelenski.booked.repos.ShelfRepo
 import dev.benkelenski.booked.repos.UserRepo
 import dev.benkelenski.booked.routes.authRoutes
 import dev.benkelenski.booked.routes.bookRoutes
+import dev.benkelenski.booked.routes.googleBooksRoutes
 import dev.benkelenski.booked.routes.shelfRoutes
 import dev.benkelenski.booked.services.AuthService
 import dev.benkelenski.booked.services.BookService
+import dev.benkelenski.booked.services.GoogleBooksService
 import dev.benkelenski.booked.services.ShelfService
 import io.github.oshai.kotlinlogging.KotlinLogging
 import org.http4k.client.OkHttp
@@ -104,7 +106,7 @@ fun createApp(
     val bookRepo = BookRepo()
     val shelfRepo = ShelfRepo()
 
-    // Auth
+    // Auth Providers
     val googleAuthProvider =
         GoogleAuthProvider(
             publicKey = config.server.auth.google.publicKey,
@@ -122,6 +124,7 @@ fun createApp(
             internet = internet,
         )
 
+    // Services
     val authService =
         AuthService(
             userRepo = userRepo,
@@ -130,12 +133,7 @@ fun createApp(
             tokenProvider = tokenProvider,
         )
 
-    val bookService =
-        BookService(
-            bookRepo = bookRepo,
-            //            shelfRepo = shelfRepo,
-            googleBooksClient = googleBooksClient,
-        )
+    val bookService = BookService(bookRepo = bookRepo)
 
     val shelfService =
         ShelfService(
@@ -144,15 +142,23 @@ fun createApp(
             googleBooksClient = googleBooksClient,
         )
 
+    val googleBooksService = GoogleBooksService(googleBooksClient)
+
     //    val userService = UserService(userRepo = userRepo)
 
     return AppConstants.API_PREFIX bind
         routes(
+            authRoutes(
+                authService::registerWithEmail,
+                authService::loginWithEmail,
+                authService::authenticateWith,
+                authService::refresh,
+                authService::logout,
+            ),
             bookRoutes(
                 bookService::getBookById,
                 bookService::getAllBooksForUser,
                 bookService::deleteBook,
-                bookService::searchBooks,
                 authMiddleware(tokenProvider),
             ),
             shelfRoutes(
@@ -164,12 +170,9 @@ fun createApp(
                 shelfService::addBookToShelf,
                 authMiddleware(tokenProvider),
             ),
-            authRoutes(
-                authService::registerWithEmail,
-                authService::loginWithEmail,
-                authService::authenticateWith,
-                authService::refresh,
-                authService::logout,
+            googleBooksRoutes(
+                googleBooksService::searchWithQuery,
+                googleBooksService::fetchByVolumeId,
             ),
         )
 }
