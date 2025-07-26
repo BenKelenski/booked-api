@@ -86,7 +86,20 @@ class BookIntegrationTest {
     }
 
     @Test
-    fun `get all books`() {
+    fun `get all books - unauthorized - no token`() {
+        Request(Method.GET, "/api/v1/books").let(app).shouldHaveStatus(Status.UNAUTHORIZED)
+    }
+
+    @Test
+    fun `get all books - unauthorized - bad token`() {
+        Request(Method.GET, "/api/v1/books")
+            .cookie(Cookie("access_token", "foo"))
+            .let(app)
+            .shouldHaveStatus(Status.UNAUTHORIZED)
+    }
+
+    @Test
+    fun `get all books - success`() {
         val user =
             UserRepo()
                 .getOrCreateUser(
@@ -135,6 +148,27 @@ class BookIntegrationTest {
     }
 
     @Test
+    fun `get book - unauthorized - no token`() {
+        Request(Method.GET, "/api/v1/books/9999").let(app).shouldHaveStatus(Status.UNAUTHORIZED)
+    }
+
+    @Test
+    fun `get book - unauthorized - bad token`() {
+        Request(Method.GET, "/api/v1/books/9999")
+            .cookie(Cookie("access_token", "foo"))
+            .let(app)
+            .shouldHaveStatus(Status.UNAUTHORIZED)
+    }
+
+    @Test
+    fun `get book - invalid book id`() {
+        Request(Method.GET, "/api/v1/books/INVALID_BOOK_ID")
+            .cookie(Cookie("access_token", fakeTokenProvider.generateAccessToken(1)))
+            .let(app)
+            .shouldHaveStatus(Status.BAD_REQUEST)
+    }
+
+    @Test
     fun `get book - not found`() {
         Request(Method.GET, "/v1/books/9999").let(app).shouldHaveStatus(Status.NOT_FOUND)
     }
@@ -177,16 +211,24 @@ class BookIntegrationTest {
     }
 
     @Test
-    fun `delete book - unauthorized due to no token`() {
+    fun `delete book - unauthorized - no token`() {
         Request(Method.DELETE, "/api/v1/books/999").let(app).shouldHaveStatus(Status.UNAUTHORIZED)
     }
 
     @Test
-    fun `delete book - unauthorized due to bad token`() {
+    fun `delete book - unauthorized - bad token`() {
         Request(Method.DELETE, "/api/v1/books/999")
             .cookie(Cookie("access_token", "foo"))
             .let(app)
             .shouldHaveStatus(Status.UNAUTHORIZED)
+    }
+
+    @Test
+    fun `delete book - invalid book id`() {
+        Request(Method.DELETE, "/api/v1/books/INVALID_BOOK_ID")
+            .cookie(Cookie("access_token", fakeTokenProvider.generateAccessToken(1)))
+            .let(app)
+            .shouldHaveStatus(Status.BAD_REQUEST)
     }
 
     @Test

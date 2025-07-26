@@ -13,45 +13,32 @@ import org.http4k.routing.bind
 import org.http4k.routing.path
 import org.http4k.routing.routes
 
-private val fakeSearchResultDto =
-    SearchResultDto(
-        items =
-            listOf(
-                VolumeDto(
-                    id = "book1",
-                    kind = "books#volume",
-                    volumeInfo =
-                        VolumeInfoDto(
-                            title = "book one",
-                            authors = listOf("author one"),
-                            publisher = "book publisher",
-                            publishedDate = "1990-12-25",
-                            "A really good book!",
-                        ),
-                )
-            )
-    )
-
-private val fakeVolume =
-    VolumeDto(
-        id = "book1",
-        kind = "books#volume",
-        volumeInfo =
-            VolumeInfoDto(
-                title = "book one",
-                authors = listOf("author one"),
-                publisher = "book publisher",
-                publishedDate = "1990-12-25",
-                "A really good book!",
-            ),
-    )
-
 fun fakeGoogleBooks() =
     routes(
         "/books/v1/volumes" bind
             Method.GET to
             { request ->
-                Response(Status.OK).with(searchResultDtoLens of fakeSearchResultDto)
+                Response(Status.OK)
+                    .with(
+                        searchResultDtoLens of
+                            SearchResultDto(
+                                items =
+                                    listOf(
+                                        VolumeDto(
+                                            id = "book1",
+                                            kind = "books#volume",
+                                            volumeInfo =
+                                                VolumeInfoDto(
+                                                    title = "book one",
+                                                    authors = listOf("author one"),
+                                                    publisher = "book publisher",
+                                                    publishedDate = "1990-12-25",
+                                                    "A really good book!",
+                                                ),
+                                        )
+                                    )
+                            )
+                    )
             },
         "/books/v1/volumes/{volume_id}" bind
             Method.GET to

@@ -86,8 +86,16 @@ class ShelfIntegrationTest {
     }
 
     @Test
-    fun `get all shelves - unauthorized`() {
+    fun `get all shelves - unauthorized - no token`() {
         Request(Method.GET, "/api/v1/shelves").let(app).shouldHaveStatus(Status.UNAUTHORIZED)
+    }
+
+    @Test
+    fun `get all shelves - unauthorized - bad token`() {
+        Request(Method.GET, "/api/v1/shelves")
+            .cookie(Cookie("access_token", "foo"))
+            .let(app)
+            .shouldHaveStatus(Status.UNAUTHORIZED)
     }
 
     @Test
@@ -147,8 +155,16 @@ class ShelfIntegrationTest {
     }
 
     @Test
-    fun `get shelf - unauthorized`() {
+    fun `get shelf - unauthorized - no token`() {
         Request(Method.GET, "/api/v1/shelves/9999").let(app).shouldHaveStatus(Status.UNAUTHORIZED)
+    }
+
+    @Test
+    fun `get shelf - unauthorized - bad token`() {
+        Request(Method.GET, "/api/v1/shelves/9999")
+            .cookie(Cookie("access_token", "foo"))
+            .let(app)
+            .shouldHaveStatus(Status.UNAUTHORIZED)
     }
 
     @Test
@@ -208,8 +224,17 @@ class ShelfIntegrationTest {
     }
 
     @Test
-    fun `create shelf - unauthorized`() {
+    fun `create shelf - unauthorized - no token`() {
         Request(Method.POST, "/api/v1/shelves")
+            .with(shelfRequestLens of ShelfRequest("shelf 1", null))
+            .let(app)
+            .shouldHaveStatus(Status.UNAUTHORIZED)
+    }
+
+    @Test
+    fun `create shelf - unauthorized - bad token`() {
+        Request(Method.POST, "/api/v1/shelves")
+            .cookie(Cookie("access_token", "foo"))
             .with(shelfRequestLens of ShelfRequest("shelf 1", null))
             .let(app)
             .shouldHaveStatus(Status.UNAUTHORIZED)
@@ -260,8 +285,16 @@ class ShelfIntegrationTest {
     }
 
     @Test
-    fun `get books by shelf - unauthorized`() {
+    fun `get books by shelf - unauthorized - no token`() {
         Request(Method.GET, "/api/v1/shelves/9999/books")
+            .let(app)
+            .shouldHaveStatus(Status.UNAUTHORIZED)
+    }
+
+    @Test
+    fun `get books by shelf - unauthorized - bad token`() {
+        Request(Method.GET, "/api/v1/shelves/9999/books")
+            .cookie(Cookie("access_token", "foo"))
             .let(app)
             .shouldHaveStatus(Status.UNAUTHORIZED)
     }
@@ -326,8 +359,16 @@ class ShelfIntegrationTest {
     }
 
     @Test
-    fun `add book to shelf - unauthorized`() {
+    fun `add book to shelf - unauthorized - no token`() {
         Request(Method.POST, "/api/v1/shelves/9999/books")
+            .let(app)
+            .shouldHaveStatus(Status.UNAUTHORIZED)
+    }
+
+    @Test
+    fun `add book to shelf - unauthorized - bad token`() {
+        Request(Method.POST, "/api/v1/shelves/9999/books")
+            .cookie(Cookie("access_token", "foo"))
             .let(app)
             .shouldHaveStatus(Status.UNAUTHORIZED)
     }
@@ -387,12 +428,12 @@ class ShelfIntegrationTest {
     }
 
     @Test
-    fun `delete shelf - unauthorized due to no token`() {
+    fun `delete shelf - unauthorized - no token`() {
         Request(Method.DELETE, "/api/v1/shelves/999").let(app).shouldHaveStatus(Status.UNAUTHORIZED)
     }
 
     @Test
-    fun `delete shelf - unauthorized due to bad token`() {
+    fun `delete shelf - unauthorized - bad token`() {
         Request(Method.DELETE, "/api/v1/shelves/999")
             .bearerAuth("foo")
             .let(app)

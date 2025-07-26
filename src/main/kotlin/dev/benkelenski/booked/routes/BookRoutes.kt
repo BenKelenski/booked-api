@@ -6,8 +6,10 @@ import dev.benkelenski.booked.services.BookDeleteResult
 import dev.benkelenski.booked.services.DeleteBook
 import dev.benkelenski.booked.services.GetAllBooksForUser
 import dev.benkelenski.booked.services.GetBookById
+import io.github.oshai.kotlinlogging.KotlinLogging
 import org.http4k.core.*
 import org.http4k.format.Moshi.auto
+import org.http4k.lens.LensFailure
 import org.http4k.lens.Path
 import org.http4k.lens.int
 import org.http4k.routing.RoutingHttpHandler
@@ -17,6 +19,8 @@ import org.http4k.routing.routes
 val bookIdLens = Path.int().of("book_id")
 val booksResponseLens = Body.auto<Array<BookResponse>>().toLens()
 val bookResponseLens = Body.auto<BookResponse>().toLens()
+
+private val logger = KotlinLogging.logger {}
 
 fun bookRoutes(
     getBookById: GetBookById,
@@ -42,10 +46,16 @@ fun bookRoutes(
                     "/$bookIdLens" bind
                         Method.GET to
                         { request ->
-                            val userId =
-                                request.header("X-User-Id")?.toIntOrNull()
-                                    ?: return@to Response(Status.UNAUTHORIZED)
-                            val bookId = bookIdLens(request)
+                            request.header("X-User-Id")?.toIntOrNull()
+                                ?: return@to Response(Status.UNAUTHORIZED)
+                            val bookId =
+                                try {
+                                    bookIdLens(request)
+                                } catch (e: LensFailure) {
+                                    logger.error(e) { "Missing or invalid book ID." }
+                                    return@to Response(Status.BAD_REQUEST)
+                                        .body("Missing or invalid book ID.")
+                                }
 
                             getBookById(bookId)?.let {
                                 Response(Status.OK).with(bookResponseLens of it)
@@ -57,7 +67,14 @@ fun bookRoutes(
                             val userId =
                                 request.header("X-User-Id")?.toIntOrNull()
                                     ?: return@to Response(Status.UNAUTHORIZED)
-                            val bookId = bookIdLens(request)
+                            val bookId =
+                                try {
+                                    bookIdLens(request)
+                                } catch (e: LensFailure) {
+                                    logger.error(e) { "Missing or invalid book ID." }
+                                    return@to Response(Status.BAD_REQUEST)
+                                        .body("Missing or invalid book ID.")
+                                }
 
                             when (deleteBook(userId, bookId)) {
                                 is BookDeleteResult.Success -> Response(Status.NO_CONTENT)
