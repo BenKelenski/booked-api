@@ -15,8 +15,8 @@ import org.http4k.routing.bind
 import org.http4k.routing.routes
 
 val bookIdLens = Path.int().of("book_id")
-val booksResLens = Body.auto<Array<BookResponse>>().toLens()
-val bookResLens = Body.auto<BookResponse>().toLens()
+val booksResponseLens = Body.auto<Array<BookResponse>>().toLens()
+val bookResponseLens = Body.auto<BookResponse>().toLens()
 
 fun bookRoutes(
     getBookById: GetBookById,
@@ -36,7 +36,7 @@ fun bookRoutes(
                                     ?: return@to Response(Status.UNAUTHORIZED)
 
                             getAllBooks(userId).let {
-                                Response(Status.OK).with(booksResLens of it.toTypedArray())
+                                Response(Status.OK).with(booksResponseLens of it.toTypedArray())
                             }
                         },
                     "/$bookIdLens" bind
@@ -47,8 +47,9 @@ fun bookRoutes(
                                     ?: return@to Response(Status.UNAUTHORIZED)
                             val bookId = bookIdLens(request)
 
-                            getBookById(bookId)?.let { Response(Status.OK).with(bookResLens of it) }
-                                ?: Response(Status.NOT_FOUND)
+                            getBookById(bookId)?.let {
+                                Response(Status.OK).with(bookResponseLens of it)
+                            } ?: Response(Status.NOT_FOUND)
                         },
                     "/$bookIdLens" bind
                         Method.DELETE to
