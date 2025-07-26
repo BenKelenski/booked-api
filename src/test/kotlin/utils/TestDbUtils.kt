@@ -4,7 +4,7 @@ import dev.benkelenski.booked.models.*
 import org.jetbrains.exposed.sql.SchemaUtils
 import org.jetbrains.exposed.sql.transactions.transaction
 
-object FakeDbUtils {
+object TestDbUtils {
     fun buildTables() = transaction {
         SchemaUtils.create(AuthIdentities, Books, RefreshTokens, Shelves, Users)
     }
