@@ -6,8 +6,8 @@ import dev.benkelenski.booked.loadConfig
 import dev.benkelenski.booked.repos.BookRepo
 import dev.benkelenski.booked.repos.ShelfRepo
 import dev.benkelenski.booked.repos.UserRepo
-import dev.benkelenski.booked.routes.bookResLens
-import dev.benkelenski.booked.routes.booksResLens
+import dev.benkelenski.booked.routes.bookResponseLens
+import dev.benkelenski.booked.routes.booksResponseLens
 import io.kotest.matchers.be
 import io.kotest.matchers.collections.shouldHaveSize
 import org.http4k.base64Encode
@@ -24,8 +24,8 @@ import org.http4k.routing.reverseProxy
 import org.jetbrains.exposed.sql.Database
 import org.junit.jupiter.api.*
 import org.testcontainers.containers.PostgreSQLContainer
-import utils.FakeDbUtils
 import utils.FakeTokenProvider
+import utils.TestDbUtils
 import utils.fakeGoogleBooks
 import java.security.KeyPairGenerator
 
@@ -72,12 +72,12 @@ class BookIntegrationTest {
 
     @BeforeEach
     fun setup() {
-        FakeDbUtils.buildTables()
+        TestDbUtils.buildTables()
     }
 
     @AfterEach
     fun teardown() {
-        FakeDbUtils.dropTables()
+        TestDbUtils.dropTables()
     }
 
     @AfterAll
@@ -129,7 +129,7 @@ class BookIntegrationTest {
 
         response shouldHaveStatus Status.OK
         response.shouldHaveBody(
-            booksResLens,
+            booksResponseLens,
             be(listOf(BookResponse.from(book1!!), BookResponse.from(book2!!))),
         )
     }
@@ -173,7 +173,7 @@ class BookIntegrationTest {
             )
 
         response shouldHaveStatus Status.OK
-        response.shouldHaveBody(bookResLens, be(expectedBookRes))
+        response.shouldHaveBody(bookResponseLens, be(expectedBookRes))
     }
 
     @Test
