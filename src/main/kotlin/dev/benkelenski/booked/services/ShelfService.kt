@@ -62,6 +62,7 @@ class ShelfService(
         }
 
     fun getBooksByShelf(userId: Int, shelfId: Int): List<BookResponse> {
+        logger.info { "Getting books for shelf $shelfId for user $userId" }
         return bookRepo.findAllByShelfAndUser(shelfId, userId).map { BookResponse.from(it) }
     }
 

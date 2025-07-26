@@ -5,8 +5,10 @@ import dev.benkelenski.booked.domain.requests.ShelfRequest
 import dev.benkelenski.booked.domain.responses.ShelfResponse
 import dev.benkelenski.booked.middleware.AuthMiddleware
 import dev.benkelenski.booked.services.*
+import io.github.oshai.kotlinlogging.KotlinLogging
 import org.http4k.core.*
 import org.http4k.format.Moshi.auto
+import org.http4k.lens.LensFailure
 import org.http4k.lens.Path
 import org.http4k.lens.int
 import org.http4k.routing.RoutingHttpHandler
@@ -18,6 +20,8 @@ val shelvesResLens = Body.auto<Array<ShelfResponse>>().toLens()
 val shelfResLens = Body.auto<ShelfResponse>().toLens()
 val shelfRequestLens = Body.auto<ShelfRequest>().toLens()
 val bookRequestLens = Body.auto<BookRequest>().toLens()
+
+private val logger = KotlinLogging.logger {}
 
 fun shelfRoutes(
     getShelfById: GetShelfById,
@@ -49,7 +53,22 @@ fun shelfRoutes(
                             val userId =
                                 request.header("X-User-Id")?.toIntOrNull()
                                     ?: return@to Response(Status.UNAUTHORIZED)
-                            createShelf(userId, shelfRequestLens(request))?.let {
+
+                            val shelfRequest =
+                                try {
+                                    shelfRequestLens(request)
+                                } catch (e: LensFailure) {
+                                    logger.error(e) { "Missing or invalid shelf request." }
+                                    return@to Response(Status.BAD_REQUEST)
+                                        .body("Missing or invalid shelf request.")
+                                }
+
+                            if (shelfRequest.name.isBlank()) {
+                                return@to Response(Status.BAD_REQUEST)
+                                    .body("Shelf name cannot be blank.")
+                            }
+
+                            createShelf(userId, shelfRequest)?.let {
                                 Response(Status.CREATED).with(shelfResLens of it)
                             } ?: Response(Status.EXPECTATION_FAILED)
                         },
@@ -60,7 +79,16 @@ fun shelfRoutes(
                                 request.header("X-User-Id")?.toIntOrNull()
                                     ?: return@to Response(Status.UNAUTHORIZED)
 
-                            getShelfById(userId, shelfIdLens(request))?.let {
+                            val shelfId =
+                                try {
+                                    shelfIdLens(request)
+                                } catch (e: LensFailure) {
+                                    logger.error(e) { "Missing or invalid shelf ID." }
+                                    return@to Response(Status.BAD_REQUEST)
+                                        .body("Missing or invalid shelf ID.")
+                                }
+
+                            getShelfById(userId, shelfId)?.let {
                                 Response(Status.OK).with(shelfResLens of it)
                             } ?: Response(Status.NOT_FOUND)
                         },
@@ -70,7 +98,15 @@ fun shelfRoutes(
                             val userId =
                                 request.header("X-User-Id")?.toIntOrNull()
                                     ?: return@to Response(Status.UNAUTHORIZED)
-                            val shelfId = shelfIdLens(request)
+
+                            val shelfId =
+                                try {
+                                    shelfIdLens(request)
+                                } catch (e: LensFailure) {
+                                    logger.error(e) { "Missing or invalid shelf ID." }
+                                    return@to Response(Status.BAD_REQUEST)
+                                        .body("Missing or invalid shelf ID.")
+                                }
 
                             when (deleteShelf(userId, shelfId)) {
                                 is ShelfDeleteResult.Success -> Response(Status.NO_CONTENT)
@@ -88,10 +124,19 @@ fun shelfRoutes(
                             val userId =
                                 request.header("X-User-Id")?.toIntOrNull()
                                     ?: return@to Response(Status.UNAUTHORIZED)
-                            val shelfId = shelfIdLens(request)
+
+                            val shelfId =
+                                try {
+                                    shelfIdLens(request)
+                                } catch (e: LensFailure) {
+                                    logger.error(e) { "Missing or invalid shelf ID." }
+                                    return@to Response(Status.BAD_REQUEST)
+                                        .body("Missing or invalid shelf ID.")
+                                }
+
                             val books = getBooksByShelf(userId, shelfId)
 
-                            Response(Status.OK).with(booksResLens of books.toTypedArray())
+                            Response(Status.OK).with(booksResponseLens of books.toTypedArray())
                         },
                     "/$shelfIdLens/books" bind
                         Method.POST to
@@ -99,14 +144,35 @@ fun shelfRoutes(
                             val userId =
                                 request.header("X-User-Id")?.toIntOrNull()
                                     ?: return@to Response(Status.UNAUTHORIZED)
-                            val shelfId = shelfIdLens(request)
-                            val bookRequest = bookRequestLens(request)
+
+                            val shelfId =
+                                try {
+                                    shelfIdLens(request)
+                                } catch (e: LensFailure) {
+                                    logger.error(e) { "Missing or invalid shelf ID." }
+                                    return@to Response(Status.BAD_REQUEST)
+                                        .body("Missing or invalid shelf ID.")
+                                }
+
+                            val bookRequest =
+                                try {
+                                    bookRequestLens(request)
+                                } catch (e: LensFailure) {
+                                    logger.error(e) { "Missing or invalid book request." }
+                                    return@to Response(Status.BAD_REQUEST)
+                                        .body("Missing or invalid book request.")
+                                }
+
+                            if (bookRequest.volumeId.isBlank()) {
+                                return@to Response(Status.BAD_REQUEST)
+                                    .body("Google book ID cannot be blank.")
+                            }
 
                             when (
                                 val result = addBookToShelf(userId, shelfId, bookRequest.volumeId)
                             ) {
                                 is ShelfAddBookResult.Success ->
-                                    Response(Status.OK).with(bookResLens of result.book)
+                                    Response(Status.OK).with(bookResponseLens of result.book)
                                 is ShelfAddBookResult.ShelfNotFound ->
                                     Response(Status.NOT_FOUND).body("Shelf not found.")
                                 is ShelfAddBookResult.BookNotFound ->
