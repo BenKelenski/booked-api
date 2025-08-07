@@ -350,6 +350,7 @@ class ShelfIntegrationTest {
 
         books.size shouldBe 3
         books.forEachIndexed { index, book ->
+            book.id shouldBe index.plus(1)
             book.title shouldBe "test book $index"
             book.authors shouldBe listOf("test author $index")
             book.googleId shouldBe "google$index"
@@ -422,6 +423,9 @@ class ShelfIntegrationTest {
             )
 
         val book = bookResponseLens(response)
+        book.id shouldBe 1
+        book.googleId shouldBe googleBookId
+        book.createdAt shouldNotBe null
         book.title shouldBe "book-$googleBookId"
         book.authors shouldBe listOf("author-$googleBookId")
         book.googleId shouldBe googleBookId
