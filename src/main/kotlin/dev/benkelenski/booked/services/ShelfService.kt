@@ -34,6 +34,8 @@ class ShelfService(
 
     companion object {
         private val logger = KotlinLogging.logger {}
+
+        private fun String.secureUrl(): String = replace("http://", "https://")
     }
 
     fun getShelfById(userId: Int, shelfId: Int): ShelfResponse? =
@@ -95,7 +97,7 @@ class ShelfService(
                 volumeDto.id,
                 volumeDto.volumeInfo.title,
                 volumeDto.volumeInfo.authors,
-                volumeDto.volumeInfo.imageLinks?.thumbnail,
+                volumeDto.volumeInfo.imageLinks?.thumbnail?.secureUrl(),
             )
                 ?: run {
                     logger.warn { "Failed to save book $googleVolumeId to shelf $shelfId" }
