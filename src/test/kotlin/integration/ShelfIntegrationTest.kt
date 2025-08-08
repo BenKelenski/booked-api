@@ -400,6 +400,41 @@ class ShelfIntegrationTest {
     }
 
     @Test
+    fun `add book to shelf - conflict - duplicate book`() {
+        val user =
+            UserRepo()
+                .getOrCreateUser(
+                    provider = "email",
+                    providerUserId = "test@test.com",
+                    email = "test@test.com",
+                    name = "testuser",
+                    password = "securepass",
+                )
+
+        val shelf = ShelfRepo().addShelf(userId = user.id, name = "shelf 1", description = null)
+
+        val googleBookId = "google1"
+
+        BookRepo()
+            .saveBook(
+                userId = user.id,
+                googleId = googleBookId,
+                title = "test book 1",
+                authors = listOf("test author 1"),
+                shelfId = shelf!!.id,
+                thumbnailUrl = null,
+            )
+
+        Request(Method.POST, "/api/v1/shelves/${shelf.id}/books")
+            .with(bookRequestLens of BookRequest(googleBookId))
+            .cookie(Cookie("access_token", fakeTokenProvider.generateAccessToken(user.id)))
+            .let(app)
+            .shouldHaveStatus(Status.CONFLICT)
+
+        BookRepo().findAllByShelfAndUser(shelf.id, user.id) shouldHaveSize 1
+    }
+
+    @Test
     fun `add book to shelf - success`() {
         val user =
             UserRepo()

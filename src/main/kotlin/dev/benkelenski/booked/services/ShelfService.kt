@@ -83,6 +83,11 @@ class ShelfService(
             return ShelfAddBookResult.Forbidden
         }
 
+        if (bookRepo.existsByShelfAndGoogleId(shelfId, googleVolumeId)) {
+            logger.warn { "Book $googleVolumeId already exists in shelf $shelfId" }
+            return ShelfAddBookResult.Duplicate
+        }
+
         val volumeDto =
             googleBooksClient.getVolume(googleVolumeId)
                 ?: run {
@@ -116,6 +121,8 @@ sealed class ShelfAddBookResult {
     object BookNotFound : ShelfAddBookResult()
 
     object Forbidden : ShelfAddBookResult()
+
+    object Duplicate : ShelfAddBookResult()
 
     object DatabaseError : ShelfAddBookResult()
 }

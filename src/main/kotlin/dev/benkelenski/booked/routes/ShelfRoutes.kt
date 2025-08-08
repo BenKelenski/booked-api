@@ -183,6 +183,9 @@ fun shelfRoutes(
                                 is ShelfAddBookResult.Forbidden ->
                                     Response(Status.FORBIDDEN)
                                         .body("Cannot add books to another user's shelf.")
+                                is ShelfAddBookResult.Duplicate ->
+                                    Response(Status.CONFLICT)
+                                        .body("Book already exists on a shelf.")
                                 is ShelfAddBookResult.DatabaseError ->
                                     Response(Status.INTERNAL_SERVER_ERROR)
                                         .body("Error occurred trying to add book to shelf.")

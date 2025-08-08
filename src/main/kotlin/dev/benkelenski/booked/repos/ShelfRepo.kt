@@ -34,7 +34,7 @@ class ShelfRepo {
     }
 
     fun existsById(id: Int): Boolean = transaction {
-        Shelves.selectAll().where { Shelves.id eq id }.any()
+        Shelves.selectAll().where { Shelves.id eq id }.limit(1).any()
     }
 }
 

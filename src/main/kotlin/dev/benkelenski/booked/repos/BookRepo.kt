@@ -41,13 +41,20 @@ class BookRepo {
     }
 
     fun existsById(id: Int): Boolean = transaction {
-        Books.selectAll().where { Books.id eq id }.any()
+        Books.selectAll().where { Books.id eq id }.limit(1).any()
     }
 
     fun findAllByShelfAndUser(shelfId: Int, userId: Int): List<Book> = transaction {
         Books.selectAll()
             .where { (Books.userId eq userId) and (Books.shelfId eq shelfId) }
             .map { it.toBook() }
+    }
+
+    fun existsByShelfAndGoogleId(shelfId: Int, googleId: String): Boolean = transaction {
+        Books.selectAll()
+            .where { (Books.shelfId eq shelfId) and (Books.googleId eq googleId) }
+            .limit(1)
+            .any()
     }
 }
 

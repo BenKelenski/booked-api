@@ -21,17 +21,13 @@ Cookie: access_token={{ACCESS_TOKEN}}
 Content-Type: application/json
 
 {
-  "volume_id": "LdDsEAAAQBAJ"
+  "volume_id": "AmNDDwAAQBAJ"
 }
 
 ### GET all books by shelf
 GET {{API_URL}}/shelves/1/books
 Cookie: access_token={{ACCESS_TOKEN}}
-Content-Type: application/json
 
-{
-  "volume_id": "LdDsEAAAQBAJ"
-}
 
 ### DELETE remove shelf
 DELETE {{API_URL}}/shelves/1
