@@ -1,4 +1,4 @@
-package utils
+package testUtils
 
 import dev.benkelenski.booked.external.google.dto.SearchResultDto
 import dev.benkelenski.booked.external.google.dto.VolumeDto

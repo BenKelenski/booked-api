@@ -1,4 +1,4 @@
-package utils
+package testUtils
 
 import dev.benkelenski.booked.models.*
 import org.jetbrains.exposed.sql.SchemaUtils

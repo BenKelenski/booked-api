@@ -24,9 +24,10 @@ import org.http4k.routing.reverseProxy
 import org.jetbrains.exposed.sql.Database
 import org.junit.jupiter.api.*
 import org.testcontainers.containers.PostgreSQLContainer
-import utils.FakeTokenProvider
-import utils.TestDbUtils
-import utils.fakeGoogleBooks
+import testUtils.FakeTokenProvider
+import testUtils.TestDbUtils
+import testUtils.fakeGoogleBooks
+import testUtils.requireCreated
 import java.security.KeyPairGenerator
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
@@ -117,7 +118,7 @@ class ShelfIntegrationTest {
                     name = "testuser",
                     password = "securepass",
                 )
-                .user
+                .requireCreated()
 
         repeat(3) { ShelfRepo().addShelf(userId = user.id, name = "shelf $it", description = null) }
 
@@ -143,7 +144,7 @@ class ShelfIntegrationTest {
                     name = "testuser",
                     password = "securepass",
                 )
-                .user
+                .requireCreated()
 
         val response =
             app(
@@ -188,7 +189,7 @@ class ShelfIntegrationTest {
                     name = "testuser",
                     password = "securepass",
                 )
-                .user
+                .requireCreated()
 
         Request(Method.GET, "/v1/shelves/9999")
             .cookie(Cookie("access_token", fakeTokenProvider.generateAccessToken(user.id)))
@@ -207,7 +208,7 @@ class ShelfIntegrationTest {
                     name = "testuser",
                     password = "securepass",
                 )
-                .user
+                .requireCreated()
 
         val shelf = ShelfRepo().addShelf(userId = user.id, name = "shelf 1", description = null)
         ShelfRepo().addShelf(userId = 1, name = "shelf 2", description = null)
@@ -272,7 +273,7 @@ class ShelfIntegrationTest {
                     name = "testuser",
                     password = "securepass",
                 )
-                .user
+                .requireCreated()
 
         val response =
             app(
@@ -328,7 +329,7 @@ class ShelfIntegrationTest {
                     name = "testuser",
                     password = "securepass",
                 )
-                .user
+                .requireCreated()
 
         val shelf = ShelfRepo().addShelf(userId = user.id, name = "shelf 1", description = null)
 
@@ -416,7 +417,7 @@ class ShelfIntegrationTest {
                     name = "testuser",
                     password = "securepass",
                 )
-                .user
+                .requireCreated()
 
         val shelf = ShelfRepo().addShelf(userId = user.id, name = "shelf 1", description = null)
 
@@ -452,7 +453,7 @@ class ShelfIntegrationTest {
                     name = "testuser",
                     password = "securepass",
                 )
-                .user
+                .requireCreated()
 
         val shelf = ShelfRepo().addShelf(userId = user.id, name = "shelf 1", description = null)
 
@@ -533,7 +534,7 @@ class ShelfIntegrationTest {
                     name = "testuser",
                     password = "securepass",
                 )
-                .user
+                .requireCreated()
 
         val shelf = ShelfRepo().addShelf(userId = user.id, name = "shelf 1", description = null)
         ShelfRepo().addShelf(userId = user.id, name = "shelf 2", description = null)
