@@ -129,6 +129,7 @@ fun createApp(
         AuthService(
             userRepo = userRepo,
             refreshTokenRepo = refreshTokenRepo,
+            shelfRepo = shelfRepo,
             googleAuthProvider = googleAuthProvider,
             tokenProvider = tokenProvider,
         )

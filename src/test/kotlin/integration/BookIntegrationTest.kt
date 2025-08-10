@@ -10,6 +10,7 @@ import dev.benkelenski.booked.routes.bookResponseLens
 import dev.benkelenski.booked.routes.booksResponseLens
 import io.kotest.matchers.be
 import io.kotest.matchers.collections.shouldHaveSize
+import java.security.KeyPairGenerator
 import org.http4k.base64Encode
 import org.http4k.core.Method
 import org.http4k.core.Request
@@ -27,7 +28,6 @@ import org.testcontainers.containers.PostgreSQLContainer
 import utils.FakeTokenProvider
 import utils.TestDbUtils
 import utils.fakeGoogleBooks
-import java.security.KeyPairGenerator
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class BookIntegrationTest {
@@ -109,6 +109,7 @@ class BookIntegrationTest {
                     name = "testuser",
                     password = "securepass",
                 )
+                .user
 
         val shelf = ShelfRepo().addShelf(userId = user.id, name = "test", description = null)
 
@@ -184,6 +185,7 @@ class BookIntegrationTest {
                     name = "testuser",
                     password = "securepass",
                 )
+                .user
 
         val shelf = ShelfRepo().addShelf(userId = user.id, name = "test", description = null)
 
@@ -250,6 +252,7 @@ class BookIntegrationTest {
                     name = "testuser",
                     password = "securepass",
                 )
+                .user
 
         val shelf = ShelfRepo().addShelf(userId = user.id, name = "test", description = null)
 
@@ -281,6 +284,7 @@ class BookIntegrationTest {
                     name = "testuser",
                     password = "securepass",
                 )
+                .user
 
         val shelf = ShelfRepo().addShelf(user.id, name = "test", description = null)
 

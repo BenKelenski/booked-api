@@ -8,8 +8,11 @@ import com.auth0.jwt.exceptions.JWTVerificationException
 import com.auth0.jwt.interfaces.DecodedJWT
 import com.auth0.jwt.interfaces.RSAKeyProvider
 import dev.benkelenski.booked.domain.User
+import dev.benkelenski.booked.repos.GetOrCreateUserResult
 import dev.benkelenski.booked.repos.UserRepo
+import io.github.oshai.kotlinlogging.KotlinLogging
 import org.http4k.base64DecodedArray
+import org.jetbrains.exposed.sql.transactions.transaction
 import java.net.URI
 import java.security.KeyFactory
 import java.security.interfaces.RSAPublicKey
@@ -23,6 +26,10 @@ class GoogleAuthProvider(
     audience: String,
     private val userRepo: UserRepo,
 ) : AuthProvider {
+
+    companion object {
+        private val logger = KotlinLogging.logger {}
+    }
 
     private val algorithm =
         publicKey?.let { publicKey ->
@@ -61,18 +68,36 @@ class GoogleAuthProvider(
         }
     }
 
-    override fun authenticate(idToken: String): User? {
-        val decoded = verify(idToken) ?: return null
+    override fun authenticate(idToken: String): User? =
+        try {
+            transaction {
+                val decoded = verify(idToken) ?: return@transaction null
 
-        val providerUserId = decoded.subject ?: return null
-        val email = decoded.getClaim("email").asString()
-        val name = decoded.getClaim("name").asString()
+                val providerUserId = decoded.subject ?: return@transaction null
+                val email = decoded.getClaim("email").asString()
+                val name = decoded.getClaim("name").asString()
 
-        return userRepo.getOrCreateUser(
-            provider = "google",
-            providerUserId = providerUserId,
-            email = email,
-            name = name,
-        )
-    }
+                when (
+                    val res =
+                        userRepo.getOrCreateUser(
+                            provider = "google",
+                            providerUserId = providerUserId,
+                            email = email,
+                            name = name,
+                        )
+                ) {
+                    is GetOrCreateUserResult.Created -> {
+                        logger.info { "Created user ${res.user.name} (${res.user.id})" }
+                        res.user
+                    }
+                    is GetOrCreateUserResult.Existing -> {
+                        logger.info { "Found user ${res.user.name} (${res.user.id})" }
+                        res.user
+                    }
+                }
+            }
+        } catch (e: Exception) {
+            logger.error(e) { "Failed to authenticate user" }
+            null
+        }
 }

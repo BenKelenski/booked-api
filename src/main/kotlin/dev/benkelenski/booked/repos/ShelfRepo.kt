@@ -8,6 +8,10 @@ import org.jetbrains.exposed.sql.transactions.transaction
 
 class ShelfRepo {
 
+    companion object {
+        private val DEFAULT_SHELF_NAMES = listOf("Current Reads", "To Read", "Finished Reading")
+    }
+
     fun getAllShelves(userId: Int): List<Shelf> = transaction {
         Shelves.selectAll().where { Shelves.userId eq userId }.map { it.toShelf() }
     }
@@ -27,6 +31,13 @@ class ShelfRepo {
             }
             .map { it.toShelf() }
             .singleOrNull()
+    }
+
+    fun createDefaultShelves(userId: Int) = transaction {
+        Shelves.batchInsert(DEFAULT_SHELF_NAMES) { name ->
+            this[Shelves.userId] = userId
+            this[Shelves.name] = name
+        }
     }
 
     fun deleteByIdAndUser(userId: Int, shelfId: Int): Int = transaction {

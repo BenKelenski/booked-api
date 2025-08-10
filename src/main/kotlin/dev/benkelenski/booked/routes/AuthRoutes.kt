@@ -52,6 +52,9 @@ fun authRoutes(
                             is AuthResult.Failure -> {
                                 Response(Status.BAD_REQUEST).body(result.reason)
                             }
+                            is AuthResult.DatabaseError -> {
+                                Response(Status.INTERNAL_SERVER_ERROR)
+                            }
                         }
                     },
                 "/login" bind
@@ -70,6 +73,9 @@ fun authRoutes(
                             }
                             is AuthResult.Failure -> {
                                 Response(Status.BAD_REQUEST).body(result.reason)
+                            }
+                            is AuthResult.DatabaseError -> {
+                                Response(Status.INTERNAL_SERVER_ERROR)
                             }
                         }
                     },
@@ -94,6 +100,9 @@ fun authRoutes(
                             is AuthResult.Failure -> {
                                 Response(Status.BAD_REQUEST).body(result.reason)
                             }
+                            is AuthResult.DatabaseError -> {
+                                Response(Status.INTERNAL_SERVER_ERROR)
+                            }
                         }
                     },
                 "/refresh" bind
@@ -113,6 +122,9 @@ fun authRoutes(
                             }
                             is AuthResult.Failure -> {
                                 Response(Status.UNAUTHORIZED).body(result.reason)
+                            }
+                            is AuthResult.DatabaseError -> {
+                                Response(Status.INTERNAL_SERVER_ERROR)
                             }
                         }
                     },

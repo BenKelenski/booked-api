@@ -117,6 +117,7 @@ class ShelfIntegrationTest {
                     name = "testuser",
                     password = "securepass",
                 )
+                .user
 
         repeat(3) { ShelfRepo().addShelf(userId = user.id, name = "shelf $it", description = null) }
 
@@ -142,6 +143,7 @@ class ShelfIntegrationTest {
                     name = "testuser",
                     password = "securepass",
                 )
+                .user
 
         val response =
             app(
@@ -186,6 +188,7 @@ class ShelfIntegrationTest {
                     name = "testuser",
                     password = "securepass",
                 )
+                .user
 
         Request(Method.GET, "/v1/shelves/9999")
             .cookie(Cookie("access_token", fakeTokenProvider.generateAccessToken(user.id)))
@@ -204,6 +207,7 @@ class ShelfIntegrationTest {
                     name = "testuser",
                     password = "securepass",
                 )
+                .user
 
         val shelf = ShelfRepo().addShelf(userId = user.id, name = "shelf 1", description = null)
         ShelfRepo().addShelf(userId = 1, name = "shelf 2", description = null)
@@ -268,6 +272,7 @@ class ShelfIntegrationTest {
                     name = "testuser",
                     password = "securepass",
                 )
+                .user
 
         val response =
             app(
@@ -323,6 +328,7 @@ class ShelfIntegrationTest {
                     name = "testuser",
                     password = "securepass",
                 )
+                .user
 
         val shelf = ShelfRepo().addShelf(userId = user.id, name = "shelf 1", description = null)
 
@@ -410,6 +416,7 @@ class ShelfIntegrationTest {
                     name = "testuser",
                     password = "securepass",
                 )
+                .user
 
         val shelf = ShelfRepo().addShelf(userId = user.id, name = "shelf 1", description = null)
 
@@ -445,6 +452,7 @@ class ShelfIntegrationTest {
                     name = "testuser",
                     password = "securepass",
                 )
+                .user
 
         val shelf = ShelfRepo().addShelf(userId = user.id, name = "shelf 1", description = null)
 
@@ -525,6 +533,7 @@ class ShelfIntegrationTest {
                     name = "testuser",
                     password = "securepass",
                 )
+                .user
 
         val shelf = ShelfRepo().addShelf(userId = user.id, name = "shelf 1", description = null)
         ShelfRepo().addShelf(userId = user.id, name = "shelf 2", description = null)

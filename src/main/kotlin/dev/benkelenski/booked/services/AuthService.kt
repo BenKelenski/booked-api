@@ -4,9 +4,12 @@ import dev.benkelenski.booked.auth.GoogleAuthProvider
 import dev.benkelenski.booked.auth.TokenProvider
 import dev.benkelenski.booked.domain.AuthPayload
 import dev.benkelenski.booked.domain.SessionResult
+import dev.benkelenski.booked.repos.GetOrCreateUserResult
 import dev.benkelenski.booked.repos.RefreshTokenRepo
+import dev.benkelenski.booked.repos.ShelfRepo
 import dev.benkelenski.booked.repos.UserRepo
 import io.github.oshai.kotlinlogging.KotlinLogging
+import org.jetbrains.exposed.sql.transactions.transaction
 import java.time.Duration
 import java.time.Instant
 
@@ -28,6 +31,7 @@ typealias Logout = (userId: Int) -> Unit
 class AuthService(
     private val userRepo: UserRepo,
     private val refreshTokenRepo: RefreshTokenRepo,
+    private val shelfRepo: ShelfRepo,
     private val googleAuthProvider: GoogleAuthProvider,
     private val tokenProvider: TokenProvider,
 ) {
@@ -37,33 +41,49 @@ class AuthService(
     }
 
     /** Register a new user using email and password */
-    fun registerWithEmail(email: String, password: String, name: String?): AuthResult {
-        val existing = userRepo.findUserByProvider("email", email)
-        if (existing != null) {
-            logger.warn { "User with email $email already exists" }
-            return AuthResult.Failure("User with email $email already exists")
+    fun registerWithEmail(email: String, password: String, name: String?): AuthResult =
+        try {
+            transaction {
+                when (
+                    val res =
+                        userRepo.getOrCreateUser(
+                            provider = "email",
+                            providerUserId = email,
+                            email = email,
+                            name = name,
+                            password = password,
+                        )
+                ) {
+                    is GetOrCreateUserResult.Created -> {
+                        val newUser = res.user
+
+                        logger.info { "Created user ${newUser.name} (${newUser.id})" }
+
+                        shelfRepo.createDefaultShelves(newUser.id)
+
+                        val (accessToken, refreshToken) = getTokens(newUser.id)
+
+                        AuthResult.Success(
+                            session =
+                                SessionResult(
+                                    user = newUser,
+                                    accessToken = accessToken,
+                                    refreshToken = refreshToken,
+                                )
+                        )
+                    }
+                    is GetOrCreateUserResult.Existing -> {
+                        logger.warn { "User with email $email already exists" }
+                        return@transaction AuthResult.Failure(
+                            "User with email $email already exists"
+                        )
+                    }
+                }
+            }
+        } catch (e: Exception) {
+            logger.error(e) { "Failed to register user with email $email" }
+            AuthResult.Failure("Failed to register user with email $email")
         }
-
-        val newUser =
-            userRepo.getOrCreateUser(
-                provider = "email",
-                providerUserId = email,
-                email = email,
-                name = name,
-                password = password,
-            )
-
-        val (accessToken, refreshToken) = getTokens(newUser.id)
-
-        return AuthResult.Success(
-            session =
-                SessionResult(
-                    user = newUser,
-                    accessToken = accessToken,
-                    refreshToken = refreshToken,
-                )
-        )
-    }
 
     /** Log in a user using email and password */
     fun loginWithEmail(email: String, password: String): AuthResult {
@@ -117,6 +137,12 @@ class AuthService(
         refreshTokenRepo.deleteAllForUser(userId)
     }
 
+    /**
+     * Provides a new access and refresh token for a given
+     *
+     * @param userId the user ID to generate tokens for
+     * @return a pair of access and refresh tokens
+     */
     private fun getTokens(userId: Int): Pair<String, String> {
         val accessToken = tokenProvider.generateAccessToken(userId)
         val refreshTokenId =
@@ -133,6 +159,8 @@ class AuthService(
 
 sealed class AuthResult {
     data class Success(val session: SessionResult) : AuthResult()
+
+    data class DatabaseError(val reason: String) : AuthResult()
 
     data class Failure(val reason: String) : AuthResult()
 }
