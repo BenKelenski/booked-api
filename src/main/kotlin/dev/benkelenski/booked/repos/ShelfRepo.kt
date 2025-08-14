@@ -40,7 +40,14 @@ class ShelfRepo {
         }
     }
 
-    fun deleteByIdAndUser(userId: Int, shelfId: Int): Int = transaction {
+    fun deleteByIdAndUser(userId: Int, shelfId: Int): Int? = transaction {
+        val row =
+            Shelves.select(Shelves.isDeletable)
+                .where { (Shelves.id eq shelfId) and (Shelves.userId eq userId) }
+                .singleOrNull() ?: return@transaction null
+
+        if (!row[Shelves.isDeletable]) return@transaction null
+
         Shelves.deleteWhere { (Shelves.id eq shelfId) and (Shelves.userId eq userId) }
     }
 
@@ -55,5 +62,6 @@ fun ResultRow.toShelf() =
         userId = this[Shelves.userId],
         name = this[Shelves.name],
         description = this[Shelves.description],
+        isDeletable = this[Shelves.isDeletable],
         createdAt = this[Shelves.createdAt].toInstant(),
     )

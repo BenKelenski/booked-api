@@ -7,5 +7,6 @@ data class Shelf(
     val userId: Int,
     val name: String,
     val description: String?,
+    val isDeletable: Boolean,
     val createdAt: Instant,
 )

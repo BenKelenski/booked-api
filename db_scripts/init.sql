@@ -35,23 +35,26 @@ CREATE TABLE IF NOT EXISTS refresh_tokens
 
 CREATE TABLE IF NOT EXISTS shelves
 (
-    id          SERIAL PRIMARY KEY,
-    user_id     INTEGER      NOT NULL REFERENCES users (id) ON DELETE CASCADE,
-    name        VARCHAR(150) NOT NULL,
-    description VARCHAR(250) NULL,
-    created_at  TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP
+    id           SERIAL PRIMARY KEY,
+    user_id      INTEGER      NOT NULL REFERENCES users (id) ON DELETE CASCADE,
+    name         VARCHAR(150) NOT NULL,
+    description  VARCHAR(250) NULL,
+    is_deletable BOOLEAN      NOT NULL DEFAULT TRUE,
+    created_at   TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE IF NOT EXISTS books
 (
-    id            SERIAL PRIMARY KEY,
-    google_id     VARCHAR(250) NOT NULL,
-    title         TEXT         NOT NULL,
-    authors       TEXT[]       NOT NULL,
-    thumbnail_url TEXT,
-    created_at    TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    user_id       INTEGER      NOT NULL REFERENCES users (id) ON DELETE CASCADE,
-    shelf_id      INTEGER      NOT NULL REFERENCES shelves (id) ON DELETE CASCADE
+    id               SERIAL PRIMARY KEY,
+    google_id        VARCHAR(250) NOT NULL,
+    title            TEXT         NOT NULL,
+    authors          TEXT[]       NOT NULL,
+    thumbnail_url    TEXT,
+    progress_percent INTEGER,
+    created_at       TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at       TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    user_id          INTEGER      NOT NULL REFERENCES users (id) ON DELETE CASCADE,
+    shelf_id         INTEGER      NOT NULL REFERENCES shelves (id) ON DELETE CASCADE
 );
 
 ALTER TABLE books
