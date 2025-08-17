@@ -5,6 +5,7 @@ import dev.benkelenski.booked.domain.requests.ShelfRequest
 import dev.benkelenski.booked.domain.responses.ShelfResponse
 import dev.benkelenski.booked.middleware.AuthMiddleware
 import dev.benkelenski.booked.services.*
+import dev.benkelenski.booked.utils.parseUserIdHeader
 import io.github.oshai.kotlinlogging.KotlinLogging
 import org.http4k.core.*
 import org.http4k.format.Moshi.auto
@@ -40,7 +41,7 @@ fun shelfRoutes(
                         Method.GET to
                         { request ->
                             val userId =
-                                request.header("X-User-Id")?.toIntOrNull()
+                                request.parseUserIdHeader()
                                     ?: return@to Response(Status.UNAUTHORIZED)
 
                             getAllShelves(userId).let {
@@ -51,7 +52,7 @@ fun shelfRoutes(
                         Method.POST to
                         { request ->
                             val userId =
-                                request.header("X-User-Id")?.toIntOrNull()
+                                request.parseUserIdHeader()
                                     ?: return@to Response(Status.UNAUTHORIZED)
 
                             val shelfRequest =
@@ -76,7 +77,7 @@ fun shelfRoutes(
                         Method.GET to
                         { request ->
                             val userId =
-                                request.header("X-User-Id")?.toIntOrNull()
+                                request.parseUserIdHeader()
                                     ?: return@to Response(Status.UNAUTHORIZED)
 
                             val shelfId =
@@ -96,7 +97,7 @@ fun shelfRoutes(
                         Method.DELETE to
                         { request ->
                             val userId =
-                                request.header("X-User-Id")?.toIntOrNull()
+                                request.parseUserIdHeader()
                                     ?: return@to Response(Status.UNAUTHORIZED)
 
                             val shelfId =
@@ -122,7 +123,7 @@ fun shelfRoutes(
                         Method.GET to
                         { request ->
                             val userId =
-                                request.header("X-User-Id")?.toIntOrNull()
+                                request.parseUserIdHeader()
                                     ?: return@to Response(Status.UNAUTHORIZED)
 
                             val shelfId =
@@ -142,7 +143,7 @@ fun shelfRoutes(
                         Method.POST to
                         { request ->
                             val userId =
-                                request.header("X-User-Id")?.toIntOrNull()
+                                request.parseUserIdHeader()
                                     ?: return@to Response(Status.UNAUTHORIZED)
 
                             val shelfId =

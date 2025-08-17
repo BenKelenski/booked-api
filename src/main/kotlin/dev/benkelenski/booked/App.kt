@@ -134,7 +134,7 @@ fun createApp(
             tokenProvider = tokenProvider,
         )
 
-    val bookService = BookService(bookRepo = bookRepo)
+    val bookService = BookService(bookRepo = bookRepo, shelfRepo = shelfRepo)
 
     val shelfService =
         ShelfService(
@@ -150,30 +150,31 @@ fun createApp(
     return AppConstants.API_PREFIX bind
         routes(
             authRoutes(
-                authService::registerWithEmail,
-                authService::loginWithEmail,
-                authService::authenticateWith,
-                authService::refresh,
-                authService::logout,
+                registerWithEmail = authService::registerWithEmail,
+                loginWithEmail = authService::loginWithEmail,
+                authenticateWith = authService::authenticateWith,
+                refresh = authService::refresh,
+                logout = authService::logout,
             ),
             bookRoutes(
-                bookService::getBookById,
-                bookService::getAllBooksForUser,
-                bookService::deleteBook,
-                authMiddleware(tokenProvider),
+                getBookById = bookService::getBookById,
+                getAllBooks = bookService::getAllBooksForUser,
+                updateBook = bookService::updateBook,
+                deleteBook = bookService::deleteBook,
+                authMiddleware = authMiddleware(tokenProvider),
             ),
             shelfRoutes(
-                shelfService::getShelfById,
-                shelfService::getAllShelves,
-                shelfService::createShelf,
-                shelfService::deleteShelf,
-                shelfService::getBooksByShelf,
-                shelfService::addBookToShelf,
-                authMiddleware(tokenProvider),
+                getShelfById = shelfService::getShelfById,
+                getAllShelves = shelfService::getAllShelves,
+                createShelf = shelfService::createShelf,
+                deleteShelf = shelfService::deleteShelf,
+                getBooksByShelf = shelfService::getBooksByShelf,
+                addBookToShelf = shelfService::addBookToShelf,
+                authMiddleware = authMiddleware(tokenProvider),
             ),
             googleBooksRoutes(
-                googleBooksService::searchWithQuery,
-                googleBooksService::fetchByVolumeId,
+                searchWithQuery = googleBooksService::searchWithQuery,
+                fetchByVolumeId = googleBooksService::fetchByVolumeId,
             ),
         )
 }

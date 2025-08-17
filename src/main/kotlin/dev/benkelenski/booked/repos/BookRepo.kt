@@ -1,20 +1,36 @@
 package dev.benkelenski.booked.repos
 
 import dev.benkelenski.booked.domain.Book
+import dev.benkelenski.booked.domain.ReadingStatus
 import dev.benkelenski.booked.models.Books
+import dev.benkelenski.booked.models.Shelves
 import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
-import org.jetbrains.exposed.sql.transactions.transaction
+import java.time.Instant
+import java.time.ZoneOffset
 
 class BookRepo {
 
-    fun getAllBooksByUser(userId: Int): List<Book> = transaction {
-        Books.selectAll().where { Books.userId eq userId }.map { it.toBook() }
-    }
+    data class OwnedBookMinimal(val id: Int, val shelfId: Int, val googleId: String)
 
-    fun getBookById(bookId: Int): Book? = transaction {
+    fun findOwnedMinimal(bookId: Int, userId: Int): OwnedBookMinimal? =
+        (Books innerJoin Shelves)
+            .select(Books.id, Books.shelfId, Books.googleId)
+            .where { (Books.id eq bookId) and (Shelves.userId eq userId) }
+            .singleOrNull()
+            ?.let {
+                OwnedBookMinimal(
+                    id = it[Books.id],
+                    shelfId = it[Books.shelfId],
+                    googleId = it[Books.googleId],
+                )
+            }
+
+    fun fetchAllBooksByUser(userId: Int): List<Book> =
+        Books.selectAll().where { Books.userId eq userId }.map { it.toBook() }
+
+    fun fetchById(bookId: Int): Book? =
         Books.selectAll().where { Books.id eq bookId }.map { it.toBook() }.singleOrNull()
-    }
 
     fun saveBook(
         userId: Int,
@@ -23,7 +39,7 @@ class BookRepo {
         title: String,
         authors: List<String>,
         thumbnailUrl: String? = null,
-    ): Book? = transaction {
+    ): Book? =
         Books.insertReturning {
                 it[this.userId] = userId
                 it[this.googleId] = googleId
@@ -34,28 +50,52 @@ class BookRepo {
             }
             .map { it.toBook() }
             .singleOrNull()
-    }
 
-    fun deleteByIdAndUser(userId: Int, bookId: Int): Int = transaction {
+    fun deleteByIdAndUser(userId: Int, bookId: Int): Int =
         Books.deleteWhere { (Books.userId eq userId) and (Books.id eq bookId) }
-    }
 
-    fun existsById(id: Int): Boolean = transaction {
-        Books.selectAll().where { Books.id eq id }.limit(1).any()
-    }
+    fun existsById(id: Int): Boolean = Books.selectAll().where { Books.id eq id }.limit(1).any()
 
-    fun findAllByShelfAndUser(shelfId: Int, userId: Int): List<Book> = transaction {
+    fun findAllByShelfAndUser(shelfId: Int, userId: Int): List<Book> =
         Books.selectAll()
             .where { (Books.userId eq userId) and (Books.shelfId eq shelfId) }
             .map { it.toBook() }
-    }
 
-    fun existsByShelfAndGoogleId(shelfId: Int, googleId: String): Boolean = transaction {
+    fun existsByShelfAndGoogleId(shelfId: Int, googleId: String): Boolean =
         Books.selectAll()
             .where { (Books.shelfId eq shelfId) and (Books.googleId eq googleId) }
             .limit(1)
             .any()
-    }
+
+    fun existsDuplicateOnShelf(
+        targetShelfId: Int,
+        googleId: String,
+        excludingBookId: Int,
+    ): Boolean =
+        Books.selectAll()
+            .where {
+                (Books.shelfId eq targetShelfId) and
+                    (Books.googleId eq googleId) and
+                    (Books.id neq excludingBookId)
+            }
+            .limit(1)
+            .any()
+
+    fun applyPatch(
+        bookId: Int,
+        moveToShelfId: Int?, // null = don't move
+        progressPercent: Int?, // null = unchanged
+        status: ReadingStatus?, // null = unchanged
+        finishedAt: Instant?, // set when status becomes FINISHED
+        updatedAt: Instant?, // set on any change if you store it
+    ): Int =
+        Books.update({ Books.id eq bookId }) {
+            moveToShelfId?.let { shelf -> it[Books.shelfId] = shelf }
+            progressPercent?.let { p -> it[Books.progressPercent] = p }
+            status?.let { s -> it[Books.status] = s } // if using enumerationByName
+            finishedAt?.let { ts -> it[Books.finishedAt] = ts.atOffset(ZoneOffset.UTC) }
+            updatedAt?.let { ts -> it[Books.updatedAt] = ts.atOffset(ZoneOffset.UTC) }
+        }
 }
 
 fun ResultRow.toBook() =
@@ -64,8 +104,12 @@ fun ResultRow.toBook() =
         googleId = this[Books.googleId],
         title = this[Books.title],
         authors = this[Books.authors],
+        status = this[Books.status],
+        progressPercent = this[Books.progressPercent],
         thumbnailUrl = this[Books.thumbnailUrl],
         createdAt = this[Books.createdAt].toInstant(),
+        updatedAt = this[Books.updatedAt]?.toInstant(),
+        finishedAt = this[Books.finishedAt]?.toInstant(),
         userId = this[Books.userId],
         shelfId = this[Books.shelfId],
     )

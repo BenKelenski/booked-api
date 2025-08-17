@@ -4,11 +4,9 @@ import dev.benkelenski.booked.createApp
 import dev.benkelenski.booked.domain.requests.BookRequest
 import dev.benkelenski.booked.domain.requests.ShelfRequest
 import dev.benkelenski.booked.domain.responses.BookResponse
-import dev.benkelenski.booked.domain.responses.ShelfResponse
 import dev.benkelenski.booked.loadConfig
-import dev.benkelenski.booked.repos.BookRepo
-import dev.benkelenski.booked.repos.ShelfRepo
-import dev.benkelenski.booked.repos.UserRepo
+import dev.benkelenski.booked.models.Books
+import dev.benkelenski.booked.models.Shelves
 import dev.benkelenski.booked.routes.*
 import io.kotest.matchers.collections.shouldHaveSize
 import io.kotest.matchers.shouldBe
@@ -22,12 +20,14 @@ import org.http4k.lens.bearerAuth
 import org.http4k.routing.RoutingHttpHandler
 import org.http4k.routing.reverseProxy
 import org.jetbrains.exposed.sql.Database
+import org.jetbrains.exposed.sql.and
+import org.jetbrains.exposed.sql.selectAll
+import org.jetbrains.exposed.sql.transactions.transaction
 import org.junit.jupiter.api.*
 import org.testcontainers.containers.PostgreSQLContainer
 import testUtils.FakeTokenProvider
 import testUtils.TestDbUtils
 import testUtils.fakeGoogleBooks
-import testUtils.requireCreated
 import java.security.KeyPairGenerator
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
@@ -74,6 +74,7 @@ class ShelfIntegrationTest {
     @BeforeEach
     fun setup() {
         TestDbUtils.buildTables()
+        TestDbUtils.seedData()
     }
 
     @AfterEach
@@ -109,23 +110,10 @@ class ShelfIntegrationTest {
 
     @Test
     fun `get all shelves - success`() {
-        val user =
-            UserRepo()
-                .getOrCreateUser(
-                    provider = "email",
-                    providerUserId = "test@test.com",
-                    email = "test@test.com",
-                    name = "testuser",
-                    password = "securepass",
-                )
-                .requireCreated()
-
-        repeat(3) { ShelfRepo().addShelf(userId = user.id, name = "shelf $it", description = null) }
-
         val response =
             app(
                 Request(Method.GET, "/api/v1/shelves")
-                    .cookie(Cookie("access_token", fakeTokenProvider.generateAccessToken(user.id)))
+                    .cookie(Cookie("access_token", fakeTokenProvider.generateAccessToken(1)))
             )
 
         response shouldHaveStatus Status.OK
@@ -135,21 +123,11 @@ class ShelfIntegrationTest {
 
     @Test
     fun `get all shelves - none found`() {
-        val user =
-            UserRepo()
-                .getOrCreateUser(
-                    provider = "email",
-                    providerUserId = "test@test.com",
-                    email = "test@test.com",
-                    name = "testuser",
-                    password = "securepass",
-                )
-                .requireCreated()
 
         val response =
             app(
                 Request(Method.GET, "/api/v1/shelves")
-                    .cookie(Cookie("access_token", fakeTokenProvider.generateAccessToken(user.id)))
+                    .cookie(Cookie("access_token", fakeTokenProvider.generateAccessToken(2)))
             )
 
         response shouldHaveStatus Status.OK
@@ -180,52 +158,23 @@ class ShelfIntegrationTest {
 
     @Test
     fun `get shelf - not found`() {
-        val user =
-            UserRepo()
-                .getOrCreateUser(
-                    provider = "email",
-                    providerUserId = "test@test.com",
-                    email = "test@test.com",
-                    name = "testuser",
-                    password = "securepass",
-                )
-                .requireCreated()
-
         Request(Method.GET, "/v1/shelves/9999")
-            .cookie(Cookie("access_token", fakeTokenProvider.generateAccessToken(user.id)))
+            .cookie(Cookie("access_token", fakeTokenProvider.generateAccessToken(1)))
             .let(app)
             .shouldHaveStatus(Status.NOT_FOUND)
     }
 
     @Test
     fun `get shelf - success`() {
-        val user =
-            UserRepo()
-                .getOrCreateUser(
-                    provider = "email",
-                    providerUserId = "test@test.com",
-                    email = "test@test.com",
-                    name = "testuser",
-                    password = "securepass",
-                )
-                .requireCreated()
-
-        val shelf = ShelfRepo().addShelf(userId = user.id, name = "shelf 1", description = null)
-        ShelfRepo().addShelf(userId = 1, name = "shelf 2", description = null)
-        ShelfRepo().addShelf(userId = 1, name = "shelf 3", description = null)
-
-        val expectedShelfRes = ShelfResponse.from(shelf!!)
-
         val response =
             app(
-                Request(Method.GET, "/api/v1/shelves/${shelf.id}")
-                    .cookie(Cookie("access_token", fakeTokenProvider.generateAccessToken(user.id)))
+                Request(Method.GET, "/api/v1/shelves/1")
+                    .cookie(Cookie("access_token", fakeTokenProvider.generateAccessToken(1)))
             )
 
         response shouldHaveStatus Status.OK
         val responseBody = shelfResLens(response)
-        responseBody shouldBe expectedShelfRes
-        responseBody.name shouldBe expectedShelfRes.name
+        responseBody.name shouldBe "To Read"
     }
 
     @Test
@@ -264,22 +213,11 @@ class ShelfIntegrationTest {
 
     @Test
     fun `create shelf - success`() {
-        val user =
-            UserRepo()
-                .getOrCreateUser(
-                    provider = "email",
-                    providerUserId = "test@test.com",
-                    email = "test@test.com",
-                    name = "testuser",
-                    password = "securepass",
-                )
-                .requireCreated()
-
         val response =
             app(
                 Request(Method.POST, "/api/v1/shelves")
                     .with(shelfRequestLens of ShelfRequest("shelf 1", null))
-                    .cookie(Cookie("access_token", fakeTokenProvider.generateAccessToken(user.id)))
+                    .cookie(Cookie("access_token", fakeTokenProvider.generateAccessToken(1)))
             )
 
         val responseBody = shelfResLens(response)
@@ -320,50 +258,26 @@ class ShelfIntegrationTest {
 
     @Test
     fun `get books by shelf - success`() {
-        val user =
-            UserRepo()
-                .getOrCreateUser(
-                    provider = "email",
-                    providerUserId = "test@test.com",
-                    email = "test@test.com",
-                    name = "testuser",
-                    password = "securepass",
-                )
-                .requireCreated()
-
-        val shelf = ShelfRepo().addShelf(userId = user.id, name = "shelf 1", description = null)
-
-        repeat(3) {
-            BookRepo()
-                .saveBook(
-                    userId = user.id,
-                    googleId = "google$it",
-                    title = "test book $it",
-                    authors = listOf("test author $it"),
-                    shelfId = shelf!!.id,
-                    thumbnailUrl = null,
-                )
-        }
-
         val response =
             app(
-                Request(Method.GET, "/api/v1/shelves/${shelf?.id}/books")
-                    .cookie(Cookie("access_token", fakeTokenProvider.generateAccessToken(user.id)))
+                Request(Method.GET, "/api/v1/shelves/1/books")
+                    .cookie(Cookie("access_token", fakeTokenProvider.generateAccessToken(1)))
             )
 
         response.status shouldBe Status.OK
 
-        val books = booksResponseLens(response)
+        val responseBody = booksResponseLens(response)
 
-        books.size shouldBe 3
-        books.forEachIndexed { index, book ->
-            book.id shouldBe index.plus(1)
-            book.title shouldBe "test book $index"
-            book.authors shouldBe listOf("test author $index")
-            book.googleId shouldBe "google$index"
-            book.thumbnailUrl shouldBe null
-            book.createdAt shouldNotBe null
-        }
+        responseBody shouldHaveSize 3
+        responseBody[0].title shouldBe "Red Rising"
+        responseBody[0].authors shouldBe listOf("Pierce Brown")
+        responseBody[0].googleId shouldBe "google1"
+        responseBody[1].title shouldBe "Golden Son"
+        responseBody[1].authors shouldBe listOf("Pierce Brown")
+        responseBody[1].googleId shouldBe "google2"
+        responseBody[2].title shouldBe "Morning Star"
+        responseBody[2].authors shouldBe listOf("Pierce Brown")
+        responseBody[2].googleId shouldBe "google3"
     }
 
     @Test
@@ -408,66 +322,34 @@ class ShelfIntegrationTest {
 
     @Test
     fun `add book to shelf - conflict - duplicate book`() {
-        val user =
-            UserRepo()
-                .getOrCreateUser(
-                    provider = "email",
-                    providerUserId = "test@test.com",
-                    email = "test@test.com",
-                    name = "testuser",
-                    password = "securepass",
-                )
-                .requireCreated()
-
-        val shelf = ShelfRepo().addShelf(userId = user.id, name = "shelf 1", description = null)
-
         val googleBookId = "google1"
 
-        BookRepo()
-            .saveBook(
-                userId = user.id,
-                googleId = googleBookId,
-                title = "test book 1",
-                authors = listOf("test author 1"),
-                shelfId = shelf!!.id,
-                thumbnailUrl = null,
-            )
-
-        Request(Method.POST, "/api/v1/shelves/${shelf.id}/books")
+        Request(Method.POST, "/api/v1/shelves/1/books")
             .with(bookRequestLens of BookRequest(googleBookId))
-            .cookie(Cookie("access_token", fakeTokenProvider.generateAccessToken(user.id)))
+            .cookie(Cookie("access_token", fakeTokenProvider.generateAccessToken(1)))
             .let(app)
             .shouldHaveStatus(Status.CONFLICT)
 
-        BookRepo().findAllByShelfAndUser(shelf.id, user.id) shouldHaveSize 1
+        transaction {
+            Books.selectAll()
+                .where { (Books.shelfId eq 1) and (Books.googleId eq googleBookId) }
+                .count() shouldBe 1
+        }
     }
 
     @Test
     fun `add book to shelf - success`() {
-        val user =
-            UserRepo()
-                .getOrCreateUser(
-                    provider = "email",
-                    providerUserId = "test@test.com",
-                    email = "test@test.com",
-                    name = "testuser",
-                    password = "securepass",
-                )
-                .requireCreated()
-
-        val shelf = ShelfRepo().addShelf(userId = user.id, name = "shelf 1", description = null)
-
-        val googleBookId = "google1"
+        val googleBookId = "google4"
 
         val response =
             app(
-                Request(Method.POST, "/api/v1/shelves/${shelf?.id}/books")
+                Request(Method.POST, "/api/v1/shelves/2/books")
                     .with(bookRequestLens of BookRequest(googleBookId))
-                    .cookie(Cookie("access_token", fakeTokenProvider.generateAccessToken(user.id)))
+                    .cookie(Cookie("access_token", fakeTokenProvider.generateAccessToken(1)))
             )
 
         val book = bookResponseLens(response)
-        book.id shouldBe 1
+        book.id shouldBe 4
         book.googleId shouldBe googleBookId
         book.createdAt shouldNotBe null
         book.title shouldBe "book-$googleBookId"
@@ -498,18 +380,7 @@ class ShelfIntegrationTest {
 
     @Test
     fun `delete shelf - forbidden`() {
-        UserRepo()
-            .getOrCreateUser(
-                provider = "email",
-                providerUserId = "test@test.com",
-                email = "test@test.com",
-                name = "testuser",
-                password = "securepass",
-            )
-
-        val shelf = ShelfRepo().addShelf(userId = 1, name = "shelf 1", description = null)
-
-        Request(Method.DELETE, "/api/v1/shelves/${shelf?.id}")
+        Request(Method.DELETE, "/api/v1/shelves/1")
             .cookie(Cookie("access_token", fakeTokenProvider.generateAccessToken(2)))
             .let(app)
             .shouldHaveStatus(Status.FORBIDDEN)
@@ -525,25 +396,11 @@ class ShelfIntegrationTest {
 
     @Test
     fun `delete shelf - success`() {
-        val user =
-            UserRepo()
-                .getOrCreateUser(
-                    provider = "email",
-                    providerUserId = "test@test.com",
-                    email = "test@test.com",
-                    name = "testuser",
-                    password = "securepass",
-                )
-                .requireCreated()
-
-        val shelf = ShelfRepo().addShelf(userId = user.id, name = "shelf 1", description = null)
-        ShelfRepo().addShelf(userId = user.id, name = "shelf 2", description = null)
-
-        Request(Method.DELETE, "/api/v1/shelves/${shelf?.id}")
-            .cookie(Cookie("access_token", fakeTokenProvider.generateAccessToken(user.id)))
+        Request(Method.DELETE, "/api/v1/shelves/1")
+            .cookie(Cookie("access_token", fakeTokenProvider.generateAccessToken(1)))
             .let(app)
             .shouldHaveStatus(Status.NO_CONTENT)
 
-        ShelfRepo().getAllShelves(userId = user.id) shouldHaveSize 1
+        transaction { Shelves.selectAll().where { Shelves.userId eq 1 }.count() shouldBe 2 }
     }
 }

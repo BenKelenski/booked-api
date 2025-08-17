@@ -7,6 +7,7 @@ import dev.benkelenski.booked.external.google.GoogleBooksClient
 import dev.benkelenski.booked.repos.BookRepo
 import dev.benkelenski.booked.repos.ShelfRepo
 import io.github.oshai.kotlinlogging.KotlinLogging
+import org.jetbrains.exposed.sql.transactions.transaction
 
 /** alias for [ShelfService.getShelfById] */
 typealias GetShelfById = (userId: Int, shelfId: Int) -> ShelfResponse?
@@ -38,79 +39,85 @@ class ShelfService(
         private fun String.secureUrl(): String = replace("http://", "https://")
     }
 
-    fun getShelfById(userId: Int, shelfId: Int): ShelfResponse? =
-        shelfRepo.getShelfById(userId, shelfId)?.let { ShelfResponse.from(it) }
+    fun getShelfById(userId: Int, shelfId: Int): ShelfResponse? = transaction {
+        shelfRepo.fetchShelfById(userId, shelfId)?.let { ShelfResponse.from(it) }
+    }
 
-    fun getAllShelves(userId: Int): List<ShelfResponse> =
-        shelfRepo.getAllShelves(userId).map { ShelfResponse.from(it) }
+    fun getAllShelves(userId: Int): List<ShelfResponse> = transaction {
+        shelfRepo.fetchAllShelvesByUser(userId).map { ShelfResponse.from(it) }
+    }
 
-    fun createShelf(userId: Int, shelfRequest: ShelfRequest): ShelfResponse? =
+    fun createShelf(userId: Int, shelfRequest: ShelfRequest): ShelfResponse? = transaction {
         shelfRepo.addShelf(userId, shelfRequest.name, shelfRequest.description)?.let {
             ShelfResponse.from(it)
         }
+    }
 
     fun deleteShelf(userId: Int, shelfId: Int): ShelfDeleteResult =
         try {
-            val deletedCount = shelfRepo.deleteByIdAndUser(shelfId, userId)
+            transaction {
+                val deletedCount = shelfRepo.deleteByIdAndUser(userId = userId, shelfId = shelfId)
 
-            when {
-                deletedCount == 1 -> ShelfDeleteResult.Success
-                !shelfRepo.existsById(shelfId) -> ShelfDeleteResult.NotFound
-                else -> ShelfDeleteResult.Forbidden
+                when {
+                    deletedCount == 1 -> ShelfDeleteResult.Success
+                    !shelfRepo.existsById(shelfId) -> ShelfDeleteResult.NotFound
+                    else -> ShelfDeleteResult.Forbidden
+                }
             }
         } catch (e: Exception) {
             logger.error(e) { "Failed to delete shelf $shelfId" }
             ShelfDeleteResult.DatabaseError
         }
 
-    fun getBooksByShelf(userId: Int, shelfId: Int): List<BookResponse> {
+    fun getBooksByShelf(userId: Int, shelfId: Int): List<BookResponse> = transaction {
         logger.info { "Getting books for shelf $shelfId for user $userId" }
-        return bookRepo.findAllByShelfAndUser(shelfId, userId).map { BookResponse.from(it) }
+        bookRepo.findAllByShelfAndUser(shelfId, userId).map { BookResponse.from(it) }
     }
 
-    fun addBookToShelf(userId: Int, shelfId: Int, googleVolumeId: String): ShelfAddBookResult {
-        logger.info { "Adding book $googleVolumeId to shelf $shelfId for user $userId" }
+    fun addBookToShelf(userId: Int, shelfId: Int, googleVolumeId: String): ShelfAddBookResult =
+        transaction {
+            logger.info { "Adding book $googleVolumeId to shelf $shelfId for user $userId" }
 
-        val shelf =
-            shelfRepo.getShelfById(userId, shelfId)
-                ?: run {
-                    logger.warn { "Shelf $shelfId not found for user $userId" }
-                    return ShelfAddBookResult.ShelfNotFound
-                }
+            val shelf =
+                shelfRepo.fetchShelfById(userId, shelfId)
+                    ?: run {
+                        logger.warn { "Shelf $shelfId not found for user $userId" }
+                        return@transaction ShelfAddBookResult.ShelfNotFound
+                    }
 
-        if (shelf.userId != userId) {
-            logger.warn { "User $userId is not the owner of shelf $shelfId" }
-            return ShelfAddBookResult.Forbidden
+            if (shelf.userId != userId) {
+                logger.warn { "User $userId is not the owner of shelf $shelfId" }
+                return@transaction ShelfAddBookResult.Forbidden
+            }
+
+            if (bookRepo.existsByShelfAndGoogleId(shelfId, googleVolumeId)) {
+                logger.warn { "Book $googleVolumeId already exists in shelf $shelfId" }
+                return@transaction ShelfAddBookResult.Duplicate
+            }
+
+            val volumeDto =
+                googleBooksClient.getVolume(googleVolumeId)
+                    ?: run {
+                        logger.warn { "Book $googleVolumeId not found" }
+                        return@transaction ShelfAddBookResult.BookNotFound
+                    }
+
+            val book =
+                bookRepo.saveBook(
+                    userId,
+                    shelfId,
+                    volumeDto.id,
+                    volumeDto.volumeInfo.title,
+                    volumeDto.volumeInfo.authors,
+                    volumeDto.volumeInfo.imageLinks?.thumbnail?.secureUrl(),
+                )
+                    ?: run {
+                        logger.warn { "Failed to save book $googleVolumeId to shelf $shelfId" }
+                        return@transaction ShelfAddBookResult.DatabaseError
+                    }
+
+            ShelfAddBookResult.Success(BookResponse.from(book))
         }
-
-        if (bookRepo.existsByShelfAndGoogleId(shelfId, googleVolumeId)) {
-            logger.warn { "Book $googleVolumeId already exists in shelf $shelfId" }
-            return ShelfAddBookResult.Duplicate
-        }
-
-        val volumeDto =
-            googleBooksClient.getVolume(googleVolumeId)
-                ?: run {
-                    logger.warn { "Book $googleVolumeId not found" }
-                    return ShelfAddBookResult.BookNotFound
-                }
-
-        val book =
-            bookRepo.saveBook(
-                userId,
-                shelfId,
-                volumeDto.id,
-                volumeDto.volumeInfo.title,
-                volumeDto.volumeInfo.authors,
-                volumeDto.volumeInfo.imageLinks?.thumbnail?.secureUrl(),
-            )
-                ?: run {
-                    logger.warn { "Failed to save book $googleVolumeId to shelf $shelfId" }
-                    return ShelfAddBookResult.DatabaseError
-                }
-
-        return ShelfAddBookResult.Success(BookResponse.from(book))
-    }
 }
 
 sealed class ShelfAddBookResult {
