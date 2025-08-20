@@ -82,22 +82,32 @@ class AuthService(
             }
         } catch (e: Exception) {
             logger.error(e) { "Failed to register user with email $email" }
-            AuthResult.Failure("Failed to register user with email $email")
+            AuthResult.DatabaseError
         }
 
     /** Log in a user using email and password */
-    fun loginWithEmail(email: String, password: String): AuthResult {
-        val user =
-            userRepo.findUserByEmailAndPassword(email, password)
-                ?: throw IllegalArgumentException("Invalid email or password")
+    fun loginWithEmail(email: String, password: String): AuthResult =
+        try {
+            transaction {
+                val user =
+                    userRepo.findUserByEmailAndPassword(email, password)
+                        ?: return@transaction AuthResult.Failure("Invalid email or password")
 
-        val (accessToken, refreshToken) = getTokens(user.id)
+                val (accessToken, refreshToken) = getTokens(user.id)
 
-        return AuthResult.Success(
-            session =
-                SessionResult(user = user, accessToken = accessToken, refreshToken = refreshToken)
-        )
-    }
+                AuthResult.Success(
+                    session =
+                        SessionResult(
+                            user = user,
+                            accessToken = accessToken,
+                            refreshToken = refreshToken,
+                        )
+                )
+            }
+        } catch (e: Exception) {
+            logger.error(e) { "Failed to login user with email $email" }
+            AuthResult.DatabaseError
+        }
 
     /** Authenticate a user-provided token */
     fun authenticateWith(authPayload: AuthPayload): AuthResult {
@@ -160,7 +170,7 @@ class AuthService(
 sealed class AuthResult {
     data class Success(val session: SessionResult) : AuthResult()
 
-    data class DatabaseError(val reason: String) : AuthResult()
+    object DatabaseError : AuthResult()
 
     data class Failure(val reason: String) : AuthResult()
 }

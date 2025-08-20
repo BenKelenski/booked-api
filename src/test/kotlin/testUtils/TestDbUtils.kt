@@ -1,6 +1,9 @@
 package testUtils
 
+import dev.benkelenski.booked.domain.User
 import dev.benkelenski.booked.models.*
+import dev.benkelenski.booked.repos.toUser
+import dev.benkelenski.booked.utils.PasswordUtils
 import org.jetbrains.exposed.sql.SchemaUtils
 import org.jetbrains.exposed.sql.insert
 import org.jetbrains.exposed.sql.insertReturning
@@ -69,4 +72,30 @@ object TestDbUtils {
             it[Books.shelfId] = shelfId
         }
     }
+
+    fun createEmailUser(email: String, password: String? = null, name: String? = null): User =
+        transaction {
+            val newUser =
+                Users.insertReturning {
+                        it[Users.email] = email
+                        it[Users.name] = name
+                    }
+                    .map { it.toUser() }
+                    .single()
+
+            val hash =
+                if (password != null) {
+                    PasswordUtils.hash(password)
+                } else null
+
+            AuthIdentities.insert {
+                it[AuthIdentities.userId] = newUser.id
+                it[AuthIdentities.provider] = "email"
+                it[AuthIdentities.providerUserId] = email
+                it[AuthIdentities.email] = email
+                it[AuthIdentities.passwordHash] = hash
+            }
+
+            newUser
+        }
 }

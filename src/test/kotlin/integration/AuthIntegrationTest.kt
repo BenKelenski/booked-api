@@ -1,0 +1,213 @@
+package integration
+
+import dev.benkelenski.booked.auth.JwtTokenProvider
+import dev.benkelenski.booked.createApp
+import dev.benkelenski.booked.domain.requests.LoginRequest
+import dev.benkelenski.booked.domain.requests.RegisterRequest
+import dev.benkelenski.booked.loadConfig
+import dev.benkelenski.booked.routes.loginRequestLens
+import dev.benkelenski.booked.routes.registerRequestLens
+import dev.benkelenski.booked.routes.userResLens
+import io.kotest.matchers.nulls.shouldNotBeNull
+import io.kotest.matchers.shouldBe
+import org.http4k.base64Encode
+import org.http4k.core.*
+import org.http4k.core.cookie.SameSite
+import org.http4k.core.cookie.cookies
+import org.http4k.kotest.shouldHaveStatus
+import org.http4k.routing.RoutingHttpHandler
+import org.http4k.routing.reverseProxy
+import org.jetbrains.exposed.sql.Database
+import org.junit.jupiter.api.*
+import org.testcontainers.containers.PostgreSQLContainer
+import testUtils.TestDbUtils
+import testUtils.fakeGoogleBooks
+import java.security.KeyPairGenerator
+import kotlin.test.assertTrue
+
+@TestInstance(TestInstance.Lifecycle.PER_CLASS)
+class AuthIntegrationTest {
+    private fun Response.cookie(name: String) = cookies().firstOrNull { it.name == name }
+
+    private val jwtRegex = Regex("^[A-Za-z0-9-_]+\\.[A-Za-z0-9-_]+\\.[A-Za-z0-9-_]+$")
+
+    private lateinit var postgres: PostgreSQLContainer<*>
+
+    private lateinit var app: RoutingHttpHandler
+
+    private val keyPair =
+        KeyPairGenerator.getInstance("RSA").apply { initialize(2048) }.generateKeyPair()
+
+    private val config = loadConfig("test")
+
+    private val fakeTokenProvider = JwtTokenProvider()
+
+    @BeforeAll
+    fun setupApp() {
+        postgres =
+            PostgreSQLContainer("postgres:17.5-alpine3.21").apply {
+                withDatabaseName(config.database.url)
+                withUsername(config.database.user)
+                withPassword(config.database.password)
+                start()
+            }
+
+        Database.connect(
+            url = postgres.jdbcUrl,
+            driver = "org.postgresql.Driver",
+            user = postgres.username,
+            password = postgres.password,
+        )
+
+        config.apply { server.auth.google.publicKey = keyPair.public.encoded.base64Encode() }
+        app =
+            createApp(
+                config = config,
+                internet =
+                    reverseProxy(Uri.of(config.client.googleApisHost).host to fakeGoogleBooks()),
+                fakeTokenProvider,
+            )
+    }
+
+    @BeforeEach
+    fun setup() {
+        TestDbUtils.buildTables()
+    }
+
+    @AfterEach
+    fun teardown() {
+        TestDbUtils.dropTables()
+    }
+
+    @AfterAll
+    fun teardownDb() {
+        postgres.stop()
+    }
+
+    @Test
+    fun `create user - bad request - no request body`() {
+        Request(Method.POST, "/api/v1/auth/register").let(app).shouldHaveStatus(Status.BAD_REQUEST)
+    }
+
+    @Test
+    fun `create user - request validation error - blank email`() {
+        Request(Method.POST, "/api/v1/auth/register")
+            .with(
+                registerRequestLens of RegisterRequest(email = " ", password = "sUp3rs3curep@s$123")
+            )
+            .let(app)
+            .shouldHaveStatus(Status.UNPROCESSABLE_ENTITY)
+    }
+
+    @Test
+    fun `create user - request validation error - blank password`() {
+        Request(Method.POST, "/api/v1/auth/register")
+            .with(registerRequestLens of RegisterRequest(email = "test@test.com", password = "   "))
+            .let(app)
+            .shouldHaveStatus(Status.UNPROCESSABLE_ENTITY)
+    }
+
+    @Test
+    fun `create user - validation error - reserved display name`() {
+        Request(Method.POST, "/api/v1/auth/register")
+            .with(
+                registerRequestLens of
+                    RegisterRequest(
+                        email = "test@test.com",
+                        password = "sUp3rs3curep@s$123",
+                        displayName = "admin",
+                    )
+            )
+            .let(app)
+            .shouldHaveStatus(Status.UNPROCESSABLE_ENTITY)
+    }
+
+    @Test
+    fun `create new user - success`() {
+        val response =
+            Request(Method.POST, "/api/v1/auth/register")
+                .with(
+                    registerRequestLens of
+                        RegisterRequest(
+                            email = "test@test.com",
+                            password = "sUp3rs3curep@s$123",
+                            displayName = "Test User",
+                        )
+                )
+                .let(app)
+
+        response shouldHaveStatus Status.OK
+        val access = response.cookie("access_token") ?: fail("missing access_token")
+        val refresh = response.cookie("refresh_token") ?: fail("missing refresh_token")
+
+        jwtRegex.matches(access.value) shouldBe true
+        jwtRegex.matches(refresh.value) shouldBe true
+
+        access.httpOnly shouldBe true
+        refresh.httpOnly shouldBe true
+
+        access.secure shouldBe true
+        refresh.secure shouldBe true
+
+        access.sameSite shouldBe SameSite.Strict
+        refresh.sameSite shouldBe SameSite.Strict
+
+        access.path shouldBe "/"
+        refresh.path shouldBe "/auth/refresh"
+
+        access.maxAge.shouldNotBeNull()
+        refresh.maxAge.shouldNotBeNull()
+
+        assertTrue(access.maxAge!! in 800..1000)
+        assertTrue(refresh.maxAge!! in 600000..700000)
+
+        val responseBody = userResLens(response)
+
+        responseBody.id shouldBe 1
+        responseBody.name shouldBe "Test User"
+        responseBody.email shouldBe "test@test.com"
+    }
+
+    @Test
+    fun `login user - bad request - no request body`() {
+        Request(Method.POST, "/api/v1/auth/login").let(app).shouldHaveStatus(Status.BAD_REQUEST)
+    }
+
+    @Test
+    fun `login user - bad request - email empty`() {
+        Request(Method.POST, "/api/v1/auth/login")
+            .with(loginRequestLens of LoginRequest(email = " ", password = "123456"))
+            .let(app)
+            .shouldHaveStatus(Status.BAD_REQUEST)
+    }
+
+    @Test
+    fun `login user - bad request - password empty`() {
+        Request(Method.POST, "/api/v1/auth/login")
+            .with(
+                loginRequestLens of
+                    LoginRequest(email = "test@test.com", password = " \t\t\t\r\r\r")
+            )
+            .let(app)
+            .shouldHaveStatus(Status.BAD_REQUEST)
+    }
+
+    @Test
+    fun `login user - success`() {
+        TestDbUtils.createEmailUser("test@test.com", "sUp3rs3curep@s$123", "Test User")
+
+        val response =
+            Request(Method.POST, "/api/v1/auth/login")
+                .with(
+                    loginRequestLens of
+                        LoginRequest(email = "test@test.com", password = "sUp3rs3curep@s$123")
+                )
+                .let(app)
+
+        response shouldHaveStatus Status.OK
+        val responseBody = userResLens(response)
+
+        responseBody.email shouldBe "test@test.com"
+        responseBody.name shouldBe "Test User"
+    }
+}

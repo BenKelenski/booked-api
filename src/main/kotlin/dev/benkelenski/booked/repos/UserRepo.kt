@@ -22,7 +22,7 @@ class UserRepo {
         email: String?,
         name: String?,
         password: String? = null,
-    ): GetOrCreateUserResult = transaction {
+    ): GetOrCreateUserResult {
         val row =
             (AuthIdentities innerJoin Users)
                 .selectAll()
@@ -33,7 +33,7 @@ class UserRepo {
                 .singleOrNull()
 
         if (row != null) {
-            return@transaction GetOrCreateUserResult.Existing(row.toUser())
+            return GetOrCreateUserResult.Existing(row.toUser())
         }
 
         // Create user
@@ -58,10 +58,10 @@ class UserRepo {
             it[AuthIdentities.passwordHash] = hash
         }
 
-        return@transaction GetOrCreateUserResult.Created(newUser)
+        return GetOrCreateUserResult.Created(newUser)
     }
 
-    fun findUserByEmailAndPassword(email: String, password: String): User? = transaction {
+    fun findUserByEmailAndPassword(email: String, password: String): User? {
         val row =
             (AuthIdentities innerJoin Users)
                 .selectAll()
@@ -69,14 +69,14 @@ class UserRepo {
                     (AuthIdentities.provider eq "email") and
                         (AuthIdentities.providerUserId eq email)
                 }
-                .singleOrNull() ?: return@transaction null
+                .singleOrNull() ?: return null
 
         val hash = row[AuthIdentities.passwordHash]
         if (hash != null && PasswordUtils.verify(password, hash)) {
-            return@transaction row.toUser()
+            return row.toUser()
         }
 
-        return@transaction null
+        return null
     }
 
     fun findUserByProvider(provider: String, providerUserId: String): User? = transaction {

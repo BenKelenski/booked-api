@@ -1,15 +1,18 @@
 package dev.benkelenski.booked.routes
 
 import dev.benkelenski.booked.domain.AuthPayload
+import dev.benkelenski.booked.domain.AuthRules
 import dev.benkelenski.booked.domain.requests.LoginRequest
 import dev.benkelenski.booked.domain.requests.OAuthRequest
 import dev.benkelenski.booked.domain.requests.RegisterRequest
 import dev.benkelenski.booked.domain.responses.UserResponse
 import dev.benkelenski.booked.services.*
 import dev.benkelenski.booked.utils.CookieUtils
+import io.github.oshai.kotlinlogging.KotlinLogging
 import org.http4k.core.*
 import org.http4k.core.cookie.cookie
 import org.http4k.format.Moshi.auto
+import org.http4k.lens.LensFailure
 import org.http4k.routing.RoutingHttpHandler
 import org.http4k.routing.bind
 import org.http4k.routing.routes
@@ -19,6 +22,8 @@ val loginRequestLens = Body.auto<LoginRequest>().toLens()
 val authRequestLens = Body.auto<OAuthRequest>().toLens()
 
 val userResLens = Body.auto<UserResponse>().toLens()
+
+private val logger = KotlinLogging.logger {}
 
 fun authRoutes(
     registerWithEmail: RegisterWithEmail,
@@ -33,13 +38,31 @@ fun authRoutes(
                 "/register" bind
                     Method.POST to
                     { request ->
-                        val registerRequest = registerRequestLens(request)
+                        val registerRequest =
+                            try {
+                                registerRequestLens(request)
+                            } catch (e: LensFailure) {
+                                logger.error(e) { "Missing or invalid register request." }
+                                return@to Response(Status.BAD_REQUEST)
+                            }
+
+                        val validationResult = AuthRules.validate(registerRequest)
+                        if (!validationResult.isValid)
+                            return@to Response(Status.UNPROCESSABLE_ENTITY)
+                                .with(
+                                    Body.auto<Map<String, Any>>().toLens() of
+                                        mapOf(
+                                            "message" to "Validation failed.",
+                                            "errors" to validationResult.errors,
+                                        )
+                                )
+
                         when (
                             val result =
                                 registerWithEmail(
                                     registerRequest.email,
                                     registerRequest.password,
-                                    registerRequest.name,
+                                    registerRequest.displayName,
                                 )
                         ) {
                             is AuthResult.Success -> {
@@ -60,7 +83,28 @@ fun authRoutes(
                 "/login" bind
                     Method.POST to
                     { request ->
-                        val loginRequest = loginRequestLens(request)
+                        val loginRequest =
+                            try {
+                                loginRequestLens(request)
+                            } catch (e: LensFailure) {
+                                logger.error(e) { "Missing or invalid login request." }
+                                return@to Response(Status.BAD_REQUEST)
+                            }
+
+                        val email = loginRequest.email.lowercase().trim()
+                        if (
+                            email.isEmpty() ||
+                                email.length > 254 ||
+                                !AuthRules.matchesEmailRegex(email)
+                        ) {
+                            return@to Response(Status.BAD_REQUEST)
+                        }
+
+                        val password = loginRequest.password
+                        if (password.isEmpty() || password.length > 1024) {
+                            return@to Response(Status.BAD_REQUEST)
+                        }
+
                         when (
                             val result = loginWithEmail(loginRequest.email, loginRequest.password)
                         ) {
