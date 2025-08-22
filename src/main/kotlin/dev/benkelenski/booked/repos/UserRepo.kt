@@ -6,15 +6,13 @@ import dev.benkelenski.booked.models.Users
 import dev.benkelenski.booked.utils.PasswordUtils
 import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
-import org.jetbrains.exposed.sql.transactions.transaction
 
 class UserRepo {
 
-    fun getAllUsers(): List<User> = transaction { Users.selectAll().map { it.toUser() } }
+    fun getAllUsers(): List<User> = Users.selectAll().map { it.toUser() }
 
-    fun getUserById(id: Int): User? = transaction {
+    fun getUserById(id: Int): User? =
         Users.selectAll().where { Users.id eq id }.map { it.toUser() }.singleOrNull()
-    }
 
     fun getOrCreateUser(
         provider: String,
@@ -79,7 +77,7 @@ class UserRepo {
         return null
     }
 
-    fun findUserByProvider(provider: String, providerUserId: String): User? = transaction {
+    fun findUserByProvider(provider: String, providerUserId: String): User? =
         (AuthIdentities innerJoin Users)
             .selectAll()
             .where {
@@ -88,13 +86,10 @@ class UserRepo {
             }
             .map { it.toUser() }
             .singleOrNull()
-    }
 
-    fun existsById(id: Int): Boolean = transaction {
-        Users.selectAll().where { Users.id eq id }.any()
-    }
+    fun existsById(id: Int): Boolean = Users.selectAll().where { Users.id eq id }.any()
 
-    fun deleteUser(id: Int): Int = transaction { Users.deleteWhere { Users.id eq id } }
+    fun deleteUser(id: Int): Int = Users.deleteWhere { Users.id eq id }
 }
 
 fun ResultRow.toUser() =

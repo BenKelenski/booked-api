@@ -113,7 +113,6 @@ fun createApp(
             jwksUri = config.server.auth.google.jwksUri,
             issuer = config.server.auth.google.issuer,
             audience = config.server.auth.google.audience,
-            userRepo = userRepo,
         )
 
     // External

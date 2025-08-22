@@ -110,42 +110,78 @@ class AuthService(
         }
 
     /** Authenticate a user-provided token */
-    fun authenticateWith(authPayload: AuthPayload): AuthResult {
-        val user =
-            when (authPayload.provider) {
-                "google" -> googleAuthProvider.authenticate(authPayload.providerToken)
-                else -> null
+    fun authenticateWith(authPayload: AuthPayload): AuthResult =
+        try {
+            transaction {
+                val idTokenClaims =
+                    when (authPayload.provider) {
+                        "google" -> googleAuthProvider.authenticate(authPayload.providerToken)
+                        else -> null
+                    }
+                        ?: run {
+                            logger.warn { "Invalid provider ${authPayload.provider}" }
+                            return@transaction AuthResult.Failure(
+                                "Invalid provider ${authPayload.provider}"
+                            )
+                        }
+
+                val user =
+                    when (
+                        val res =
+                            userRepo.getOrCreateUser(
+                                provider = "google",
+                                providerUserId = idTokenClaims.subject,
+                                email = idTokenClaims.email,
+                                name = idTokenClaims.name,
+                            )
+                    ) {
+                        is GetOrCreateUserResult.Created -> {
+                            logger.info { "Created user ${res.user.name} (${res.user.id})" }
+                            res.user
+                        }
+
+                        is GetOrCreateUserResult.Existing -> {
+                            logger.info { "Found user ${res.user.name} (${res.user.id})" }
+                            res.user
+                        }
+                    }
+
+                val (accessToken, refreshToken) = getTokens(user.id)
+
+                return@transaction AuthResult.Success(
+                    session = SessionResult(user, accessToken, refreshToken)
+                )
             }
-                ?: run {
-                    logger.warn { "Invalid provider ${authPayload.provider}" }
-                    return AuthResult.Failure("Invalid provider ${authPayload.provider}")
-                }
+        } catch (e: Exception) {
+            logger.error(e) { "Failed to authenticate user" }
+            AuthResult.DatabaseError
+        }
 
-        val (accessToken, refreshToken) = getTokens(user.id)
+    fun refresh(refreshToken: String): AuthResult =
+        try {
+            transaction {
+                val tokenId =
+                    tokenProvider.getTokenId(refreshToken)
+                        ?: return@transaction AuthResult.Failure("Invalid refresh token")
 
-        return AuthResult.Success(session = SessionResult(user, accessToken, refreshToken))
-    }
+                val userId =
+                    refreshTokenRepo.validateAndDelete(refreshToken, tokenId)
+                        ?: return@transaction AuthResult.Failure("Failure to delete refresh token")
 
-    fun refresh(refreshToken: String): AuthResult {
+                val (accessToken, refreshToken) = getTokens(userId)
 
-        val tokenId =
-            tokenProvider.getTokenId(refreshToken)
-                ?: return AuthResult.Failure("Invalid refresh token")
+                val user =
+                    userRepo.getUserById(userId)
+                        ?: return@transaction AuthResult.Failure("User not found")
 
-        val userId =
-            refreshTokenRepo.validateAndDelete(refreshToken, tokenId)
-                ?: return AuthResult.Failure("Failure to delete refresh token")
+                AuthResult.Success(session = SessionResult(user, accessToken, refreshToken))
+            }
+        } catch (e: Exception) {
+            logger.error(e) { "Failed to refresh token" }
+            AuthResult.DatabaseError
+        }
 
-        val (accessToken, refreshToken) = getTokens(userId)
-
-        val user = userRepo.getUserById(userId) ?: return AuthResult.Failure("User not found")
-
-        return AuthResult.Success(SessionResult(user, accessToken, refreshToken))
-    }
-
-    fun logout(userId: Int) {
-        refreshTokenRepo.deleteAllForUser(userId)
-    }
+    fun logout(userId: Int) = transaction { refreshTokenRepo.deleteAllForUser(userId) }
 
     /**
      * Provides a new access and refresh token for a given
