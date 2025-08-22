@@ -60,7 +60,7 @@ fun authRoutes(
                         when (
                             val result =
                                 registerWithEmail(
-                                    registerRequest.email,
+                                    AuthRules.canonicalizeEmail(registerRequest.email),
                                     registerRequest.password,
                                     registerRequest.displayName,
                                 )
@@ -91,13 +91,11 @@ fun authRoutes(
                                 return@to Response(Status.BAD_REQUEST)
                             }
 
-                        val email = loginRequest.email.lowercase().trim()
-                        if (
-                            email.isEmpty() ||
-                                email.length > 254 ||
-                                !AuthRules.matchesEmailRegex(email)
-                        ) {
+                        val email = AuthRules.canonicalizeEmail(loginRequest.email)
+                        val emailValidationResult = AuthRules.validateEmail(email)
+                        if (emailValidationResult != null) {
                             return@to Response(Status.BAD_REQUEST)
+                                .body(emailValidationResult.message)
                         }
 
                         val password = loginRequest.password
@@ -105,9 +103,7 @@ fun authRoutes(
                             return@to Response(Status.BAD_REQUEST)
                         }
 
-                        when (
-                            val result = loginWithEmail(loginRequest.email, loginRequest.password)
-                        ) {
+                        when (val result = loginWithEmail(email, password)) {
                             is AuthResult.Success -> {
                                 val s = result.session
                                 Response(Status.OK)
@@ -126,7 +122,13 @@ fun authRoutes(
                 "/oauth" bind
                     Method.POST to
                     { request ->
-                        val authRequest = authRequestLens(request)
+                        val authRequest =
+                            try {
+                                authRequestLens(request)
+                            } catch (e: LensFailure) {
+                                logger.error(e) { "Missing or invalid OAuth request." }
+                                return@to Response(Status.BAD_REQUEST)
+                            }
 
                         when (
                             val result =

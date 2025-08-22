@@ -113,8 +113,10 @@ class AuthService(
     fun authenticateWith(authPayload: AuthPayload): AuthResult =
         try {
             transaction {
+                val provider = authPayload.provider.lowercase()
+
                 val idTokenClaims =
-                    when (authPayload.provider) {
+                    when (provider) {
                         "google" -> googleAuthProvider.authenticate(authPayload.providerToken)
                         else -> null
                     }
@@ -129,7 +131,7 @@ class AuthService(
                     when (
                         val res =
                             userRepo.getOrCreateUser(
-                                provider = "google",
+                                provider = provider,
                                 providerUserId = idTokenClaims.subject,
                                 email = idTokenClaims.email,
                                 name = idTokenClaims.name,

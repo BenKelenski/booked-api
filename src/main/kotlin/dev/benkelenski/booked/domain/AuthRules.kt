@@ -43,6 +43,8 @@ object AuthRules {
     fun validateEmail(email: String): ValidationError? {
         val trimmed = email.trim()
         if (trimmed.isEmpty()) return error("email", "required", "Email is required.")
+        if (trimmed.length > 254)
+            return error("email", "max_length", "Email must be at most 254 characters.")
         if (!EMAIL_REGEX.matches(trimmed)) return error("email", "format", "Email is not valid.")
         val local = trimmed.substringBefore("@")
         if (local.startsWith(".") || local.endsWith(".") || ".." in local) {
@@ -131,7 +133,7 @@ object AuthRules {
         return null
     }
 
-    fun matchesEmailRegex(email: String): Boolean = EMAIL_REGEX.matches(email)
+    fun canonicalizeEmail(email: String): String = email.trim().lowercase()
 
     private fun error(field: String, code: String, message: String) =
         ValidationError(field = field, code = code, message = message)

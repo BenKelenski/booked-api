@@ -137,29 +137,8 @@ class AuthIntegrationTest {
                 .let(app)
 
         response shouldHaveStatus Status.OK
-        val access = response.cookie("access_token") ?: fail("missing access_token")
-        val refresh = response.cookie("refresh_token") ?: fail("missing refresh_token")
 
-        jwtRegex.matches(access.value) shouldBe true
-        jwtRegex.matches(refresh.value) shouldBe true
-
-        access.httpOnly shouldBe true
-        refresh.httpOnly shouldBe true
-
-        access.secure shouldBe true
-        refresh.secure shouldBe true
-
-        access.sameSite shouldBe SameSite.Strict
-        refresh.sameSite shouldBe SameSite.Strict
-
-        access.path shouldBe "/"
-        refresh.path shouldBe "/auth/refresh"
-
-        access.maxAge.shouldNotBeNull()
-        refresh.maxAge.shouldNotBeNull()
-
-        assertTrue(access.maxAge!! in 800..1000)
-        assertTrue(refresh.maxAge!! in 600000..700000)
+        testResponseTokens(response)
 
         val responseBody = userResLens(response)
 
@@ -179,6 +158,13 @@ class AuthIntegrationTest {
             .with(loginRequestLens of LoginRequest(email = " ", password = "123456"))
             .let(app)
             .shouldHaveStatus(Status.BAD_REQUEST)
+    }
+
+    @Test
+    fun `login user - bad request - invalid email`() {
+        Request(Method.POST, "/api/v1/auth/login")
+            .with(loginRequestLens of LoginRequest(email = "test", password = "123456"))
+            .let(app)
     }
 
     @Test
@@ -205,9 +191,43 @@ class AuthIntegrationTest {
                 .let(app)
 
         response shouldHaveStatus Status.OK
+
+        testResponseTokens(response)
+
         val responseBody = userResLens(response)
 
         responseBody.email shouldBe "test@test.com"
         responseBody.name shouldBe "Test User"
+    }
+
+    @Test
+    fun `oauth user - bad request - no request body`() {
+        Request(Method.POST, "/api/v1/auth/oauth").let(app).shouldHaveStatus(Status.BAD_REQUEST)
+    }
+
+    private fun testResponseTokens(response: Response) {
+        val access = response.cookie("access_token") ?: fail("missing access_token")
+        val refresh = response.cookie("refresh_token") ?: fail("missing refresh_token")
+
+        jwtRegex.matches(access.value) shouldBe true
+        jwtRegex.matches(refresh.value) shouldBe true
+
+        access.httpOnly shouldBe true
+        refresh.httpOnly shouldBe true
+
+        access.secure shouldBe true
+        refresh.secure shouldBe true
+
+        access.sameSite shouldBe SameSite.Strict
+        refresh.sameSite shouldBe SameSite.Strict
+
+        access.path shouldBe "/"
+        refresh.path shouldBe "/auth/refresh"
+
+        access.maxAge.shouldNotBeNull()
+        refresh.maxAge.shouldNotBeNull()
+
+        assertTrue(access.maxAge!! in 800..1000)
+        assertTrue(refresh.maxAge!! in 600000..700000)
     }
 }
