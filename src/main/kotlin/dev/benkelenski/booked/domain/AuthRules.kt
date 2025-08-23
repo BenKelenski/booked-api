@@ -104,9 +104,7 @@ object AuthRules {
         return errors
     }
 
-    fun validateDisplayName(displayName: String?): ValidationError? {
-        if (displayName == null) return null
-
+    fun validateDisplayName(displayName: String): ValidationError? {
         val name = displayName.trim()
         if (name.isEmpty()) return null
         if (name.length < DISPLAY_NAME_MIN) {

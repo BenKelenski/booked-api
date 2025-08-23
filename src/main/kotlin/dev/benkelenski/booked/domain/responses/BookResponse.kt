@@ -10,7 +10,7 @@ data class BookResponse(
     val title: String,
     val authors: List<String>,
     val status: String,
-    val progressPercent: Int? = null,
+    @param:Json(name = "progress_percent") val progressPercent: Int? = null,
     @param:Json(name = "thumbnail_url") val thumbnailUrl: String? = null,
     @param:Json(name = "created_at") val createdAt: String,
     @param:Json(name = "updated_at") val updatedAt: String? = null,

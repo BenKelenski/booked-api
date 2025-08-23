@@ -4,8 +4,8 @@ Content-Type: application/json
 
 {
   "email": "jane@example.com",
-  "password": "securepass",
-  "name": "Jane"
+  "password": "$up3rSecuRe13",
+  "display_name": "Jane Smith123"
 }
 
 ### POST login user

@@ -5,6 +5,7 @@ import dev.benkelenski.booked.createApp
 import dev.benkelenski.booked.domain.requests.LoginRequest
 import dev.benkelenski.booked.domain.requests.RegisterRequest
 import dev.benkelenski.booked.loadConfig
+import dev.benkelenski.booked.models.Shelves
 import dev.benkelenski.booked.routes.loginRequestLens
 import dev.benkelenski.booked.routes.registerRequestLens
 import dev.benkelenski.booked.routes.userResLens
@@ -18,6 +19,9 @@ import org.http4k.kotest.shouldHaveStatus
 import org.http4k.routing.RoutingHttpHandler
 import org.http4k.routing.reverseProxy
 import org.jetbrains.exposed.sql.Database
+import org.jetbrains.exposed.sql.and
+import org.jetbrains.exposed.sql.selectAll
+import org.jetbrains.exposed.sql.transactions.transaction
 import org.junit.jupiter.api.*
 import org.testcontainers.containers.PostgreSQLContainer
 import testUtils.TestDbUtils
@@ -93,7 +97,12 @@ class AuthIntegrationTest {
     fun `create user - request validation error - blank email`() {
         Request(Method.POST, "/api/v1/auth/register")
             .with(
-                registerRequestLens of RegisterRequest(email = " ", password = "sUp3rs3curep@s$123")
+                registerRequestLens of
+                    RegisterRequest(
+                        email = " ",
+                        password = "sUp3rs3curep@s$123",
+                        displayName = "test user",
+                    )
             )
             .let(app)
             .shouldHaveStatus(Status.UNPROCESSABLE_ENTITY)
@@ -102,7 +111,14 @@ class AuthIntegrationTest {
     @Test
     fun `create user - request validation error - blank password`() {
         Request(Method.POST, "/api/v1/auth/register")
-            .with(registerRequestLens of RegisterRequest(email = "test@test.com", password = "   "))
+            .with(
+                registerRequestLens of
+                    RegisterRequest(
+                        email = "test@test.com",
+                        password = "   ",
+                        displayName = "test user",
+                    )
+            )
             .let(app)
             .shouldHaveStatus(Status.UNPROCESSABLE_ENTITY)
     }
@@ -145,6 +161,12 @@ class AuthIntegrationTest {
         responseBody.id shouldBe 1
         responseBody.name shouldBe "Test User"
         responseBody.email shouldBe "test@test.com"
+
+        transaction {
+            Shelves.selectAll()
+                .where { (Shelves.userId eq 1) and (Shelves.isDeletable eq false) }
+                .count() shouldBe 3
+        }
     }
 
     @Test
@@ -204,6 +226,29 @@ class AuthIntegrationTest {
     fun `oauth user - bad request - no request body`() {
         Request(Method.POST, "/api/v1/auth/oauth").let(app).shouldHaveStatus(Status.BAD_REQUEST)
     }
+
+// TODO: Get Oauth test to work
+
+//    @Test
+//    fun `oauth user - success`() {
+//        val publicKey = config.server.auth.google.publicKey
+//        val keySpec = X509EncodedKeySpec(publicKey!!.base64DecodedArray())
+//        val javaPublicKey = KeyFactory.getInstance("RSA").generatePublic(keySpec)
+//
+//        val jwt =
+//            JWT.create()
+//                .withSubject("google-user-id")
+//                .withClaim("email", "user@example.com")
+//                .withIssuer("https://accounts.google.com")
+//                .sign(Algorithm.RSA256(javaPublicKey as RSAPublicKey, null))
+//
+//        val response =
+//            Request(Method.POST, "/api/v1/auth/oauth")
+//                .with(authRequestLens of OAuthRequest(provider = "google", token = jwt))
+//                .let(app)
+//
+//        response shouldHaveStatus Status.OK
+//    }
 
     private fun testResponseTokens(response: Response) {
         val access = response.cookie("access_token") ?: fail("missing access_token")

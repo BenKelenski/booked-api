@@ -9,6 +9,7 @@ import com.auth0.jwt.interfaces.DecodedJWT
 import com.auth0.jwt.interfaces.RSAKeyProvider
 import dev.benkelenski.booked.domain.AuthRules
 import dev.benkelenski.booked.domain.IdTokenClaims
+import io.github.oshai.kotlinlogging.KotlinLogging
 import org.http4k.base64DecodedArray
 import java.net.URI
 import java.security.KeyFactory
@@ -22,6 +23,10 @@ class GoogleAuthProvider(
     issuer: String,
     audience: String,
 ) : AuthProvider {
+    companion object {
+        private val logger = KotlinLogging.logger {}
+    }
+
     private val algorithm =
         publicKey?.let { publicKey ->
             val keySpec = X509EncodedKeySpec(publicKey.base64DecodedArray())
@@ -55,6 +60,7 @@ class GoogleAuthProvider(
         return try {
             verifier.verify(token)
         } catch (e: JWTVerificationException) {
+            logger.error { "Failed to verify Google JWT" }
             null
         }
     }

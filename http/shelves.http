@@ -12,7 +12,7 @@ Cookie: access_token={{ACCESS_TOKEN}}
 Content-Type: application/json
 
 {
-  "name": "Finished Reading"
+  "name": "my shelf"
 }
 
 ### POST add book to a shelf
@@ -30,5 +30,5 @@ Cookie: access_token={{ACCESS_TOKEN}}
 
 
 ### DELETE remove shelf
-DELETE {{API_URL}}/shelves/1
+DELETE {{API_URL}}/shelves/4
 Cookie: access_token={{ACCESS_TOKEN}}

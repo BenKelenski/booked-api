@@ -38,6 +38,8 @@ class AuthService(
 
     companion object {
         private val logger = KotlinLogging.logger {}
+        private const val EMAIL_PROVIDER = "email"
+        private const val GOOGLE_PROVIDER = "google"
     }
 
     /** Register a new user using email and password */
@@ -47,7 +49,7 @@ class AuthService(
                 when (
                     val res =
                         userRepo.getOrCreateUser(
-                            provider = "email",
+                            provider = EMAIL_PROVIDER,
                             providerUserId = email,
                             email = email,
                             name = name,
@@ -117,13 +119,16 @@ class AuthService(
 
                 val idTokenClaims =
                     when (provider) {
-                        "google" -> googleAuthProvider.authenticate(authPayload.providerToken)
+                        GOOGLE_PROVIDER ->
+                            googleAuthProvider.authenticate(authPayload.providerToken)
                         else -> null
                     }
                         ?: run {
-                            logger.warn { "Invalid provider ${authPayload.provider}" }
+                            logger.warn {
+                                "Failed to authenticate user for provider: ${authPayload.provider}"
+                            }
                             return@transaction AuthResult.Failure(
-                                "Invalid provider ${authPayload.provider}"
+                                "Failed to authenticate user for provider: ${authPayload.provider}"
                             )
                         }
 
@@ -139,6 +144,7 @@ class AuthService(
                     ) {
                         is GetOrCreateUserResult.Created -> {
                             logger.info { "Created user ${res.user.name} (${res.user.id})" }
+                            shelfRepo.createDefaultShelves(res.user.id)
                             res.user
                         }
 

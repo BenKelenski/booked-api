@@ -33,6 +33,7 @@ class ShelfRepo {
         Shelves.batchInsert(DEFAULT_SHELF_NAMES) { name ->
             this[Shelves.userId] = userId
             this[Shelves.name] = name
+            this[Shelves.isDeletable] = false
         }
 
     fun deleteByIdAndUser(userId: Int, shelfId: Int): Int? {
