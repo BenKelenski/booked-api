@@ -119,6 +119,9 @@ class ShelfIntegrationTest {
         response shouldHaveStatus Status.OK
         val responseBody = shelvesResLens(response)
         responseBody shouldHaveSize 3
+        responseBody[0].bookCount shouldBe 3
+        responseBody[1].bookCount shouldBe 0
+        responseBody[2].bookCount shouldBe 0
     }
 
     @Test
@@ -175,6 +178,7 @@ class ShelfIntegrationTest {
         response shouldHaveStatus Status.OK
         val responseBody = shelfResLens(response)
         responseBody.name shouldBe "To Read"
+        responseBody.bookCount shouldBe 3
     }
 
     @Test

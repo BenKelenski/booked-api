@@ -40,16 +40,22 @@ class ShelfService(
     }
 
     fun getShelfById(userId: Int, shelfId: Int): ShelfResponse? = transaction {
-        shelfRepo.fetchShelfById(userId, shelfId)?.let { ShelfResponse.from(it) }
+        val shelf = shelfRepo.fetchShelfById(userId, shelfId)
+        val countOfBooksByShelf = bookRepo.getCountsByShelf(userId)
+
+        shelf?.let { ShelfResponse.from(it, countOfBooksByShelf.getOrDefault(it.id, 0)) }
     }
 
     fun getAllShelves(userId: Int): List<ShelfResponse> = transaction {
-        shelfRepo.fetchAllShelvesByUser(userId).map { ShelfResponse.from(it) }
+        val shelves = shelfRepo.fetchAllShelvesByUser(userId)
+        val countOfBooksByShelf = bookRepo.getCountsByShelf(userId)
+
+        shelves.map { ShelfResponse.from(it, countOfBooksByShelf.getOrDefault(it.id, 0)) }
     }
 
     fun createShelf(userId: Int, shelfRequest: ShelfRequest): ShelfResponse? = transaction {
         shelfRepo.addShelf(userId, shelfRequest.name, shelfRequest.description)?.let {
-            ShelfResponse.from(it)
+            ShelfResponse.from(it, 0)
         }
     }
 

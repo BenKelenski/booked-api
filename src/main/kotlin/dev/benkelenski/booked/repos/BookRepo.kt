@@ -96,6 +96,18 @@ class BookRepo {
             finishedAt?.let { ts -> it[Books.finishedAt] = ts.atOffset(ZoneOffset.UTC) }
             updatedAt?.let { ts -> it[Books.updatedAt] = ts.atOffset(ZoneOffset.UTC) }
         }
+
+    fun getCountsByShelf(userId: Int): Map<Int, Long> {
+        return Shelves.leftJoin(
+                otherTable = Books,
+                onColumn = { Shelves.id },
+                otherColumn = { Books.shelfId },
+                additionalConstraint = { Books.userId eq userId },
+            )
+            .select(Shelves.id, Books.id.count())
+            .groupBy(Shelves.id)
+            .associate { it[Shelves.id] to it[Books.id.count()] }
+    }
 }
 
 fun ResultRow.toBook() =
