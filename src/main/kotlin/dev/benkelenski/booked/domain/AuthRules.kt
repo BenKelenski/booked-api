@@ -35,7 +35,7 @@ object AuthRules {
         val errors = buildList {
             validateEmail(req.email)?.let { add(it) }
             addAll(validatePassword(req.password))
-            validateDisplayName(req.displayName)?.let { add(it) }
+            validateDisplayName(req.name)?.let { add(it) }
         }
         return ValidationResult(errors.isEmpty(), errors)
     }

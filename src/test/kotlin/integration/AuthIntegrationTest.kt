@@ -101,7 +101,7 @@ class AuthIntegrationTest {
                     RegisterRequest(
                         email = " ",
                         password = "sUp3rs3curep@s$123",
-                        displayName = "test user",
+                        name = "test user",
                     )
             )
             .let(app)
@@ -116,7 +116,7 @@ class AuthIntegrationTest {
                     RegisterRequest(
                         email = "test@test.com",
                         password = "   ",
-                        displayName = "test user",
+                        name = "test user",
                     )
             )
             .let(app)
@@ -131,7 +131,7 @@ class AuthIntegrationTest {
                     RegisterRequest(
                         email = "test@test.com",
                         password = "sUp3rs3curep@s$123",
-                        displayName = "admin",
+                        name = "admin",
                     )
             )
             .let(app)
@@ -147,7 +147,7 @@ class AuthIntegrationTest {
                         RegisterRequest(
                             email = "test@test.com",
                             password = "sUp3rs3curep@s$123",
-                            displayName = "Test User",
+                            name = "Test User",
                         )
                 )
                 .let(app)
@@ -227,28 +227,28 @@ class AuthIntegrationTest {
         Request(Method.POST, "/api/v1/auth/oauth").let(app).shouldHaveStatus(Status.BAD_REQUEST)
     }
 
-// TODO: Get Oauth test to work
+    // TODO: Get Oauth test to work
 
-//    @Test
-//    fun `oauth user - success`() {
-//        val publicKey = config.server.auth.google.publicKey
-//        val keySpec = X509EncodedKeySpec(publicKey!!.base64DecodedArray())
-//        val javaPublicKey = KeyFactory.getInstance("RSA").generatePublic(keySpec)
-//
-//        val jwt =
-//            JWT.create()
-//                .withSubject("google-user-id")
-//                .withClaim("email", "user@example.com")
-//                .withIssuer("https://accounts.google.com")
-//                .sign(Algorithm.RSA256(javaPublicKey as RSAPublicKey, null))
-//
-//        val response =
-//            Request(Method.POST, "/api/v1/auth/oauth")
-//                .with(authRequestLens of OAuthRequest(provider = "google", token = jwt))
-//                .let(app)
-//
-//        response shouldHaveStatus Status.OK
-//    }
+    //    @Test
+    //    fun `oauth user - success`() {
+    //        val publicKey = config.server.auth.google.publicKey
+    //        val keySpec = X509EncodedKeySpec(publicKey!!.base64DecodedArray())
+    //        val javaPublicKey = KeyFactory.getInstance("RSA").generatePublic(keySpec)
+    //
+    //        val jwt =
+    //            JWT.create()
+    //                .withSubject("google-user-id")
+    //                .withClaim("email", "user@example.com")
+    //                .withIssuer("https://accounts.google.com")
+    //                .sign(Algorithm.RSA256(javaPublicKey as RSAPublicKey, null))
+    //
+    //        val response =
+    //            Request(Method.POST, "/api/v1/auth/oauth")
+    //                .with(authRequestLens of OAuthRequest(provider = "google", token = jwt))
+    //                .let(app)
+    //
+    //        response shouldHaveStatus Status.OK
+    //    }
 
     private fun testResponseTokens(response: Response) {
         val access = response.cookie("access_token") ?: fail("missing access_token")

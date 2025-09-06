@@ -62,7 +62,7 @@ fun authRoutes(
                                 registerWithEmail(
                                     AuthRules.canonicalizeEmail(registerRequest.email),
                                     registerRequest.password,
-                                    registerRequest.displayName,
+                                    registerRequest.name,
                                 )
                         ) {
                             is AuthResult.Success -> {
