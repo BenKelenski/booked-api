@@ -10,3 +10,4 @@ services:
       - "5432:5432"
     volumes:
       - ./db_scripts/init.sql:/docker-entrypoint-initdb.d/init.sql
+      - ./db_scripts/seed_data.sql:/docker-entrypoint-initdb.d/seed_data.sql
