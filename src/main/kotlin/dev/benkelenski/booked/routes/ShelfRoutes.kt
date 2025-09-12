@@ -1,8 +1,12 @@
 package dev.benkelenski.booked.routes
 
+import dev.benkelenski.booked.constants.ErrorCodes
+import dev.benkelenski.booked.constants.ErrorTypes
 import dev.benkelenski.booked.domain.requests.BookRequest
 import dev.benkelenski.booked.domain.requests.ShelfRequest
+import dev.benkelenski.booked.domain.responses.ApiError
 import dev.benkelenski.booked.domain.responses.ShelfResponse
+import dev.benkelenski.booked.http.apiErrorLens
 import dev.benkelenski.booked.middleware.AuthMiddleware
 import dev.benkelenski.booked.services.*
 import dev.benkelenski.booked.utils.parseUserIdHeader
@@ -59,14 +63,28 @@ fun shelfRoutes(
                                 try {
                                     shelfRequestLens(request)
                                 } catch (e: LensFailure) {
-                                    logger.error(e) { "Missing or invalid shelf request." }
+                                    logger.error(e) { "Missing or invalid shelf request" }
                                     return@to Response(Status.BAD_REQUEST)
-                                        .body("Missing or invalid shelf request.")
+                                        .with(
+                                            Body.apiErrorLens of
+                                                ApiError(
+                                                    message = "Missing or invalid shelf request",
+                                                    code = ErrorCodes.MISSING_REQUEST_BODY,
+                                                    type = ErrorTypes.VALIDATION,
+                                                )
+                                        )
                                 }
 
                             if (shelfRequest.name.isBlank()) {
                                 return@to Response(Status.BAD_REQUEST)
-                                    .body("Shelf name cannot be blank.")
+                                    .with(
+                                        Body.apiErrorLens of
+                                            ApiError(
+                                                message = "Shelf name cannot be blank",
+                                                code = ErrorCodes.MISSING_REQUIRED_FIELD,
+                                                type = ErrorTypes.VALIDATION,
+                                            )
+                                    )
                             }
 
                             createShelf(userId, shelfRequest)?.let {
@@ -84,9 +102,16 @@ fun shelfRoutes(
                                 try {
                                     shelfIdLens(request)
                                 } catch (e: LensFailure) {
-                                    logger.error(e) { "Missing or invalid shelf ID." }
+                                    logger.error(e) { "Missing or invalid shelf ID" }
                                     return@to Response(Status.BAD_REQUEST)
-                                        .body("Missing or invalid shelf ID.")
+                                        .with(
+                                            Body.apiErrorLens of
+                                                ApiError(
+                                                    message = "Missing or invalid shelf ID",
+                                                    code = ErrorCodes.MISSING_REQUIRED_FIELD,
+                                                    type = ErrorTypes.VALIDATION,
+                                                )
+                                        )
                                 }
 
                             getShelfById(userId, shelfId)?.let {
@@ -104,9 +129,16 @@ fun shelfRoutes(
                                 try {
                                     shelfIdLens(request)
                                 } catch (e: LensFailure) {
-                                    logger.error(e) { "Missing or invalid shelf ID." }
+                                    logger.error(e) { "Missing or invalid shelf ID" }
                                     return@to Response(Status.BAD_REQUEST)
-                                        .body("Missing or invalid shelf ID.")
+                                        .with(
+                                            Body.apiErrorLens of
+                                                ApiError(
+                                                    message = "Missing or invalid shelf ID",
+                                                    code = ErrorCodes.MISSING_REQUIRED_FIELD,
+                                                    type = ErrorTypes.VALIDATION,
+                                                )
+                                        )
                                 }
 
                             when (deleteShelf(userId, shelfId)) {
@@ -114,7 +146,14 @@ fun shelfRoutes(
                                 is ShelfDeleteResult.NotFound -> Response(Status.NOT_FOUND)
                                 is ShelfDeleteResult.Forbidden ->
                                     Response(Status.FORBIDDEN)
-                                        .body("Cannot delete another user's shelf.")
+                                        .with(
+                                            Body.apiErrorLens of
+                                                ApiError(
+                                                    message = "Cannot delete another user's shelf",
+                                                    code = ErrorCodes.INSUFFICIENT_PERMISSIONS,
+                                                    type = ErrorTypes.AUTHORIZATION,
+                                                )
+                                        )
                                 is ShelfDeleteResult.DatabaseError ->
                                     Response(Status.INTERNAL_SERVER_ERROR)
                             }
@@ -130,9 +169,16 @@ fun shelfRoutes(
                                 try {
                                     shelfIdLens(request)
                                 } catch (e: LensFailure) {
-                                    logger.error(e) { "Missing or invalid shelf ID." }
+                                    logger.error(e) { "Missing or invalid shelf ID" }
                                     return@to Response(Status.BAD_REQUEST)
-                                        .body("Missing or invalid shelf ID.")
+                                        .with(
+                                            Body.apiErrorLens of
+                                                ApiError(
+                                                    message = "Missing or invalid shelf ID",
+                                                    code = ErrorCodes.MISSING_REQUIRED_FIELD,
+                                                    type = ErrorTypes.VALIDATION,
+                                                )
+                                        )
                                 }
 
                             val books = getBooksByShelf(userId, shelfId)
@@ -150,9 +196,16 @@ fun shelfRoutes(
                                 try {
                                     shelfIdLens(request)
                                 } catch (e: LensFailure) {
-                                    logger.error(e) { "Missing or invalid shelf ID." }
+                                    logger.error(e) { "Missing or invalid shelf ID" }
                                     return@to Response(Status.BAD_REQUEST)
-                                        .body("Missing or invalid shelf ID.")
+                                        .with(
+                                            Body.apiErrorLens of
+                                                ApiError(
+                                                    message = "Missing or invalid shelf ID",
+                                                    code = ErrorCodes.MISSING_REQUIRED_FIELD,
+                                                    type = ErrorTypes.VALIDATION,
+                                                )
+                                        )
                                 }
 
                             val bookRequest =
@@ -161,12 +214,26 @@ fun shelfRoutes(
                                 } catch (e: LensFailure) {
                                     logger.error(e) { "Missing or invalid book request." }
                                     return@to Response(Status.BAD_REQUEST)
-                                        .body("Missing or invalid book request.")
+                                        .with(
+                                            Body.apiErrorLens of
+                                                ApiError(
+                                                    message = "Missing or invalid book request",
+                                                    code = ErrorCodes.MISSING_REQUEST_BODY,
+                                                    type = ErrorTypes.VALIDATION,
+                                                )
+                                        )
                                 }
 
                             if (bookRequest.volumeId.isBlank()) {
                                 return@to Response(Status.BAD_REQUEST)
-                                    .body("Google book ID cannot be blank.")
+                                    .with(
+                                        Body.apiErrorLens of
+                                            ApiError(
+                                                message = "Google book ID cannot be blank",
+                                                code = ErrorCodes.MISSING_REQUIRED_FIELD,
+                                                type = ErrorTypes.VALIDATION,
+                                            )
+                                    )
                             }
 
                             when (
@@ -175,21 +242,57 @@ fun shelfRoutes(
                                 is ShelfAddBookResult.Success ->
                                     Response(Status.OK).with(bookResponseLens of result.book)
                                 is ShelfAddBookResult.ShelfNotFound ->
-                                    Response(Status.NOT_FOUND).body("Shelf not found.")
+                                    Response(Status.NOT_FOUND)
+                                        .with(
+                                            Body.apiErrorLens of
+                                                ApiError(
+                                                    message = "Shelf not found",
+                                                    code = ErrorCodes.SHELF_NOT_FOUND,
+                                                    type = ErrorTypes.NOT_FOUND,
+                                                )
+                                        )
                                 is ShelfAddBookResult.BookNotFound ->
                                     Response(Status.NOT_FOUND)
-                                        .body(
-                                            "No Google book found with ID=${bookRequest.volumeId}"
+                                        .with(
+                                            Body.apiErrorLens of
+                                                ApiError(
+                                                    message = "Book not found",
+                                                    code = ErrorCodes.BOOK_NOT_FOUND,
+                                                    type = ErrorTypes.NOT_FOUND,
+                                                )
                                         )
                                 is ShelfAddBookResult.Forbidden ->
                                     Response(Status.FORBIDDEN)
-                                        .body("Cannot add books to another user's shelf.")
+                                        .with(
+                                            Body.apiErrorLens of
+                                                ApiError(
+                                                    message =
+                                                        "Cannot add books to another user's shelf",
+                                                    code = ErrorCodes.INSUFFICIENT_PERMISSIONS,
+                                                    type = ErrorTypes.AUTHORIZATION,
+                                                )
+                                        )
                                 is ShelfAddBookResult.Duplicate ->
                                     Response(Status.CONFLICT)
-                                        .body("Book already exists on a shelf.")
+                                        .with(
+                                            Body.apiErrorLens of
+                                                ApiError(
+                                                    message = "Book already exists on a shelf",
+                                                    code = ErrorCodes.BOOK_ALREADY_EXISTS,
+                                                    type = ErrorTypes.CONFLICT,
+                                                )
+                                        )
                                 is ShelfAddBookResult.DatabaseError ->
                                     Response(Status.INTERNAL_SERVER_ERROR)
-                                        .body("Error occurred trying to add book to shelf.")
+                                        .with(
+                                            Body.apiErrorLens of
+                                                ApiError(
+                                                    message =
+                                                        "Error occurred trying to add book to shelf",
+                                                    code = ErrorCodes.INTERNAL_SERVER_ERROR,
+                                                    type = ErrorTypes.SYSTEM,
+                                                )
+                                        )
                             }
                         },
                 )
