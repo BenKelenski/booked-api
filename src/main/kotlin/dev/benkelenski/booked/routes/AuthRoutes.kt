@@ -68,6 +68,7 @@ fun authRoutes(
                             is AuthResult.Success -> {
                                 val s = result.session
                                 Response(Status.OK)
+                                    .header("Cache-Control", "no-store")
                                     .cookie(CookieUtils.accessTokenCookie(s.accessToken))
                                     .cookie(CookieUtils.refreshTokenCookie(s.refreshToken))
                                     .with(userResLens of UserResponse.from(s.user))
@@ -107,6 +108,7 @@ fun authRoutes(
                             is AuthResult.Success -> {
                                 val s = result.session
                                 Response(Status.OK)
+                                    .header("Cache-Control", "no-store")
                                     .cookie(CookieUtils.accessTokenCookie(s.accessToken))
                                     .cookie(CookieUtils.refreshTokenCookie(s.refreshToken))
                                     .with(userResLens of UserResponse.from(s.user))
@@ -139,6 +141,7 @@ fun authRoutes(
                             is AuthResult.Success -> {
                                 val s = result.session
                                 Response(Status.OK)
+                                    .header("Cache-Control", "no-store")
                                     .cookie(CookieUtils.accessTokenCookie(s.accessToken))
                                     .cookie(CookieUtils.refreshTokenCookie(s.refreshToken))
                                     .with(userResLens of UserResponse.from(s.user))
@@ -162,6 +165,7 @@ fun authRoutes(
                             is AuthResult.Success -> {
                                 val s = result.session
                                 Response(Status.OK)
+                                    .header("Cache-Control", "no-store")
                                     .cookie(CookieUtils.accessTokenCookie(s.accessToken))
                                     .cookie(CookieUtils.refreshTokenCookie(s.refreshToken))
                                     .with(userResLens of UserResponse.from(s.user))

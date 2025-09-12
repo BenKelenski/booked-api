@@ -11,14 +11,8 @@ import dev.benkelenski.booked.repos.BookRepo
 import dev.benkelenski.booked.repos.RefreshTokenRepo
 import dev.benkelenski.booked.repos.ShelfRepo
 import dev.benkelenski.booked.repos.UserRepo
-import dev.benkelenski.booked.routes.authRoutes
-import dev.benkelenski.booked.routes.bookRoutes
-import dev.benkelenski.booked.routes.googleBooksRoutes
-import dev.benkelenski.booked.routes.shelfRoutes
-import dev.benkelenski.booked.services.AuthService
-import dev.benkelenski.booked.services.BookService
-import dev.benkelenski.booked.services.GoogleBooksService
-import dev.benkelenski.booked.services.ShelfService
+import dev.benkelenski.booked.routes.*
+import dev.benkelenski.booked.services.*
 import io.github.oshai.kotlinlogging.KotlinLogging
 import org.http4k.client.OkHttp
 import org.http4k.core.HttpHandler
@@ -144,7 +138,7 @@ fun createApp(
 
     val googleBooksService = GoogleBooksService(googleBooksClient)
 
-    //    val userService = UserService(userRepo = userRepo)
+    val userService = UserService(userRepo = userRepo)
 
     return AppConstants.API_PREFIX bind
         routes(
@@ -174,6 +168,10 @@ fun createApp(
             googleBooksRoutes(
                 searchWithQuery = googleBooksService::searchWithQuery,
                 fetchByVolumeId = googleBooksService::fetchByVolumeId,
+            ),
+            userRoutes(
+                getUserById = userService::getUserById,
+                authMiddleware = authMiddleware(tokenProvider),
             ),
         )
 }

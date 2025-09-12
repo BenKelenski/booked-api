@@ -1,0 +1,3 @@
+### GET me
+GET {{API_URL}}/users/me
+Cookie: access_token={{ACCESS_TOKEN}}

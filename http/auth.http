@@ -14,7 +14,7 @@ Content-Type: application/json
 
 {
   "email": "jane@example.com",
-  "password": "securepass"
+  "password": "$up3rSecuRe13"
 }
 
 ### POST oauth authenticate
