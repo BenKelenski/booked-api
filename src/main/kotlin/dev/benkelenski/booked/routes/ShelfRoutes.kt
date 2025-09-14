@@ -250,16 +250,12 @@ fun shelfRoutes(
     }
 
     return routes(
-        "/shelves" bind
-            authMiddleware.then(
-                routes(
-                    "/" bind Method.GET to getShelvesHandler,
-                    "/" bind Method.POST to createShelfHandler,
-                    "/{shelf_id}" bind Method.GET to getShelfHandler,
-                    "/{shelf_id}" bind Method.DELETE to deleteShelfHandler,
-                    "/{shelf_id}/books" bind Method.GET to getBooksByShelfHandler,
-                    "/{shelf_id}/books" bind Method.POST to addBookToShelfHandler,
-                )
-            )
-    )
+            "/shelves" bind Method.GET to getShelvesHandler,
+            "/shelves" bind Method.POST to createShelfHandler,
+            "/shelves/{shelf_id}" bind Method.GET to getShelfHandler,
+            "/shelves/{shelf_id}" bind Method.DELETE to deleteShelfHandler,
+            "/shelves/{shelf_id}/books" bind Method.GET to getBooksByShelfHandler,
+            "/shelves/{shelf_id}/books" bind Method.POST to addBookToShelfHandler,
+        )
+        .withFilter(authMiddleware)
 }

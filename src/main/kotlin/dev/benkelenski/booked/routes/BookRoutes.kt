@@ -103,14 +103,10 @@ fun bookRoutes(
     }
 
     return routes(
-        "/books" bind
-            authMiddleware.then(
-                routes(
-                    "/" bind Method.GET to getBooksHandler,
-                    "/$bookIdLens" bind Method.GET to getBookHandler,
-                    "/$bookIdLens" bind Method.PATCH to patchBookHandler,
-                    "/$bookIdLens" bind Method.DELETE to deleteBookHandler,
-                )
-            )
-    )
+            "/books" bind Method.GET to getBooksHandler,
+            "/books/{book_id}" bind Method.GET to getBookHandler,
+            "/books/{book_id}" bind Method.PATCH to patchBookHandler,
+            "/books/{book_id}" bind Method.DELETE to deleteBookHandler,
+        )
+        .withFilter(authMiddleware)
 }
