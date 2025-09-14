@@ -15,14 +15,14 @@ import dev.benkelenski.booked.routes.*
 import dev.benkelenski.booked.services.*
 import io.github.oshai.kotlinlogging.KotlinLogging
 import org.http4k.client.OkHttp
-import org.http4k.core.HttpHandler
-import org.http4k.core.Uri
+import org.http4k.core.*
 import org.http4k.routing.RoutingHttpHandler
 import org.http4k.routing.bind
 import org.http4k.routing.routes
 import org.http4k.server.Jetty
 import org.http4k.server.asServer
 import org.jetbrains.exposed.sql.Database
+import kotlin.system.exitProcess
 
 private val logger = KotlinLogging.logger {}
 
@@ -42,18 +42,14 @@ private object AppConstants {
  */
 fun loadConfig(profile: String? = null): Config {
     return try {
-        val loader = ConfigLoaderBuilder.default()
-        if (profile != null) {
-            loader
-                .addResourceSource(AppConstants.PROFILE_CONFIG_PATH_FORMAT.format(profile))
-                .build()
-                .loadConfigOrThrow<Config>()
-        } else {
-            loader
-                .addResourceSource(AppConstants.DEFAULT_CONFIG_PATH)
-                .build()
-                .loadConfigOrThrow<Config>()
-        }
+        val configPath =
+            profile?.let { AppConstants.PROFILE_CONFIG_PATH_FORMAT.format(it) }
+                ?: AppConstants.DEFAULT_CONFIG_PATH
+
+        ConfigLoaderBuilder.default()
+            .addResourceSource(configPath)
+            .build()
+            .loadConfigOrThrow<Config>()
     } catch (e: Exception) {
         logger.error(e) { "Failed to load configuration" }
         throw e
@@ -179,24 +175,38 @@ fun createApp(
 
 fun main() {
     try {
+        // Load configuration
+        logger.info { "Loading configuration" }
         val config = loadConfig()
+        logger.info { "Configuration loaded successfully" }
 
-        logger.info { "creating database connection" }
+        // Set up database
+        logger.info { "Establishing database connection" }
         createDbConn(config = config)
-        logger.info { "creating app" }
-        val app =
-            createApp(config = config, internet = OkHttp(), tokenProvider = JwtTokenProvider())
-        val webApp =
-            webApp(
-                config.server.auth.google.audience,
-                config.server.auth.google.redirectUri.toUri(),
-            )
 
-        logger.info { "starting app on port: ${config.server.port}" }
-        routes(app, webApp).asServer(Jetty(config.server.port)).start()
+        // Create HTTP client and token provider
+        val httpClient = OkHttp()
+        val tokenProvider = JwtTokenProvider()
+
+        // Create and configure the application
+        logger.info { "Configuring application" }
+        val app = createApp(config = config, internet = httpClient, tokenProvider = tokenProvider)
+
+        logger.info { "Starting server on port: ${config.server.port}" }
+        routes(
+                app,
+                "/health" bind
+                    Method.GET to
+                    { _: Request ->
+                        Response(Status.OK).body("{\"status\":\"UP\"}")
+                    },
+            )
+            .asServer(Jetty(config.server.port))
+            .start()
+        logger.info { "Server started successfully" }
     } catch (e: Exception) {
         logger.error(e) { "Failed to start application" }
-        throw e
+        exitProcess(1)
     }
 }
 
