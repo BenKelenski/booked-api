@@ -9,8 +9,6 @@ import org.http4k.core.*
 
 fun authHandler(handler: (userId: Int, request: Request) -> Response): (Request) -> Response =
     { request ->
-        println("in here!!")
-
         val userId = request.header(HttpConstants.USER_ID_HEADER)?.toIntOrNull()
         if (userId != null) {
             handler(userId, request)
