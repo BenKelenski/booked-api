@@ -4,15 +4,10 @@ import dev.benkelenski.booked.createApp
 import dev.benkelenski.booked.domain.requests.BookRequest
 import dev.benkelenski.booked.domain.requests.ShelfRequest
 import dev.benkelenski.booked.domain.responses.BookResponse
-import dev.benkelenski.booked.http.bookReqLens
-import dev.benkelenski.booked.http.shelfReqLens
-import dev.benkelenski.booked.http.shelfResLens
-import dev.benkelenski.booked.http.shelvesResLens
+import dev.benkelenski.booked.http.*
 import dev.benkelenski.booked.loadConfig
 import dev.benkelenski.booked.models.Books
 import dev.benkelenski.booked.models.Shelves
-import dev.benkelenski.booked.routes.bookResponseLens
-import dev.benkelenski.booked.routes.booksResponseLens
 import io.kotest.matchers.collections.shouldHaveSize
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
@@ -252,7 +247,7 @@ class ShelfIntegrationTest {
                     .cookie(Cookie("access_token", fakeTokenProvider.generateAccessToken(1)))
             )
         response.status shouldBe Status.OK
-        val responseBody = booksResponseLens(response)
+        val responseBody = Body.booksResLens(response)
         responseBody shouldHaveSize 0
         responseBody shouldBe emptyList<BookResponse>()
     }
@@ -267,7 +262,7 @@ class ShelfIntegrationTest {
 
         response.status shouldBe Status.OK
 
-        val responseBody = booksResponseLens(response)
+        val responseBody = Body.booksResLens(response)
 
         responseBody shouldHaveSize 3
         responseBody[0].title shouldBe "Red Rising"
@@ -349,7 +344,7 @@ class ShelfIntegrationTest {
                     .cookie(Cookie("access_token", fakeTokenProvider.generateAccessToken(1)))
             )
 
-        val book = bookResponseLens(response)
+        val book = Body.bookResLens(response)
         book.id shouldBe 4
         book.googleId shouldBe googleBookId
         book.createdAt shouldNotBe null

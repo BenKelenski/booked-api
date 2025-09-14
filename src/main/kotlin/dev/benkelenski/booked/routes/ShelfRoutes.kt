@@ -139,7 +139,7 @@ fun shelfRoutes(
             }
 
         findBooksByShelf(userId, shelfId).let { books ->
-            Response(Status.OK).with(booksResponseLens of books.toTypedArray())
+            Response(Status.OK).with(Body.booksResLens of books.toTypedArray())
         }
     }
 
@@ -190,7 +190,7 @@ fun shelfRoutes(
 
         when (val result = addBookToShelf(userId, shelfId, bookRequest.volumeId)) {
             is ShelfAddBookResult.Success ->
-                Response(Status.OK).with(bookResponseLens of result.book)
+                Response(Status.OK).with(Body.bookResLens of result.book)
 
             is ShelfAddBookResult.ShelfNotFound ->
                 Response(Status.NOT_FOUND)

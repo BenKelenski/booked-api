@@ -2,7 +2,9 @@ package dev.benkelenski.booked.http
 
 import dev.benkelenski.booked.domain.requests.BookRequest
 import dev.benkelenski.booked.domain.requests.ShelfRequest
+import dev.benkelenski.booked.domain.requests.UpdateBookPatch
 import dev.benkelenski.booked.domain.responses.ApiError
+import dev.benkelenski.booked.domain.responses.BookResponse
 import dev.benkelenski.booked.domain.responses.ShelfResponse
 import org.http4k.core.Body
 import org.http4k.format.Moshi.auto
@@ -22,8 +24,19 @@ val Body.Companion.shelvesResLens
     get() = Body.auto<Array<ShelfResponse>>().toLens()
 
 // Book lenses
+val bookIdLens = Path.int().of("book_id")
+
 val Body.Companion.bookReqLens
     get() = Body.auto<BookRequest>().toLens()
+
+val Body.Companion.bookResLens
+    get() = Body.auto<BookResponse>().toLens()
+
+val Body.Companion.booksResLens
+    get() = Body.auto<Array<BookResponse>>().toLens()
+
+val Body.Companion.bookPatchLens
+    get() = Body.auto<UpdateBookPatch>().toLens()
 
 // Error lenses
 val Body.Companion.apiErrorLens

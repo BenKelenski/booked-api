@@ -1,8 +1,10 @@
 ### GET all books
 GET {{API_URL}}/books
+Cookie: access_token={{ACCESS_TOKEN}}
 
 ### GET get book by ID
 GET {{API_URL}}/books/1
+Cookie: access_token={{ACCESS_TOKEN}}
 
 ### POST save book 1
 POST {{API_URL}}/books

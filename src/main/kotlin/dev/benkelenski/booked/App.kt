@@ -150,8 +150,8 @@ fun createApp(
                 logout = authService::logout,
             ),
             bookRoutes(
-                getBookById = bookService::getBookById,
-                getAllBooks = bookService::getAllBooksForUser,
+                findBookById = bookService::findBookById,
+                findBooksByUser = bookService::findBooksByUser,
                 updateBook = bookService::updateBook,
                 deleteBook = bookService::deleteBook,
                 authMiddleware = authMiddleware(tokenProvider),

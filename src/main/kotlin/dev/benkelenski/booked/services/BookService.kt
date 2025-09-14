@@ -6,14 +6,14 @@ import dev.benkelenski.booked.domain.responses.BookResponse
 import dev.benkelenski.booked.repos.BookRepo
 import dev.benkelenski.booked.repos.ShelfRepo
 import io.github.oshai.kotlinlogging.KotlinLogging
-import java.time.Instant
 import org.jetbrains.exposed.sql.transactions.transaction
+import java.time.Instant
 
-/** alias for [BookService.getAllBooksForUser] */
-typealias GetAllBooksForUser = (userId: Int) -> List<BookResponse>
+/** alias for [BookService.findBooksByUser] */
+typealias FindBooksByUser = (userId: Int) -> List<BookResponse>
 
-/** alias for [BookService.getBookById] */
-typealias GetBookById = (bookId: Int) -> BookResponse?
+/** alias for [BookService.findBookById] */
+typealias FindBookById = (bookId: Int) -> BookResponse?
 
 /** alias for [BookService.updateBook] */
 typealias UpdateBook = (userId: Int, bookId: Int, patch: UpdateBookPatch) -> BookUpdateResult
@@ -27,11 +27,11 @@ class BookService(private val bookRepo: BookRepo, private val shelfRepo: ShelfRe
         private val logger = KotlinLogging.logger {}
     }
 
-    fun getAllBooksForUser(userId: Int): List<BookResponse> = transaction {
+    fun findBooksByUser(userId: Int): List<BookResponse> = transaction {
         bookRepo.fetchAllBooksByUser(userId).map { BookResponse.from(it) }
     }
 
-    fun getBookById(bookId: Int): BookResponse? = transaction {
+    fun findBookById(bookId: Int): BookResponse? = transaction {
         bookRepo.fetchById(bookId)?.let { BookResponse.from(it) }
     }
 

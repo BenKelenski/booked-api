@@ -3,11 +3,11 @@ package integration
 import dev.benkelenski.booked.createApp
 import dev.benkelenski.booked.domain.ReadingStatus
 import dev.benkelenski.booked.domain.requests.UpdateBookPatch
+import dev.benkelenski.booked.http.bookPatchLens
+import dev.benkelenski.booked.http.bookResLens
+import dev.benkelenski.booked.http.booksResLens
 import dev.benkelenski.booked.loadConfig
 import dev.benkelenski.booked.models.Books
-import dev.benkelenski.booked.routes.bookResponseLens
-import dev.benkelenski.booked.routes.booksResponseLens
-import dev.benkelenski.booked.routes.updateBookPatchLens
 import io.kotest.matchers.collections.shouldHaveSize
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
@@ -108,7 +108,7 @@ class BookIntegrationTest {
 
         response shouldHaveStatus Status.OK
 
-        val responseBody = booksResponseLens(response)
+        val responseBody = Body.booksResLens(response)
         responseBody shouldHaveSize 3
         responseBody[0].title shouldBe "Red Rising"
         responseBody[0].authors shouldBe listOf("Pierce Brown")
@@ -157,7 +157,7 @@ class BookIntegrationTest {
 
         response shouldHaveStatus Status.OK
 
-        val responseBody = bookResponseLens(response)
+        val responseBody = Body.bookResLens(response)
         responseBody.title shouldBe "Red Rising"
         responseBody.authors shouldBe listOf("Pierce Brown")
         responseBody.googleId shouldBe "google1"
@@ -188,7 +188,7 @@ class BookIntegrationTest {
     fun `update book - bad request - progressPercent less than 0`() {
         Request(Method.PATCH, "/api/v1/books/9999")
             .cookie(Cookie("access_token", fakeTokenProvider.generateAccessToken(1)))
-            .with(updateBookPatchLens of UpdateBookPatch(progressPercent = -1))
+            .with(Body.bookPatchLens of UpdateBookPatch(progressPercent = -1))
             .let(app)
             .shouldHaveStatus(Status.BAD_REQUEST)
     }
@@ -197,7 +197,7 @@ class BookIntegrationTest {
     fun `update book - bad request - progressPercent greater than 100`() {
         Request(Method.PATCH, "/api/v1/books/9999")
             .cookie(Cookie("access_token", fakeTokenProvider.generateAccessToken(1)))
-            .with(updateBookPatchLens of UpdateBookPatch(progressPercent = 101))
+            .with(Body.bookPatchLens of UpdateBookPatch(progressPercent = 101))
             .let(app)
             .shouldHaveStatus(Status.BAD_REQUEST)
     }
@@ -206,7 +206,7 @@ class BookIntegrationTest {
     fun `update book - bad request - empty request body`() {
         Request(Method.PATCH, "/api/v1/books/9999")
             .cookie(Cookie("access_token", fakeTokenProvider.generateAccessToken(1)))
-            .with(updateBookPatchLens of UpdateBookPatch(null, null, null))
+            .with(Body.bookPatchLens of UpdateBookPatch(null, null, null))
             .let(app)
             .shouldHaveStatus(Status.BAD_REQUEST)
     }
@@ -225,12 +225,12 @@ class BookIntegrationTest {
         val response =
             Request(Method.PATCH, "/api/v1/books/1")
                 .cookie(Cookie("access_token", fakeTokenProvider.generateAccessToken(1)))
-                .with(updateBookPatchLens of UpdateBookPatch(10, null, null))
+                .with(Body.bookPatchLens of UpdateBookPatch(10, null, null))
                 .let(app)
 
         response shouldHaveStatus Status.OK
 
-        val responseBody = bookResponseLens(response)
+        val responseBody = Body.bookResLens(response)
         responseBody.id shouldBe 1
         responseBody.progressPercent shouldBe 10
         responseBody.status shouldBe "TO_READ"
@@ -243,12 +243,12 @@ class BookIntegrationTest {
         val response =
             Request(Method.PATCH, "/api/v1/books/1")
                 .cookie(Cookie("access_token", fakeTokenProvider.generateAccessToken(1)))
-                .with(updateBookPatchLens of UpdateBookPatch(100, ReadingStatus.FINISHED, null))
+                .with(Body.bookPatchLens of UpdateBookPatch(100, ReadingStatus.FINISHED, null))
                 .let(app)
 
         response shouldHaveStatus Status.OK
 
-        val responseBody = bookResponseLens(response)
+        val responseBody = Body.bookResLens(response)
         responseBody.id shouldBe 1
         responseBody.progressPercent shouldBe 100
         responseBody.status shouldBe "FINISHED"
@@ -261,7 +261,7 @@ class BookIntegrationTest {
         val response =
             Request(Method.PATCH, "/api/v1/books/1")
                 .cookie(Cookie("access_token", fakeTokenProvider.generateAccessToken(1)))
-                .with(updateBookPatchLens of UpdateBookPatch(null, null, 2))
+                .with(Body.bookPatchLens of UpdateBookPatch(null, null, 2))
                 .let(app)
 
         response shouldHaveStatus Status.OK
