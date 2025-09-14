@@ -8,8 +8,12 @@ object ErrorCodes {
     const val INSUFFICIENT_PERMISSIONS = "INSUFFICIENT_PERMISSIONS"
 
     // Request Validation (400)
-    const val MISSING_REQUEST_BODY = "MISSING_REQUEST_BODY"
-    const val MISSING_REQUIRED_FIELD = "MISSING_REQUIRED_FIELD"
+    const val MISSING_SHELF_REQUEST = "MISSING_SHELF_REQUEST"
+    const val MISSING_SHELF_ID = "MISSING_SHELF_ID"
+    const val BLANK_SHELF_NAME = "BLANK_SHELF_NAME"
+    const val MISSING_BOOK_REQUEST = "MISSING_BOOK_REQUEST"
+    const val MISSING_BOOK_ID = "MISSING_BOOK_ID"
+    const val BLANK_GOOGLE_VOLUME_ID = "BLANK_GOOGLE_VOLUME_ID"
 
     // Not Found (404)
     const val SHELF_NOT_FOUND = "SHELF_NOT_FOUND"
@@ -19,6 +23,6 @@ object ErrorCodes {
     const val SHELF_ALREADY_EXISTS = "SHELF_ALREADY_EXISTS"
     const val BOOK_ALREADY_EXISTS = "BOOK_ALREADY_EXISTS"
 
-    // Server Errors
+    // Server Errors (5XX)
     const val INTERNAL_SERVER_ERROR = "INTERNAL_SERVER_ERROR"
 }
