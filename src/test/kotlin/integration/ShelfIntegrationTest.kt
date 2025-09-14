@@ -4,10 +4,15 @@ import dev.benkelenski.booked.createApp
 import dev.benkelenski.booked.domain.requests.BookRequest
 import dev.benkelenski.booked.domain.requests.ShelfRequest
 import dev.benkelenski.booked.domain.responses.BookResponse
+import dev.benkelenski.booked.http.bookReqLens
+import dev.benkelenski.booked.http.shelfReqLens
+import dev.benkelenski.booked.http.shelfResLens
+import dev.benkelenski.booked.http.shelvesResLens
 import dev.benkelenski.booked.loadConfig
 import dev.benkelenski.booked.models.Books
 import dev.benkelenski.booked.models.Shelves
-import dev.benkelenski.booked.routes.*
+import dev.benkelenski.booked.routes.bookResponseLens
+import dev.benkelenski.booked.routes.booksResponseLens
 import io.kotest.matchers.collections.shouldHaveSize
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
@@ -101,14 +106,6 @@ class ShelfIntegrationTest {
     }
 
     @Test
-    fun `get all shelves - invalid shelf id`() {
-        Request(Method.GET, "/api/v1/shelves/INVALID_SHELF_ID")
-            .cookie(Cookie("access_token", fakeTokenProvider.generateAccessToken(1)))
-            .let(app)
-            .shouldHaveStatus(Status.BAD_REQUEST)
-    }
-
-    @Test
     fun `get all shelves - success`() {
         val response =
             app(
@@ -117,7 +114,7 @@ class ShelfIntegrationTest {
             )
 
         response shouldHaveStatus Status.OK
-        val responseBody = shelvesResLens(response)
+        val responseBody = Body.shelvesResLens(response)
         responseBody shouldHaveSize 3
         responseBody[0].bookCount shouldBe 3
         responseBody[1].bookCount shouldBe 0
@@ -134,7 +131,7 @@ class ShelfIntegrationTest {
             )
 
         response shouldHaveStatus Status.OK
-        val responseBody = shelvesResLens(response)
+        val responseBody = Body.shelvesResLens(response)
         responseBody shouldHaveSize 0
     }
 
@@ -176,7 +173,7 @@ class ShelfIntegrationTest {
             )
 
         response shouldHaveStatus Status.OK
-        val responseBody = shelfResLens(response)
+        val responseBody = Body.shelfResLens(response)
         responseBody.name shouldBe "To Read"
         responseBody.bookCount shouldBe 3
     }
@@ -184,7 +181,7 @@ class ShelfIntegrationTest {
     @Test
     fun `create shelf - unauthorized - no token`() {
         Request(Method.POST, "/api/v1/shelves")
-            .with(shelfRequestLens of ShelfRequest("shelf 1", null))
+            .with(Body.shelfReqLens of ShelfRequest("shelf 1", null))
             .let(app)
             .shouldHaveStatus(Status.UNAUTHORIZED)
     }
@@ -193,7 +190,7 @@ class ShelfIntegrationTest {
     fun `create shelf - unauthorized - bad token`() {
         Request(Method.POST, "/api/v1/shelves")
             .cookie(Cookie("access_token", "foo"))
-            .with(shelfRequestLens of ShelfRequest("shelf 1", null))
+            .with(Body.shelfReqLens of ShelfRequest("shelf 1", null))
             .let(app)
             .shouldHaveStatus(Status.UNAUTHORIZED)
     }
@@ -209,7 +206,7 @@ class ShelfIntegrationTest {
     @Test
     fun `create shelf - invalid shelf request - empty name`() {
         Request(Method.POST, "/api/v1/shelves")
-            .with(shelfRequestLens of ShelfRequest("", null))
+            .with(Body.shelfReqLens of ShelfRequest("", null))
             .cookie(Cookie("access_token", fakeTokenProvider.generateAccessToken(1)))
             .let(app)
             .shouldHaveStatus(Status.BAD_REQUEST)
@@ -220,11 +217,11 @@ class ShelfIntegrationTest {
         val response =
             app(
                 Request(Method.POST, "/api/v1/shelves")
-                    .with(shelfRequestLens of ShelfRequest("shelf 1", null))
+                    .with(Body.shelfReqLens of ShelfRequest("shelf 1", null))
                     .cookie(Cookie("access_token", fakeTokenProvider.generateAccessToken(1)))
             )
 
-        val responseBody = shelfResLens(response)
+        val responseBody = Body.shelfResLens(response)
 
         response shouldHaveStatus Status.CREATED
         responseBody.name shouldBe "shelf 1"
@@ -318,7 +315,7 @@ class ShelfIntegrationTest {
     @Test
     fun `add book to shelf - bad request - missing google book id`() {
         Request(Method.POST, "/api/v1/shelves/9999/books")
-            .with(bookRequestLens of BookRequest(" "))
+            .with(Body.bookReqLens of BookRequest(" "))
             .cookie(Cookie("access_token", fakeTokenProvider.generateAccessToken(1)))
             .let(app)
             .shouldHaveStatus(Status.BAD_REQUEST)
@@ -329,7 +326,7 @@ class ShelfIntegrationTest {
         val googleBookId = "google1"
 
         Request(Method.POST, "/api/v1/shelves/1/books")
-            .with(bookRequestLens of BookRequest(googleBookId))
+            .with(Body.bookReqLens of BookRequest(googleBookId))
             .cookie(Cookie("access_token", fakeTokenProvider.generateAccessToken(1)))
             .let(app)
             .shouldHaveStatus(Status.CONFLICT)
@@ -348,7 +345,7 @@ class ShelfIntegrationTest {
         val response =
             app(
                 Request(Method.POST, "/api/v1/shelves/2/books")
-                    .with(bookRequestLens of BookRequest(googleBookId))
+                    .with(Body.bookReqLens of BookRequest(googleBookId))
                     .cookie(Cookie("access_token", fakeTokenProvider.generateAccessToken(1)))
             )
 

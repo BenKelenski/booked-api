@@ -9,11 +9,11 @@ import dev.benkelenski.booked.repos.ShelfRepo
 import io.github.oshai.kotlinlogging.KotlinLogging
 import org.jetbrains.exposed.sql.transactions.transaction
 
-/** alias for [ShelfService.getShelfById] */
-typealias GetShelfById = (userId: Int, shelfId: Int) -> ShelfResponse?
+/** alias for [ShelfService.findShelfById] */
+typealias FindShelfById = (userId: Int, shelfId: Int) -> ShelfResponse?
 
-/** alias for [ShelfService.getAllShelves] */
-typealias GetAllShelves = (userId: Int) -> List<ShelfResponse>
+/** alias for [ShelfService.findShelvesByUserId] */
+typealias FindShelvesByUserId = (userId: Int) -> List<ShelfResponse>
 
 /** alias for [ShelfService.createShelf] */
 typealias CreateShelf = (userId: Int, shelfRequest: ShelfRequest) -> ShelfResponse?
@@ -21,8 +21,8 @@ typealias CreateShelf = (userId: Int, shelfRequest: ShelfRequest) -> ShelfRespon
 /** alias for [ShelfService.deleteShelf] */
 typealias DeleteShelf = (userId: Int, shelfId: Int) -> ShelfDeleteResult
 
-/** alias for [ShelfService.getBooksByShelf] */
-typealias GetBooksByShelf = (userId: Int, shelfId: Int) -> List<BookResponse>
+/** alias for [ShelfService.findBooksByShelf] */
+typealias FindBooksByShelf = (userId: Int, shelfId: Int) -> List<BookResponse>
 
 /** alias for [ShelfService.addBookToShelf] */
 typealias AddBookToShelf = (userId: Int, shelfId: Int, googleVolumeId: String) -> ShelfAddBookResult
@@ -39,14 +39,14 @@ class ShelfService(
         private fun String.secureUrl(): String = replace("http://", "https://")
     }
 
-    fun getShelfById(userId: Int, shelfId: Int): ShelfResponse? = transaction {
+    fun findShelfById(userId: Int, shelfId: Int): ShelfResponse? = transaction {
         val shelf = shelfRepo.fetchShelfById(userId, shelfId)
         val countOfBooksByShelf = bookRepo.getCountsByShelf(userId)
 
         shelf?.let { ShelfResponse.from(it, countOfBooksByShelf.getOrDefault(it.id, 0)) }
     }
 
-    fun getAllShelves(userId: Int): List<ShelfResponse> = transaction {
+    fun findShelvesByUserId(userId: Int): List<ShelfResponse> = transaction {
         val shelves = shelfRepo.fetchAllShelvesByUser(userId)
         val countOfBooksByShelf = bookRepo.getCountsByShelf(userId)
 
@@ -75,7 +75,7 @@ class ShelfService(
             ShelfDeleteResult.DatabaseError
         }
 
-    fun getBooksByShelf(userId: Int, shelfId: Int): List<BookResponse> = transaction {
+    fun findBooksByShelf(userId: Int, shelfId: Int): List<BookResponse> = transaction {
         logger.info { "Getting books for shelf $shelfId for user $userId" }
         bookRepo.findAllByShelfAndUser(shelfId, userId).map { BookResponse.from(it) }
     }
