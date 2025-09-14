@@ -1,15 +1,28 @@
 package dev.benkelenski.booked.http
 
-import dev.benkelenski.booked.domain.requests.BookRequest
-import dev.benkelenski.booked.domain.requests.ShelfRequest
-import dev.benkelenski.booked.domain.requests.UpdateBookPatch
+import dev.benkelenski.booked.domain.requests.*
 import dev.benkelenski.booked.domain.responses.ApiError
 import dev.benkelenski.booked.domain.responses.BookResponse
 import dev.benkelenski.booked.domain.responses.ShelfResponse
+import dev.benkelenski.booked.domain.responses.UserResponse
 import org.http4k.core.Body
 import org.http4k.format.Moshi.auto
 import org.http4k.lens.Path
 import org.http4k.lens.int
+
+// Auth lenses
+val Body.Companion.registerReqLens
+    get() = Body.auto<RegisterRequest>().toLens()
+
+val Body.Companion.loginReqLens
+    get() = Body.auto<LoginRequest>().toLens()
+
+val Body.Companion.oauthReqLens
+    get() = Body.auto<OAuthRequest>().toLens()
+
+// User Lenses
+val Body.Companion.userResLens
+    get() = Body.auto<UserResponse>().toLens()
 
 // Shelf lenses
 val shelfIdLens = Path.int().of("shelf_id")
