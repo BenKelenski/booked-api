@@ -3,6 +3,7 @@ package dev.benkelenski.booked.middleware
 import dev.benkelenski.booked.auth.TokenProvider
 import dev.benkelenski.booked.constants.ErrorCodes
 import dev.benkelenski.booked.constants.ErrorTypes
+import dev.benkelenski.booked.constants.HttpConstants
 import dev.benkelenski.booked.domain.responses.ApiError
 import dev.benkelenski.booked.http.apiErrorLens
 import org.http4k.core.*
@@ -37,6 +38,6 @@ fun authMiddleware(tokenProvider: TokenProvider): Filter = Filter { next ->
                             )
                     )
 
-        next(req.header("X-User-Id", userId.toString()))
+        next(req.header(HttpConstants.USER_ID_HEADER, userId.toString()))
     }
 }
