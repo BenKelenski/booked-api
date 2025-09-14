@@ -4,16 +4,18 @@ import dev.benkelenski.booked.auth.JwtTokenProvider
 import dev.benkelenski.booked.createApp
 import dev.benkelenski.booked.domain.requests.LoginRequest
 import dev.benkelenski.booked.domain.requests.RegisterRequest
+import dev.benkelenski.booked.http.loginReqLens
+import dev.benkelenski.booked.http.registerReqLens
+import dev.benkelenski.booked.http.userResLens
 import dev.benkelenski.booked.loadConfig
 import dev.benkelenski.booked.models.Shelves
-import dev.benkelenski.booked.routes.loginRequestLens
-import dev.benkelenski.booked.routes.registerRequestLens
-import dev.benkelenski.booked.routes.userResLens
 import io.kotest.matchers.nulls.shouldNotBeNull
 import io.kotest.matchers.shouldBe
+import io.kotest.matchers.string.shouldContain
 import org.http4k.base64Encode
 import org.http4k.core.*
 import org.http4k.core.cookie.SameSite
+import org.http4k.core.cookie.cookie
 import org.http4k.core.cookie.cookies
 import org.http4k.kotest.shouldHaveStatus
 import org.http4k.routing.RoutingHttpHandler
@@ -97,7 +99,7 @@ class AuthIntegrationTest {
     fun `create user - request validation error - blank email`() {
         Request(Method.POST, "/api/v1/auth/register")
             .with(
-                registerRequestLens of
+                Body.registerReqLens of
                     RegisterRequest(
                         email = " ",
                         password = "sUp3rs3curep@s$123",
@@ -112,7 +114,7 @@ class AuthIntegrationTest {
     fun `create user - request validation error - blank password`() {
         Request(Method.POST, "/api/v1/auth/register")
             .with(
-                registerRequestLens of
+                Body.registerReqLens of
                     RegisterRequest(
                         email = "test@test.com",
                         password = "   ",
@@ -127,7 +129,7 @@ class AuthIntegrationTest {
     fun `create user - validation error - reserved display name`() {
         Request(Method.POST, "/api/v1/auth/register")
             .with(
-                registerRequestLens of
+                Body.registerReqLens of
                     RegisterRequest(
                         email = "test@test.com",
                         password = "sUp3rs3curep@s$123",
@@ -143,7 +145,7 @@ class AuthIntegrationTest {
         val response =
             Request(Method.POST, "/api/v1/auth/register")
                 .with(
-                    registerRequestLens of
+                    Body.registerReqLens of
                         RegisterRequest(
                             email = "test@test.com",
                             password = "sUp3rs3curep@s$123",
@@ -156,7 +158,7 @@ class AuthIntegrationTest {
 
         testResponseTokens(response)
 
-        val responseBody = userResLens(response)
+        val responseBody = Body.userResLens(response)
 
         responseBody.id shouldBe 1
         responseBody.name shouldBe "Test User"
@@ -177,7 +179,7 @@ class AuthIntegrationTest {
     @Test
     fun `login user - bad request - email empty`() {
         Request(Method.POST, "/api/v1/auth/login")
-            .with(loginRequestLens of LoginRequest(email = " ", password = "123456"))
+            .with(Body.loginReqLens of LoginRequest(email = " ", password = "123456"))
             .let(app)
             .shouldHaveStatus(Status.BAD_REQUEST)
     }
@@ -185,7 +187,7 @@ class AuthIntegrationTest {
     @Test
     fun `login user - bad request - invalid email`() {
         Request(Method.POST, "/api/v1/auth/login")
-            .with(loginRequestLens of LoginRequest(email = "test", password = "123456"))
+            .with(Body.loginReqLens of LoginRequest(email = "test", password = "123456"))
             .let(app)
     }
 
@@ -193,7 +195,7 @@ class AuthIntegrationTest {
     fun `login user - bad request - password empty`() {
         Request(Method.POST, "/api/v1/auth/login")
             .with(
-                loginRequestLens of
+                Body.loginReqLens of
                     LoginRequest(email = "test@test.com", password = " \t\t\t\r\r\r")
             )
             .let(app)
@@ -207,7 +209,7 @@ class AuthIntegrationTest {
         val response =
             Request(Method.POST, "/api/v1/auth/login")
                 .with(
-                    loginRequestLens of
+                    Body.loginReqLens of
                         LoginRequest(email = "test@test.com", password = "sUp3rs3curep@s$123")
                 )
                 .let(app)
@@ -216,10 +218,28 @@ class AuthIntegrationTest {
 
         testResponseTokens(response)
 
-        val responseBody = userResLens(response)
+        val responseBody = Body.userResLens(response)
 
         responseBody.email shouldBe "test@test.com"
         responseBody.name shouldBe "Test User"
+    }
+
+    @Test
+    fun `logout user - missing access token`() {
+        Request(Method.POST, "/api/v1/auth/logout").let(app).shouldHaveStatus(Status.UNAUTHORIZED)
+    }
+
+    @Test
+    fun `logout user - success`() {
+        TestDbUtils.createEmailUser("test@test.com", "sUp3rs3curep@s$123", "Test User")
+
+        val response =
+            Request(Method.POST, "/api/v1/auth/logout")
+                .cookie("access_token", fakeTokenProvider.generateAccessToken(1))
+                .let(app)
+
+        response shouldHaveStatus Status.OK
+        response.header("Set-Cookie") shouldContain "access_token=\"\"; Max-Age=0; Path=/;"
     }
 
     @Test

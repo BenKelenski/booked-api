@@ -148,6 +148,7 @@ fun createApp(
                 authenticateWith = authService::authenticateWith,
                 refresh = authService::refresh,
                 logout = authService::logout,
+                authMiddleware = authMiddleware(tokenProvider),
             ),
             bookRoutes(
                 findBookById = bookService::findBookById,

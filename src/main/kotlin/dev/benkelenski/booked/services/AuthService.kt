@@ -26,7 +26,7 @@ typealias AuthenticateWith = (authPayload: AuthPayload) -> AuthResult
 typealias Refresh = (refreshToken: String) -> AuthResult
 
 /** alias for [AuthService.logout] */
-typealias Logout = (userId: Int) -> Unit
+typealias Logout = (userId: Int) -> Boolean
 
 class AuthService(
     private val userRepo: UserRepo,
@@ -189,7 +189,7 @@ class AuthService(
             AuthResult.DatabaseError
         }
 
-    fun logout(userId: Int) = transaction { refreshTokenRepo.deleteAllForUser(userId) }
+    fun logout(userId: Int): Boolean = transaction { refreshTokenRepo.deleteAllForUser(userId) > 0 }
 
     /**
      * Provides a new access and refresh token for a given
