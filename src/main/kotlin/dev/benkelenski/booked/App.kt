@@ -27,10 +27,14 @@ import kotlin.system.exitProcess
 private val logger = KotlinLogging.logger {}
 
 /** Constants used throughout the application */
-private object AppConstants {
+private object App {
+    // Constants
     const val API_PREFIX = "/api/v1"
     const val DEFAULT_CONFIG_PATH = "/application.conf"
     const val PROFILE_CONFIG_PATH_FORMAT = "/application-%s.conf"
+
+    val tokenProvider: TokenProvider by lazy { JwtTokenProvider() }
+    val httpClient: HttpHandler by lazy { OkHttp() }
 }
 
 /**
@@ -43,8 +47,7 @@ private object AppConstants {
 fun loadConfig(profile: String? = null): Config {
     return try {
         val configPath =
-            profile?.let { AppConstants.PROFILE_CONFIG_PATH_FORMAT.format(it) }
-                ?: AppConstants.DEFAULT_CONFIG_PATH
+            profile?.let { App.PROFILE_CONFIG_PATH_FORMAT.format(it) } ?: App.DEFAULT_CONFIG_PATH
 
         ConfigLoaderBuilder.default()
             .addResourceSource(configPath)
@@ -86,8 +89,8 @@ fun createDbConn(config: Config) {
  */
 fun createApp(
     config: Config,
-    internet: HttpHandler,
-    tokenProvider: TokenProvider,
+    internet: HttpHandler = App.httpClient,
+    tokenProvider: TokenProvider = App.tokenProvider,
 ): RoutingHttpHandler {
 
     // Repos
@@ -136,7 +139,9 @@ fun createApp(
 
     val userService = UserService(userRepo = userRepo)
 
-    return AppConstants.API_PREFIX bind
+    val authMiddleware = authMiddleware(tokenProvider)
+
+    return App.API_PREFIX bind
         routes(
             authRoutes(
                 registerWithEmail = authService::registerWithEmail,
@@ -144,14 +149,14 @@ fun createApp(
                 authenticateWith = authService::authenticateWith,
                 refresh = authService::refresh,
                 logout = authService::logout,
-                authMiddleware = authMiddleware(tokenProvider),
+                authMiddleware = authMiddleware,
             ),
             bookRoutes(
                 findBookById = bookService::findBookById,
                 findBooksByUser = bookService::findBooksByUser,
                 updateBook = bookService::updateBook,
                 deleteBook = bookService::deleteBook,
-                authMiddleware = authMiddleware(tokenProvider),
+                authMiddleware = authMiddleware,
             ),
             shelfRoutes(
                 findShelfById = shelfService::findShelfById,
@@ -160,7 +165,7 @@ fun createApp(
                 deleteShelf = shelfService::deleteShelf,
                 findBooksByShelf = shelfService::findBooksByShelf,
                 addBookToShelf = shelfService::addBookToShelf,
-                authMiddleware = authMiddleware(tokenProvider),
+                authMiddleware = authMiddleware,
             ),
             googleBooksRoutes(
                 searchWithQuery = googleBooksService::searchWithQuery,
@@ -168,7 +173,7 @@ fun createApp(
             ),
             userRoutes(
                 getUserById = userService::getUserById,
-                authMiddleware = authMiddleware(tokenProvider),
+                authMiddleware = authMiddleware,
             ),
         )
 }
@@ -190,9 +195,11 @@ fun main() {
 
         // Create and configure the application
         logger.info { "Configuring application" }
-        val app = createApp(config = config, internet = httpClient, tokenProvider = tokenProvider)
+        val app =
+            createApp(config = config, internet = App.httpClient, tokenProvider = App.tokenProvider)
 
         logger.info { "Starting server on port: ${config.server.port}" }
+
         routes(
                 app,
                 "/health" bind
