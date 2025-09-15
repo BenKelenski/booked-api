@@ -2,7 +2,7 @@ package integration
 
 import dev.benkelenski.booked.constants.HttpConstants
 import dev.benkelenski.booked.createApp
-import dev.benkelenski.booked.http.userResLens
+import dev.benkelenski.booked.domain.userResLens
 import dev.benkelenski.booked.loadConfig
 import io.kotest.matchers.shouldBe
 import org.http4k.base64Encode

@@ -2,10 +2,10 @@ package integration
 
 import dev.benkelenski.booked.createApp
 import dev.benkelenski.booked.domain.ReadingStatus
+import dev.benkelenski.booked.domain.bookPatchLens
+import dev.benkelenski.booked.domain.bookResLens
+import dev.benkelenski.booked.domain.booksResLens
 import dev.benkelenski.booked.domain.requests.UpdateBookPatch
-import dev.benkelenski.booked.http.bookPatchLens
-import dev.benkelenski.booked.http.bookResLens
-import dev.benkelenski.booked.http.booksResLens
 import dev.benkelenski.booked.loadConfig
 import dev.benkelenski.booked.models.Books
 import io.kotest.matchers.collections.shouldHaveSize

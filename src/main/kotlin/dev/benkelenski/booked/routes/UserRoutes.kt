@@ -2,9 +2,9 @@ package dev.benkelenski.booked.routes
 
 import dev.benkelenski.booked.constants.ErrorCodes
 import dev.benkelenski.booked.constants.ErrorTypes
+import dev.benkelenski.booked.domain.apiErrorLens
 import dev.benkelenski.booked.domain.responses.ApiError
-import dev.benkelenski.booked.http.apiErrorLens
-import dev.benkelenski.booked.http.userResLens
+import dev.benkelenski.booked.domain.userResLens
 import dev.benkelenski.booked.middleware.AuthMiddleware
 import dev.benkelenski.booked.middleware.authHandler
 import dev.benkelenski.booked.services.GetUserById

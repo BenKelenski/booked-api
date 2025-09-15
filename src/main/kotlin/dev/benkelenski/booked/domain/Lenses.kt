@@ -1,4 +1,4 @@
-package dev.benkelenski.booked.http
+package dev.benkelenski.booked.domain
 
 import dev.benkelenski.booked.domain.requests.*
 import dev.benkelenski.booked.domain.responses.ApiError

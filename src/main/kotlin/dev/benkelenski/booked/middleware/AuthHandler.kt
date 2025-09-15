@@ -3,8 +3,8 @@ package dev.benkelenski.booked.middleware
 import dev.benkelenski.booked.constants.ErrorCodes
 import dev.benkelenski.booked.constants.ErrorTypes
 import dev.benkelenski.booked.constants.HttpConstants
+import dev.benkelenski.booked.domain.apiErrorLens
 import dev.benkelenski.booked.domain.responses.ApiError
-import dev.benkelenski.booked.http.apiErrorLens
 import org.http4k.core.*
 
 fun authHandler(handler: (userId: Int, request: Request) -> Response): (Request) -> Response =

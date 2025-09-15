@@ -2,11 +2,11 @@ package integration
 
 import dev.benkelenski.booked.auth.JwtTokenProvider
 import dev.benkelenski.booked.createApp
+import dev.benkelenski.booked.domain.loginReqLens
+import dev.benkelenski.booked.domain.registerReqLens
 import dev.benkelenski.booked.domain.requests.LoginRequest
 import dev.benkelenski.booked.domain.requests.RegisterRequest
-import dev.benkelenski.booked.http.loginReqLens
-import dev.benkelenski.booked.http.registerReqLens
-import dev.benkelenski.booked.http.userResLens
+import dev.benkelenski.booked.domain.userResLens
 import dev.benkelenski.booked.loadConfig
 import dev.benkelenski.booked.models.Shelves
 import io.kotest.matchers.nulls.shouldNotBeNull

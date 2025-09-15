@@ -1,10 +1,10 @@
 package integration
 
 import dev.benkelenski.booked.createApp
+import dev.benkelenski.booked.domain.*
 import dev.benkelenski.booked.domain.requests.BookRequest
 import dev.benkelenski.booked.domain.requests.ShelfRequest
 import dev.benkelenski.booked.domain.responses.BookResponse
-import dev.benkelenski.booked.http.*
 import dev.benkelenski.booked.loadConfig
 import dev.benkelenski.booked.models.Books
 import dev.benkelenski.booked.models.Shelves
