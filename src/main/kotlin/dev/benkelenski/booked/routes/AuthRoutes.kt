@@ -13,7 +13,6 @@ import dev.benkelenski.booked.utils.CookieUtils
 import io.github.oshai.kotlinlogging.KotlinLogging
 import org.http4k.core.*
 import org.http4k.core.cookie.cookie
-import org.http4k.format.Moshi.auto
 import org.http4k.lens.LensFailure
 import org.http4k.routing.RoutingHttpHandler
 import org.http4k.routing.bind
@@ -34,18 +33,27 @@ fun authRoutes(
             try {
                 Body.registerReqLens(request)
             } catch (e: LensFailure) {
-                logger.error(e) { "Missing or invalid register request." }
+                logger.error(e) { "Missing or invalid register request" }
                 return@handler Response(Status.BAD_REQUEST)
+                    .with(
+                        Body.apiErrorLens of
+                            ApiError(
+                                message = "Missing or invalid register request",
+                                code = ErrorCodes.INVALID_REGISTER_REQUEST,
+                                type = ErrorTypes.VALIDATION,
+                            )
+                    )
             }
 
         val validationResult = AuthRules.validate(registerRequest)
         if (!validationResult.isValid)
             return@handler Response(Status.UNPROCESSABLE_ENTITY)
                 .with(
-                    Body.auto<Map<String, Any>>().toLens() of
-                        mapOf(
-                            "message" to "Validation failed.",
-                            "errors" to validationResult.errors,
+                    Body.apiErrorLens of
+                        ApiError(
+                            message = "Request validation failed: ${validationResult.errors}",
+                            code = ErrorCodes.REGISTRATION_RULE_VIOLATED,
+                            type = ErrorTypes.VALIDATION,
                         )
                 )
 
@@ -67,11 +75,27 @@ fun authRoutes(
             }
 
             is AuthResult.Failure -> {
-                Response(Status.BAD_REQUEST).body(result.reason)
+                Response(Status.BAD_REQUEST)
+                    .with(
+                        Body.apiErrorLens of
+                            ApiError(
+                                message = result.reason,
+                                code = ErrorCodes.EMAIL_ALREADY_REGISTERED,
+                                type = ErrorTypes.CONFLICT,
+                            )
+                    )
             }
 
             is AuthResult.DatabaseError -> {
                 Response(Status.INTERNAL_SERVER_ERROR)
+                    .with(
+                        Body.apiErrorLens of
+                            ApiError(
+                                message = "An error occurred while registering",
+                                code = ErrorCodes.INTERNAL_SERVER_ERROR,
+                                type = ErrorTypes.SYSTEM,
+                            )
+                    )
             }
         }
     }
@@ -83,17 +107,41 @@ fun authRoutes(
             } catch (e: LensFailure) {
                 logger.error(e) { "Missing or invalid login request." }
                 return@handler Response(Status.BAD_REQUEST)
+                    .with(
+                        Body.apiErrorLens of
+                            ApiError(
+                                message = "Missing or invalid login request",
+                                code = ErrorCodes.INVALID_LOGIN_REQUEST,
+                                type = ErrorTypes.VALIDATION,
+                            )
+                    )
             }
 
         val email = AuthRules.canonicalizeEmail(loginRequest.email)
         val emailValidationResult = AuthRules.validateEmail(email)
         if (emailValidationResult != null) {
-            return@handler Response(Status.BAD_REQUEST).body(emailValidationResult.message)
+            return@handler Response(Status.BAD_REQUEST)
+                .with(
+                    Body.apiErrorLens of
+                        ApiError(
+                            message = emailValidationResult.message,
+                            code = ErrorCodes.INVALID_EMAIL_ADDRESS,
+                            type = ErrorTypes.VALIDATION,
+                        )
+                )
         }
 
         val password = loginRequest.password
         if (password.isEmpty() || password.length > 1024) {
             return@handler Response(Status.BAD_REQUEST)
+                .with(
+                    Body.apiErrorLens of
+                        ApiError(
+                            message = "Invalid password",
+                            code = ErrorCodes.INVALID_PASSWORD,
+                            type = ErrorTypes.VALIDATION,
+                        )
+                )
         }
 
         when (val result = loginWithEmail(email, password)) {
@@ -107,11 +155,27 @@ fun authRoutes(
             }
 
             is AuthResult.Failure -> {
-                Response(Status.BAD_REQUEST).body(result.reason)
+                Response(Status.UNAUTHORIZED)
+                    .with(
+                        Body.apiErrorLens of
+                            ApiError(
+                                message = result.reason,
+                                code = ErrorCodes.INVALID_CREDENTIALS,
+                                type = ErrorTypes.AUTHENTICATION,
+                            )
+                    )
             }
 
             is AuthResult.DatabaseError -> {
                 Response(Status.INTERNAL_SERVER_ERROR)
+                    .with(
+                        Body.apiErrorLens of
+                            ApiError(
+                                message = "An error occurred while logging in",
+                                code = ErrorCodes.INTERNAL_SERVER_ERROR,
+                                type = ErrorTypes.SYSTEM,
+                            )
+                    )
             }
         }
     }
@@ -123,6 +187,14 @@ fun authRoutes(
             } catch (e: LensFailure) {
                 logger.error(e) { "Missing or invalid OAuth request." }
                 return@handler Response(Status.BAD_REQUEST)
+                    .with(
+                        Body.apiErrorLens of
+                            ApiError(
+                                message = "Missing or invalid OAuth request",
+                                code = ErrorCodes.INVALID_OAUTH_REQUEST,
+                                type = ErrorTypes.VALIDATION,
+                            )
+                    )
             }
 
         when (val result = authenticateWith(AuthPayload(authRequest.provider, authRequest.token))) {
@@ -136,18 +208,43 @@ fun authRoutes(
             }
 
             is AuthResult.Failure -> {
-                Response(Status.BAD_REQUEST).body(result.reason)
+                Response(Status.UNAUTHORIZED)
+                    .with(
+                        Body.apiErrorLens of
+                            ApiError(
+                                message = result.reason,
+                                code = ErrorCodes.INVALID_OAUTH_TOKEN,
+                                type = ErrorTypes.AUTHENTICATION,
+                            )
+                    )
             }
 
             is AuthResult.DatabaseError -> {
                 Response(Status.INTERNAL_SERVER_ERROR)
+                    .with(
+                        Body.apiErrorLens of
+                            ApiError(
+                                message = "An error occurred while authenticating with OAuth",
+                                code = ErrorCodes.INTERNAL_SERVER_ERROR,
+                                type = ErrorTypes.SYSTEM,
+                            )
+                    )
             }
         }
     }
 
     val refreshHandler = handler@{ request: Request ->
         val rawRefresh =
-            request.cookie("refresh_token")?.value ?: return@handler Response(Status.UNAUTHORIZED)
+            request.cookie("refresh_token")?.value
+                ?: return@handler Response(Status.UNAUTHORIZED)
+                    .with(
+                        Body.apiErrorLens of
+                            ApiError(
+                                message = "Missing refresh token",
+                                code = ErrorCodes.MISSING_REFRESH_TOKEN,
+                                type = ErrorTypes.AUTHENTICATION,
+                            )
+                    )
 
         when (val result = refresh(rawRefresh)) {
             is AuthResult.Success -> {
@@ -160,11 +257,27 @@ fun authRoutes(
             }
 
             is AuthResult.Failure -> {
-                Response(Status.UNAUTHORIZED).body(result.reason)
+                Response(Status.UNAUTHORIZED)
+                    .with(
+                        Body.apiErrorLens of
+                            ApiError(
+                                message = result.reason,
+                                code = ErrorCodes.INVALID_REFRESH_TOKEN,
+                                type = ErrorTypes.AUTHENTICATION,
+                            )
+                    )
             }
 
             is AuthResult.DatabaseError -> {
                 Response(Status.INTERNAL_SERVER_ERROR)
+                    .with(
+                        Body.apiErrorLens of
+                            ApiError(
+                                message = "An error occurred while refreshing the token",
+                                code = ErrorCodes.INTERNAL_SERVER_ERROR,
+                                type = ErrorTypes.SYSTEM,
+                            )
+                    )
             }
         }
     }
