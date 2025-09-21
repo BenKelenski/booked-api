@@ -25,6 +25,7 @@ fun authRoutes(
     loginWithEmail: LoginWithEmail,
     authenticateWith: AuthenticateWith,
     refresh: Refresh,
+    checkAuthStatus: CheckAuthStatus,
     logout: Logout,
     authMiddleware: AuthMiddleware,
 ): RoutingHttpHandler {
@@ -51,7 +52,7 @@ fun authRoutes(
                 .with(
                     Body.apiErrorLens of
                         ApiError(
-                            message = "Request validation failed: ${validationResult.errors}",
+                            message = validationResult.errors.first().message,
                             code = ErrorCodes.REGISTRATION_RULE_VIOLATED,
                             type = ErrorTypes.VALIDATION,
                         )
@@ -282,6 +283,24 @@ fun authRoutes(
         }
     }
 
+    val statusCheckHandler = { request: Request ->
+        val accessToken = request.cookie("access_token")?.value
+        val refreshToken = request.cookie("refresh_token")?.value
+
+        checkAuthStatus(accessToken, refreshToken).let { (authResponse, accessToken) ->
+            if (!authResponse.isAuthenticated) {
+                Response(Status.OK)
+                    .with(Body.authStatusResLens of authResponse)
+                    .cookie(CookieUtils.expireCookie(HttpConstants.ACCESS_TOKEN_COOKIE))
+                    .cookie(CookieUtils.expireCookie(HttpConstants.REFRESH_TOKEN_COOKIE))
+            }
+            Response(Status.OK).with(Body.authStatusResLens of authResponse).let {
+                if (accessToken != null) it.cookie(CookieUtils.accessTokenCookie(accessToken))
+                else it
+            }
+        }
+    }
+
     val logoutHandler = authHandler { userId: Int, _ ->
         try {
             logout(userId)
@@ -306,6 +325,7 @@ fun authRoutes(
         "/auth/login" bind Method.POST to loginHandler,
         "/auth/oauth" bind Method.POST to oauthHandler,
         "/auth/refresh" bind Method.POST to refreshHandler,
+        "/auth/status" bind Method.GET to statusCheckHandler,
         routes("/auth/logout" bind Method.POST to logoutHandler).withFilter(authMiddleware),
     )
 }

@@ -148,6 +148,7 @@ fun createApp(
                 loginWithEmail = authService::loginWithEmail,
                 authenticateWith = authService::authenticateWith,
                 refresh = authService::refresh,
+                checkAuthStatus = authService::checkAuthStatus,
                 logout = authService::logout,
                 authMiddleware = authMiddleware,
             ),
@@ -188,10 +189,6 @@ fun main() {
         // Set up database
         logger.info { "Establishing database connection" }
         createDbConn(config = config)
-
-        // Create HTTP client and token provider
-        val httpClient = OkHttp()
-        val tokenProvider = JwtTokenProvider()
 
         // Create and configure the application
         logger.info { "Configuring application" }

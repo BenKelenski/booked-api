@@ -4,6 +4,7 @@ import dev.benkelenski.booked.auth.GoogleAuthProvider
 import dev.benkelenski.booked.auth.TokenProvider
 import dev.benkelenski.booked.domain.AuthPayload
 import dev.benkelenski.booked.domain.SessionResult
+import dev.benkelenski.booked.domain.responses.AuthStatusResponse
 import dev.benkelenski.booked.repos.GetOrCreateUserResult
 import dev.benkelenski.booked.repos.RefreshTokenRepo
 import dev.benkelenski.booked.repos.ShelfRepo
@@ -24,6 +25,10 @@ typealias AuthenticateWith = (authPayload: AuthPayload) -> AuthResult
 
 /** alias for [AuthService.refresh] */
 typealias Refresh = (refreshToken: String) -> AuthResult
+
+/** alias for [AuthService.checkAuthStatus] */
+typealias CheckAuthStatus =
+    (accessToken: String?, refreshToken: String?) -> Pair<AuthStatusResponse, String?>
 
 /** alias for [AuthService.logout] */
 typealias Logout = (userId: Int) -> Boolean
@@ -188,6 +193,48 @@ class AuthService(
             logger.error(e) { "Failed to refresh token" }
             AuthResult.DatabaseError
         }
+
+    fun checkAuthStatus(
+        accessToken: String?,
+        refreshToken: String?,
+    ): Pair<AuthStatusResponse, String?> {
+        return try {
+            transaction {
+                accessToken?.let { token ->
+                    val userId = tokenProvider.extractUserId(token)
+                    userId?.let { id ->
+                        val user = userRepo.getUserById(id)
+                        if (user != null) {
+                            return@transaction Pair(
+                                AuthStatusResponse(isAuthenticated = true, user = user),
+                                null,
+                            )
+                        }
+                    }
+                }
+
+                refreshToken?.let { token ->
+                    val userId = tokenProvider.extractUserId(token)
+                    userId?.let { id ->
+                        val user = userRepo.getUserById(id)
+
+                        if (user != null) {
+                            val (accessToken, _) = getTokens(user.id)
+                            return@transaction Pair(
+                                AuthStatusResponse(isAuthenticated = true, user = user),
+                                accessToken,
+                            )
+                        }
+                    }
+                }
+
+                Pair(AuthStatusResponse(isAuthenticated = false), null)
+            }
+        } catch (e: Exception) {
+            logger.error(e) { "Failed to check authentication status" }
+            Pair(AuthStatusResponse(isAuthenticated = false), null)
+        }
+    }
 
     fun logout(userId: Int): Boolean = transaction { refreshTokenRepo.deleteAllForUser(userId) > 0 }
 

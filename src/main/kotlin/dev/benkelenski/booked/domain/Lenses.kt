@@ -1,10 +1,7 @@
 package dev.benkelenski.booked.domain
 
 import dev.benkelenski.booked.domain.requests.*
-import dev.benkelenski.booked.domain.responses.ApiError
-import dev.benkelenski.booked.domain.responses.BookResponse
-import dev.benkelenski.booked.domain.responses.ShelfResponse
-import dev.benkelenski.booked.domain.responses.UserResponse
+import dev.benkelenski.booked.domain.responses.*
 import org.http4k.core.Body
 import org.http4k.format.Moshi.auto
 import org.http4k.lens.Path
@@ -19,6 +16,8 @@ val Body.Companion.loginReqLens
 
 val Body.Companion.oauthReqLens
     get() = Body.auto<OAuthRequest>().toLens()
+
+val Body.Companion.authStatusResLens get() = Body.auto<AuthStatusResponse>().toLens()
 
 // User Lenses
 val Body.Companion.userResLens
