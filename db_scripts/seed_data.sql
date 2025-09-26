@@ -38,3 +38,8 @@ VALUES (1, 'nPF9n0SwstMC', 'Red Rising', '{Pierce Brown}',
         'https://books.google.com/books/publisher/content?id=LdDsEAAAQBAJ&printsec=frontcover&img=1&zoom=1&edge=curl&imgtk=AFLRE71TmGYI6OoY-OH3aTU_mlkvCycX3gQbbVnZqLKpOGdhrOjjJwNQdqzwdLBNJLsYgFYH0VqvQt5Av3kV3civnQL-4IAyBYuTuT_OQfvNhz50mEIGLbyLoFM8E316-G4-pPmV-4Y3&source=gbs_api',
         CURRENT_TIMESTAMP, 1, 2, 'TO_READ', null, null, null);
 
+-- Reset sequences to avoid ID conflicts
+SELECT setval('users_id_seq', (SELECT MAX(id) FROM users));
+SELECT setval('auth_identities_id_seq', (SELECT MAX(id) FROM auth_identities));
+SELECT setval('shelves_id_seq', (SELECT MAX(id) FROM shelves));
+SELECT setval('books_id_seq', (SELECT MAX(id) FROM books));
