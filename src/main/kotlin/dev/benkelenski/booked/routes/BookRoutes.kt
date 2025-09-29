@@ -74,13 +74,55 @@ fun bookRoutes(
             return@authHandler Response(Status.BAD_REQUEST).body("Patch cannot be empty")
         }
 
-        when (val res = updateBook(userId, bookId, patch)) {
-            is BookUpdateResult.Success -> Response(Status.OK).with(Body.bookResLens of res.book)
+        logger.info { "Received book patch request: $patch" }
 
-            is BookUpdateResult.NotFound -> Response(Status.NOT_FOUND)
-            is BookUpdateResult.Forbidden -> Response(Status.FORBIDDEN)
-            is BookUpdateResult.Conflict -> Response(Status.CONFLICT)
-            is BookUpdateResult.ValidationError -> Response(Status.BAD_REQUEST).body(res.message)
+        when (val res = updateBook(userId, bookId, patch)) {
+            is BookUpdateResult.Success -> {
+                logger.info { "Successfully updated book: $bookId" }
+                Response(Status.OK).with(Body.bookResLens of res.book)
+            }
+
+            is BookUpdateResult.NotFound ->
+                Response(Status.NOT_FOUND)
+                    .with(
+                        Body.apiErrorLens of
+                            ApiError(
+                                message = "Book not found",
+                                code = ErrorCodes.BOOK_NOT_FOUND,
+                                type = ErrorTypes.NOT_FOUND,
+                            )
+                    )
+            is BookUpdateResult.Forbidden ->
+                Response(Status.FORBIDDEN)
+                    .with(
+                        Body.apiErrorLens of
+                            ApiError(
+                                message = "Insufficient permissions to update book",
+                                code = ErrorCodes.INSUFFICIENT_PERMISSIONS,
+                                type = ErrorTypes.AUTHORIZATION,
+                            )
+                    )
+            is BookUpdateResult.Conflict ->
+                Response(Status.CONFLICT)
+                    .with(
+                        Body.apiErrorLens of
+                            ApiError(
+                                message = "Book already exists on destination shelf",
+                                code = ErrorCodes.BOOK_ALREADY_EXISTS,
+                                type = ErrorTypes.CONFLICT,
+                            )
+                    )
+            is BookUpdateResult.ValidationError ->
+                Response(Status.BAD_REQUEST)
+                    .body(res.message)
+                    .with(
+                        Body.apiErrorLens of
+                            ApiError(
+                                message = "Invalid progress percentage",
+                                code = ErrorCodes.INVALID_BOOK_PERCENTAGE,
+                                type = ErrorTypes.VALIDATION,
+                            )
+                    )
         }
     }
 

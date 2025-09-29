@@ -25,8 +25,9 @@ fun shelfRoutes(
     addBookToShelf: AddBookToShelf,
     authMiddleware: AuthMiddleware,
 ): RoutingHttpHandler {
-    val getShelvesHandler = authHandler { userId, request ->
+    val getShelvesHandler = authHandler { userId, _ ->
         findShelvesByUserId(userId).let {
+            logger.info { "Found ${it.size} shelves for user $userId" }
             Response(Status.OK).with(Body.shelvesResLens of it.toTypedArray())
         }
     }
@@ -61,6 +62,7 @@ fun shelfRoutes(
         }
 
         createShelf(userId, shelfRequest)?.let {
+            logger.info { "Created shelf $it for user $userId" }
             Response(Status.CREATED).with(Body.shelfResLens of it)
         } ?: Response(Status.EXPECTATION_FAILED)
     }
@@ -82,8 +84,10 @@ fun shelfRoutes(
                     )
             }
 
-        findShelfById(userId, shelfId)?.let { Response(Status.OK).with(Body.shelfResLens of it) }
-            ?: Response(Status.NOT_FOUND)
+        findShelfById(userId, shelfId)?.let {
+            logger.info { "Found shelf $it for user $userId" }
+            Response(Status.OK).with(Body.shelfResLens of it)
+        } ?: Response(Status.NOT_FOUND)
     }
 
     val deleteShelfHandler = authHandler { userId, request ->
@@ -104,8 +108,20 @@ fun shelfRoutes(
             }
 
         when (deleteShelf(userId, shelfId)) {
-            is ShelfDeleteResult.Success -> Response(Status.NO_CONTENT)
-            is ShelfDeleteResult.NotFound -> Response(Status.NOT_FOUND)
+            is ShelfDeleteResult.Success -> {
+                logger.info { "Deleted shelf $shelfId for user $userId" }
+                Response(Status.NO_CONTENT)
+            }
+            is ShelfDeleteResult.NotFound ->
+                Response(Status.NOT_FOUND)
+                    .with(
+                        Body.apiErrorLens of
+                            ApiError(
+                                message = "Shelf does not exist",
+                                code = ErrorCodes.SHELF_NOT_FOUND,
+                                type = ErrorTypes.NOT_FOUND,
+                            )
+                    )
             is ShelfDeleteResult.Forbidden ->
                 Response(Status.FORBIDDEN)
                     .with(
@@ -117,7 +133,16 @@ fun shelfRoutes(
                             )
                     )
 
-            is ShelfDeleteResult.DatabaseError -> Response(Status.INTERNAL_SERVER_ERROR)
+            is ShelfDeleteResult.DatabaseError ->
+                Response(Status.INTERNAL_SERVER_ERROR)
+                    .with(
+                        Body.apiErrorLens of
+                            ApiError(
+                                message = "Internal Server Error",
+                                code = ErrorCodes.INTERNAL_SERVER_ERROR,
+                                type = ErrorTypes.SYSTEM,
+                            )
+                    )
         }
     }
 
@@ -139,6 +164,7 @@ fun shelfRoutes(
             }
 
         findBooksByShelf(userId, shelfId).let { books ->
+            logger.info { "Found ${books.size} books for shelf $shelfId" }
             Response(Status.OK).with(Body.booksResLens of books.toTypedArray())
         }
     }
@@ -189,8 +215,10 @@ fun shelfRoutes(
         }
 
         when (val result = addBookToShelf(userId, shelfId, bookRequest.volumeId)) {
-            is ShelfAddBookResult.Success ->
+            is ShelfAddBookResult.Success -> {
+                logger.info { "Added book ${result.book} to shelf $shelfId for user $userId" }
                 Response(Status.OK).with(Body.bookResLens of result.book)
+            }
 
             is ShelfAddBookResult.ShelfNotFound ->
                 Response(Status.NOT_FOUND)
