@@ -132,8 +132,12 @@ fun authRoutes(
                 )
         }
 
+        logger.info { "password is ${loginRequest.password}" }
+        logger.info { "password is ${loginRequest.password.length} characters long" }
+        logger.info { "password is empty: ${loginRequest.password.isEmpty()}" }
+
         val password = loginRequest.password
-        if (password.isEmpty() || password.length > 1024) {
+        if (password.isBlank() || password.length > 1024) {
             return@handler Response(Status.BAD_REQUEST)
                 .with(
                     Body.apiErrorLens of

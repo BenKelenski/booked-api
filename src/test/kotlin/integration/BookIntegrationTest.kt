@@ -233,7 +233,6 @@ class BookIntegrationTest {
         val responseBody = Body.bookResLens(response)
         responseBody.id shouldBe 1
         responseBody.progressPercent shouldBe 10
-        responseBody.status shouldBe "TO_READ"
         responseBody.updatedAt shouldNotBe null
         responseBody.finishedAt shouldBe null
     }
@@ -251,7 +250,6 @@ class BookIntegrationTest {
         val responseBody = Body.bookResLens(response)
         responseBody.id shouldBe 1
         responseBody.progressPercent shouldBe 100
-        responseBody.status shouldBe "FINISHED"
         responseBody.updatedAt shouldNotBe null
         responseBody.finishedAt shouldNotBe null
     }

@@ -1,7 +1,6 @@
 package dev.benkelenski.booked.repos
 
 import dev.benkelenski.booked.domain.Book
-import dev.benkelenski.booked.domain.ReadingStatus
 import dev.benkelenski.booked.models.Books
 import dev.benkelenski.booked.models.Shelves
 import org.jetbrains.exposed.sql.*
@@ -85,14 +84,12 @@ class BookRepo {
         bookId: Int,
         moveToShelfId: Int?, // null = don't move
         progressPercent: Int?, // null = unchanged
-        status: ReadingStatus?, // null = unchanged
         finishedAt: Instant?, // set when status becomes FINISHED
         updatedAt: Instant?, // set on any change if you store it
     ): Int =
         Books.update({ Books.id eq bookId }) {
             moveToShelfId?.let { shelf -> it[Books.shelfId] = shelf }
             progressPercent?.let { p -> it[Books.progressPercent] = p }
-            status?.let { s -> it[Books.status] = s } // if using enumerationByName
             finishedAt?.let { ts -> it[Books.finishedAt] = ts.atOffset(ZoneOffset.UTC) }
             updatedAt?.let { ts -> it[Books.updatedAt] = ts.atOffset(ZoneOffset.UTC) }
         }
@@ -116,7 +113,6 @@ fun ResultRow.toBook() =
         googleId = this[Books.googleId],
         title = this[Books.title],
         authors = this[Books.authors],
-        status = this[Books.status],
         progressPercent = this[Books.progressPercent],
         thumbnailUrl = this[Books.thumbnailUrl],
         createdAt = this[Books.createdAt].toInstant(),

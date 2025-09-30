@@ -76,7 +76,6 @@ class BookService(private val bookRepo: BookRepo, private val shelfRepo: ShelfRe
                     bookId = bookId,
                     moveToShelfId = if (targetShelfId != currentShelfId) targetShelfId else null,
                     progressPercent = patch.progressPercent,
-                    status = patch.status,
                     finishedAt = finishedAt,
                     updatedAt = updatedAt,
                 )

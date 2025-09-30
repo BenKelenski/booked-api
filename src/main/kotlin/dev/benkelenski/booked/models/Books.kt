@@ -1,6 +1,5 @@
 package dev.benkelenski.booked.models
 
-import dev.benkelenski.booked.domain.ReadingStatus
 import org.jetbrains.exposed.sql.ReferenceOption
 import org.jetbrains.exposed.sql.Table
 import org.jetbrains.exposed.sql.javatime.CurrentTimestampWithTimeZone
@@ -11,8 +10,6 @@ object Books : Table("books") {
     val googleId = text("google_id")
     val title = text("title")
     val authors = array<String>("authors")
-    val status =
-        enumerationByName("status", 16, ReadingStatus::class).default(ReadingStatus.TO_READ)
     val progressPercent = integer("progress_percent").nullable()
     val thumbnailUrl = text("thumbnail_url").nullable()
     val createdAt =

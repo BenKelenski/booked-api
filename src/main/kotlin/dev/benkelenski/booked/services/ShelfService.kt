@@ -110,12 +110,12 @@ class ShelfService(
 
             val book =
                 bookRepo.saveBook(
-                    userId,
-                    shelfId,
-                    volumeDto.id,
-                    volumeDto.volumeInfo.title,
-                    volumeDto.volumeInfo.authors,
-                    volumeDto.volumeInfo.imageLinks?.thumbnail?.secureUrl(),
+                    userId = userId,
+                    shelfId = shelfId,
+                    googleId = volumeDto.id,
+                    title = volumeDto.volumeInfo.title,
+                    authors = volumeDto.volumeInfo.authors,
+                    thumbnailUrl = volumeDto.volumeInfo.imageLinks?.thumbnail?.secureUrl(),
                 )
                     ?: run {
                         logger.warn { "Failed to save book $googleVolumeId to shelf $shelfId" }

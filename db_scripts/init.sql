@@ -45,6 +45,12 @@ CREATE TABLE IF NOT EXISTS shelves
 ALTER TABLE shelves
     ADD COLUMN is_deletable BOOLEAN NOT NULL DEFAULT TRUE;
 
+ALTER TABLE shelves
+    ADD COLUMN reading_status TEXT NULL,
+    ADD CONSTRAINT chk_books_status
+        CHECK (reading_status IN ('TO_READ', 'READING', 'FINISHED'));
+
+
 CREATE TABLE IF NOT EXISTS books
 (
     id            SERIAL PRIMARY KEY,
@@ -59,11 +65,6 @@ CREATE TABLE IF NOT EXISTS books
 
 ALTER TABLE books
     ADD CONSTRAINT uq_books_user_google UNIQUE (user_id, google_id);
-
-ALTER TABLE books
-    ADD COLUMN status TEXT NOT NULL DEFAULT 'TO_READ',
-    ADD CONSTRAINT chk_books_status
-        CHECK (status IN ('TO_READ', 'READING', 'FINISHED'));
 
 ALTER TABLE books
     ADD COLUMN progress_percent INTEGER NULL;
