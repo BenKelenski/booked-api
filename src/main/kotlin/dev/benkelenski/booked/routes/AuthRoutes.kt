@@ -62,8 +62,8 @@ fun authRoutes(
             val result =
                 registerWithEmail(
                     AuthRules.canonicalizeEmail(registerRequest.email),
-                    registerRequest.password,
-                    registerRequest.name,
+                    registerRequest.password.trim(),
+                    registerRequest.name.trim(),
                 )
         ) {
             is AuthResult.Success -> {
@@ -132,11 +132,7 @@ fun authRoutes(
                 )
         }
 
-        logger.info { "password is ${loginRequest.password}" }
-        logger.info { "password is ${loginRequest.password.length} characters long" }
-        logger.info { "password is empty: ${loginRequest.password.isEmpty()}" }
-
-        val password = loginRequest.password
+        val password = loginRequest.password.trim()
         if (password.isBlank() || password.length > 1024) {
             return@handler Response(Status.BAD_REQUEST)
                 .with(
