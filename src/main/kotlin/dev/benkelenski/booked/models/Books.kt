@@ -10,8 +10,9 @@ object Books : Table("books") {
     val googleId = text("google_id")
     val title = text("title")
     val authors = array<String>("authors")
-    val progressPercent = integer("progress_percent").nullable()
     val thumbnailUrl = text("thumbnail_url").nullable()
+    val currentPage = integer("current_page").nullable()
+    val pageCount = integer("page_count").nullable()
     val createdAt =
         timestampWithTimeZone("created_at").defaultExpression(CurrentTimestampWithTimeZone)
     val updatedAt = timestampWithTimeZone("updated_at").nullable()

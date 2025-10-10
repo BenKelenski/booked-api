@@ -83,13 +83,13 @@ class BookRepo {
     fun applyPatch(
         bookId: Int,
         moveToShelfId: Int?, // null = don't move
-        progressPercent: Int?, // null = unchanged
+        currentPage: Int?, // null = unchanged
         finishedAt: Instant?, // set when status becomes FINISHED
         updatedAt: Instant?, // set on any change if you store it
     ): Int =
         Books.update({ Books.id eq bookId }) {
             moveToShelfId?.let { shelf -> it[Books.shelfId] = shelf }
-            progressPercent?.let { p -> it[Books.progressPercent] = p }
+            currentPage?.let { p -> it[Books.currentPage] = p }
             finishedAt?.let { ts -> it[Books.finishedAt] = ts.atOffset(ZoneOffset.UTC) }
             updatedAt?.let { ts -> it[Books.updatedAt] = ts.atOffset(ZoneOffset.UTC) }
         }
@@ -113,8 +113,9 @@ fun ResultRow.toBook() =
         googleId = this[Books.googleId],
         title = this[Books.title],
         authors = this[Books.authors],
-        progressPercent = this[Books.progressPercent],
         thumbnailUrl = this[Books.thumbnailUrl],
+        currentPage = this[Books.currentPage],
+        pageCount = this[Books.pageCount],
         createdAt = this[Books.createdAt].toInstant(),
         updatedAt = this[Books.updatedAt]?.toInstant(),
         finishedAt = this[Books.finishedAt]?.toInstant(),

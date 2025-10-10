@@ -37,13 +37,6 @@ class BookService(private val bookRepo: BookRepo, private val shelfRepo: ShelfRe
 
     fun updateBook(userId: Int, bookId: Int, patch: UpdateBookPatch): BookUpdateResult =
         transaction {
-            patch.progressPercent?.let { p ->
-                if (p !in 0..100)
-                    return@transaction BookUpdateResult.ValidationError(
-                        "progressPercent must be 0..100"
-                    )
-            }
-
             val ownedBook = bookRepo.findOwnedMinimal(bookId, userId)
             if (ownedBook == null) {
                 val exists = bookRepo.existsById(bookId)
@@ -75,7 +68,7 @@ class BookService(private val bookRepo: BookRepo, private val shelfRepo: ShelfRe
                 bookRepo.applyPatch(
                     bookId = bookId,
                     moveToShelfId = if (targetShelfId != currentShelfId) targetShelfId else null,
-                    progressPercent = patch.progressPercent,
+                    currentPage = patch.currentPage,
                     finishedAt = finishedAt,
                     updatedAt = updatedAt,
                 )

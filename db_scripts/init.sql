@@ -58,6 +58,8 @@ CREATE TABLE IF NOT EXISTS books
     title         TEXT         NOT NULL,
     authors       TEXT[]       NOT NULL,
     thumbnail_url TEXT,
+    current_page  INTEGER      NOT NULL,
+    page_count    INTEGER      NOT NULL,
     created_at    TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP,
     user_id       INTEGER      NOT NULL REFERENCES users (id) ON DELETE CASCADE,
     shelf_id      INTEGER      NOT NULL REFERENCES shelves (id) ON DELETE CASCADE
@@ -65,9 +67,6 @@ CREATE TABLE IF NOT EXISTS books
 
 ALTER TABLE books
     ADD CONSTRAINT uq_books_user_google UNIQUE (user_id, google_id);
-
-ALTER TABLE books
-    ADD COLUMN progress_percent INTEGER NULL;
 
 ALTER TABLE books
     ADD COLUMN updated_at TIMESTAMPTZ NULL;

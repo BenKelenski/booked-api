@@ -185,24 +185,6 @@ class BookIntegrationTest {
     }
 
     @Test
-    fun `update book - bad request - progressPercent less than 0`() {
-        Request(Method.PATCH, "/api/v1/books/9999")
-            .cookie(Cookie("access_token", fakeTokenProvider.generateAccessToken(1)))
-            .with(Body.bookPatchLens of UpdateBookPatch(progressPercent = -1))
-            .let(app)
-            .shouldHaveStatus(Status.BAD_REQUEST)
-    }
-
-    @Test
-    fun `update book - bad request - progressPercent greater than 100`() {
-        Request(Method.PATCH, "/api/v1/books/9999")
-            .cookie(Cookie("access_token", fakeTokenProvider.generateAccessToken(1)))
-            .with(Body.bookPatchLens of UpdateBookPatch(progressPercent = 101))
-            .let(app)
-            .shouldHaveStatus(Status.BAD_REQUEST)
-    }
-
-    @Test
     fun `update book - bad request - empty request body`() {
         Request(Method.PATCH, "/api/v1/books/9999")
             .cookie(Cookie("access_token", fakeTokenProvider.generateAccessToken(1)))
@@ -232,7 +214,7 @@ class BookIntegrationTest {
 
         val responseBody = Body.bookResLens(response)
         responseBody.id shouldBe 1
-        responseBody.progressPercent shouldBe 10
+        responseBody.currentPage shouldBe 10
         responseBody.updatedAt shouldNotBe null
         responseBody.finishedAt shouldBe null
     }
@@ -249,7 +231,7 @@ class BookIntegrationTest {
 
         val responseBody = Body.bookResLens(response)
         responseBody.id shouldBe 1
-        responseBody.progressPercent shouldBe 100
+        responseBody.currentPage shouldBe 100
         responseBody.updatedAt shouldNotBe null
         responseBody.finishedAt shouldNotBe null
     }
