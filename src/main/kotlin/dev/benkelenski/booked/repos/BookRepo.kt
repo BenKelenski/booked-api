@@ -38,6 +38,7 @@ class BookRepo {
         title: String,
         authors: List<String>,
         thumbnailUrl: String? = null,
+        pageCount: Int? = null,
     ): Book? =
         Books.insertReturning {
                 it[this.userId] = userId
@@ -46,6 +47,7 @@ class BookRepo {
                 it[this.authors] = authors
                 it[this.shelfId] = shelfId
                 it[this.thumbnailUrl] = thumbnailUrl
+                it[this.pageCount] = pageCount
             }
             .map { it.toBook() }
             .singleOrNull()

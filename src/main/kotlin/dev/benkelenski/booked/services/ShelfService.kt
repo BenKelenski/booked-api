@@ -116,6 +116,7 @@ class ShelfService(
                     title = volumeDto.volumeInfo.title,
                     authors = volumeDto.volumeInfo.authors,
                     thumbnailUrl = volumeDto.volumeInfo.imageLinks?.thumbnail?.secureUrl(),
+                    pageCount = volumeDto.volumeInfo.pageCount,
                 )
                     ?: run {
                         logger.warn { "Failed to save book $googleVolumeId to shelf $shelfId" }
