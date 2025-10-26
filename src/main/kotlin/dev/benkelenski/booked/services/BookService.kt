@@ -6,8 +6,8 @@ import dev.benkelenski.booked.domain.responses.BookResponse
 import dev.benkelenski.booked.repos.BookRepo
 import dev.benkelenski.booked.repos.ShelfRepo
 import io.github.oshai.kotlinlogging.KotlinLogging
-import org.jetbrains.exposed.sql.transactions.transaction
 import java.time.Instant
+import org.jetbrains.exposed.sql.transactions.transaction
 
 /** alias for [BookService.findBooksByUser] */
 typealias FindBooksByUser = (userId: Int) -> List<BookResponse>
@@ -44,7 +44,7 @@ class BookService(private val bookRepo: BookRepo, private val shelfRepo: ShelfRe
                 else return@transaction BookUpdateResult.Forbidden
             }
             val currentShelfId = ownedBook.shelfId
-            val targetShelfId = patch.newShelfId ?: currentShelfId
+            val targetShelfId = patch.shelfId ?: currentShelfId
             if (targetShelfId != currentShelfId) {
                 val ownsTargetShelf = shelfRepo.userOwnsShelf(userId, targetShelfId)
                 if (!ownsTargetShelf) return@transaction BookUpdateResult.Forbidden

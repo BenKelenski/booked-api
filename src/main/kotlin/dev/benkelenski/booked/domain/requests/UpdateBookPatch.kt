@@ -6,7 +6,7 @@ import dev.benkelenski.booked.domain.ReadingStatus
 data class UpdateBookPatch(
     @param:Json(name = "current_page") val currentPage: Int? = null,
     val status: ReadingStatus? = null,
-    @param:Json(name = "new_shelf_id") val newShelfId: Int? = null,
+    @param:Json(name = "shelf_id") val shelfId: Int? = null,
 ) {
-    fun isEmpty(): Boolean = currentPage == null && status == null && newShelfId == null
+    fun isEmpty(): Boolean = currentPage == null && status == null && shelfId == null
 }
