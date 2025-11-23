@@ -1,10 +1,11 @@
 package integration
 
 import dev.benkelenski.booked.createApp
-import dev.benkelenski.booked.domain.ReadingStatus
 import dev.benkelenski.booked.domain.bookPatchLens
 import dev.benkelenski.booked.domain.bookResLens
 import dev.benkelenski.booked.domain.booksResLens
+import dev.benkelenski.booked.domain.completeBookLens
+import dev.benkelenski.booked.domain.requests.CompleteBookRequest
 import dev.benkelenski.booked.domain.requests.UpdateBookPatch
 import dev.benkelenski.booked.loadConfig
 import dev.benkelenski.booked.models.Books
@@ -220,20 +221,19 @@ class BookIntegrationTest {
     }
 
     @Test
-    fun `update book - success - status updated to FINISHED`() {
+    fun `complete book - success`() {
         val response =
-            Request(Method.PATCH, "/api/v1/books/1")
+            Request(Method.POST, "/api/v1/books/1/complete")
                 .cookie(Cookie("access_token", fakeTokenProvider.generateAccessToken(1)))
-                .with(Body.bookPatchLens of UpdateBookPatch(100, ReadingStatus.FINISHED, null))
+                .with(Body.completeBookLens of CompleteBookRequest(null, null))
                 .let(app)
 
         response shouldHaveStatus Status.OK
 
         val responseBody = Body.bookResLens(response)
         responseBody.id shouldBe 1
-        responseBody.currentPage shouldBe 100
-        responseBody.updatedAt shouldNotBe null
         responseBody.finishedAt shouldNotBe null
+        responseBody.updatedAt shouldNotBe null
     }
 
     @Test

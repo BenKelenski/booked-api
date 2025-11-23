@@ -73,3 +73,9 @@ ALTER TABLE books
 
 ALTER TABLE books
     ADD COLUMN finished_at TIMESTAMPTZ NULL;
+
+ALTER TABLE books
+    ADD COLUMN rating INTEGER NULL;
+
+ALTER TABLE books
+    ADD COLUMN review TEXT NULL;

@@ -13,6 +13,8 @@ object Books : Table("books") {
     val thumbnailUrl = text("thumbnail_url").nullable()
     val currentPage = integer("current_page").nullable()
     val pageCount = integer("page_count").nullable()
+    val rating = integer("rating").nullable()
+    val review = text("review").nullable()
     val createdAt =
         timestampWithTimeZone("created_at").defaultExpression(CurrentTimestampWithTimeZone)
     val updatedAt = timestampWithTimeZone("updated_at").nullable()

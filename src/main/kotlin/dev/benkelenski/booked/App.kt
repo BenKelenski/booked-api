@@ -157,6 +157,7 @@ fun createApp(
                 findBooksByUser = bookService::findBooksByUser,
                 updateBook = bookService::updateBook,
                 deleteBook = bookService::deleteBook,
+                completeBook = bookService::completeBook,
                 authMiddleware = authMiddleware,
             ),
             shelfRoutes(

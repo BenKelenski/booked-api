@@ -82,18 +82,32 @@ class BookRepo {
             .limit(1)
             .any()
 
-    fun applyPatch(
+    fun updateBook(
         bookId: Int,
         moveToShelfId: Int?, // null = don't move
         currentPage: Int?, // null = unchanged
-        finishedAt: Instant?, // set when status becomes FINISHED
         updatedAt: Instant?, // set on any change if you store it
     ): Int =
         Books.update({ Books.id eq bookId }) {
             moveToShelfId?.let { shelf -> it[Books.shelfId] = shelf }
             currentPage?.let { p -> it[Books.currentPage] = p }
-            finishedAt?.let { ts -> it[Books.finishedAt] = ts.atOffset(ZoneOffset.UTC) }
             updatedAt?.let { ts -> it[Books.updatedAt] = ts.atOffset(ZoneOffset.UTC) }
+        }
+
+    fun completeBook(
+        bookId: Int,
+        finishedShelfId: Int,
+        rating: Int?,
+        review: String?,
+        finishedAt: Instant,
+        updatedAt: Instant,
+    ): Int =
+        Books.update({ Books.id eq bookId }) {
+            it[Books.shelfId] = finishedShelfId
+            rating?.let { r -> it[Books.rating] = r }
+            review?.let { r -> it[Books.review] = r }
+            it[Books.finishedAt] = finishedAt.atOffset(ZoneOffset.UTC)
+            it[Books.updatedAt] = updatedAt.atOffset(ZoneOffset.UTC)
         }
 
     fun getCountsByShelf(userId: Int): Map<Int, Long> {
@@ -118,6 +132,8 @@ fun ResultRow.toBook() =
         thumbnailUrl = this[Books.thumbnailUrl],
         currentPage = this[Books.currentPage],
         pageCount = this[Books.pageCount],
+        rating = this[Books.rating],
+        review = this[Books.review],
         createdAt = this[Books.createdAt].toInstant(),
         updatedAt = this[Books.updatedAt]?.toInstant(),
         finishedAt = this[Books.finishedAt]?.toInstant(),

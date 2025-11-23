@@ -1,5 +1,6 @@
 package testUtils
 
+import dev.benkelenski.booked.domain.ReadingStatus
 import dev.benkelenski.booked.domain.User
 import dev.benkelenski.booked.models.*
 import dev.benkelenski.booked.repos.toUser
@@ -35,17 +36,20 @@ object TestDbUtils {
             Shelves.insertReturning {
                     it[Shelves.userId] = userId
                     it[Shelves.name] = "To Read"
+                    it[Shelves.readingStatus] = ReadingStatus.TO_READ
                 }
                 .single()[Shelves.id]
 
         Shelves.insert {
             it[Shelves.userId] = userId
             it[Shelves.name] = "Reading"
+            it[Shelves.readingStatus] = ReadingStatus.READING
         }
 
         Shelves.insert {
             it[Shelves.userId] = userId
             it[Shelves.name] = "Finished"
+            it[Shelves.readingStatus] = ReadingStatus.FINISHED
         }
 
         Books.insert {

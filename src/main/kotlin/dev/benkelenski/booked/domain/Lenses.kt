@@ -17,7 +17,8 @@ val Body.Companion.loginReqLens
 val Body.Companion.oauthReqLens
     get() = Body.auto<OAuthRequest>().toLens()
 
-val Body.Companion.authStatusResLens get() = Body.auto<AuthStatusResponse>().toLens()
+val Body.Companion.authStatusResLens
+    get() = Body.auto<AuthStatusResponse>().toLens()
 
 // User Lenses
 val Body.Companion.userResLens
@@ -49,6 +50,9 @@ val Body.Companion.booksResLens
 
 val Body.Companion.bookPatchLens
     get() = Body.auto<UpdateBookPatch>().toLens()
+
+val Body.Companion.completeBookLens
+    get() = Body.auto<CompleteBookRequest>().toLens()
 
 // Error lenses
 val Body.Companion.apiErrorLens

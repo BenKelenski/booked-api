@@ -34,3 +34,13 @@ Cookie: access_token={{ACCESS_TOKEN}}
 
 ### GET Search google books
 GET {{API_URL}}/books/search?query=flowers+inauthor:keyes
+
+### POST complete book
+POST {{API_URL}}/books/1/complete
+Cookie: access_token={{ACCESS_TOKEN}}
+Content-Type: application/json
+
+{
+  "rating": 5,
+  "review": "book"
+}

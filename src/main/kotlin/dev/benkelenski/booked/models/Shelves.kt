@@ -11,8 +11,7 @@ object Shelves : Table("shelves") {
     val userId = reference("user_id", Users.id, onDelete = ReferenceOption.CASCADE)
     val name = varchar("name", 150)
     val description = varchar("description", 250).nullable()
-    val readingStatus =
-        enumerationByName("reading_status", 16, ReadingStatus::class).default(ReadingStatus.TO_READ)
+    val readingStatus = enumerationByName("reading_status", 16, ReadingStatus::class).nullable()
     val isDeletable = bool("is_deletable").default(true)
     val createdAt =
         timestampWithTimeZone("created_at").defaultExpression(CurrentTimestampWithTimeZone)

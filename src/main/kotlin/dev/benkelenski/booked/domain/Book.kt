@@ -10,6 +10,8 @@ data class Book(
     val thumbnailUrl: String?,
     val currentPage: Int?,
     val pageCount: Int?,
+    val rating: Int?,
+    val review: String?,
     val createdAt: Instant,
     val updatedAt: Instant?,
     val finishedAt: Instant?,

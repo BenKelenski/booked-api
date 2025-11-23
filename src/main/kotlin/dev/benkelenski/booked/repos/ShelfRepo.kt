@@ -64,6 +64,12 @@ class ShelfRepo {
             .where { (Shelves.id eq shelfId) and (Shelves.userId eq userId) }
             .limit(1)
             .any()
+
+    fun findShelfByStatus(userId: Int, status: ReadingStatus): Shelf? =
+        Shelves.selectAll()
+            .where { (Shelves.userId eq userId) and (Shelves.readingStatus eq status) }
+            .map { it.toShelf() }
+            .singleOrNull()
 }
 
 fun ResultRow.toShelf() =
