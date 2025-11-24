@@ -20,7 +20,8 @@ object TestDbUtils {
     }
 
     fun seedData() = transaction {
-        val userId = // User with 3 shelves and 3 books
+        // testuser with 3 shelves and 3 books
+        val testuser =
             Users.insertReturning {
                     it[Users.email] = "test@test.com"
                     it[Users.name] = "testuser"
@@ -34,20 +35,20 @@ object TestDbUtils {
 
         val shelfId =
             Shelves.insertReturning {
-                    it[Shelves.userId] = userId
+                    it[Shelves.userId] = testuser
                     it[Shelves.name] = "To Read"
                     it[Shelves.readingStatus] = ReadingStatus.TO_READ
                 }
                 .single()[Shelves.id]
 
         Shelves.insert {
-            it[Shelves.userId] = userId
+            it[Shelves.userId] = testuser
             it[Shelves.name] = "Reading"
             it[Shelves.readingStatus] = ReadingStatus.READING
         }
 
         Shelves.insert {
-            it[Shelves.userId] = userId
+            it[Shelves.userId] = testuser
             it[Shelves.name] = "Finished"
             it[Shelves.readingStatus] = ReadingStatus.FINISHED
         }
@@ -56,7 +57,7 @@ object TestDbUtils {
             it[Books.googleId] = "google1"
             it[Books.title] = "Red Rising"
             it[Books.authors] = listOf("Pierce Brown")
-            it[Books.userId] = userId
+            it[Books.userId] = testuser
             it[Books.shelfId] = shelfId
         }
 
@@ -64,7 +65,7 @@ object TestDbUtils {
             it[Books.googleId] = "google2"
             it[Books.title] = "Golden Son"
             it[Books.authors] = listOf("Pierce Brown")
-            it[Books.userId] = userId
+            it[Books.userId] = testuser
             it[Books.shelfId] = shelfId
         }
 
@@ -72,7 +73,7 @@ object TestDbUtils {
             it[Books.googleId] = "google3"
             it[Books.title] = "Morning Star"
             it[Books.authors] = listOf("Pierce Brown")
-            it[Books.userId] = userId
+            it[Books.userId] = testuser
             it[Books.shelfId] = shelfId
         }
     }

@@ -222,6 +222,7 @@ class ShelfIntegrationTest {
         responseBody.name shouldBe "shelf 1"
         responseBody.description shouldBe null
         responseBody.createdAt shouldNotBe null
+        responseBody.readingStatus shouldBe null
     }
 
     @Test

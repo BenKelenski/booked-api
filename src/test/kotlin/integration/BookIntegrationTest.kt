@@ -221,11 +221,97 @@ class BookIntegrationTest {
     }
 
     @Test
+    fun `complete book - missing book id`() {
+        Request(Method.POST, "/api/v1/books/ /complete")
+            .cookie(Cookie("access_token", fakeTokenProvider.generateAccessToken(1)))
+            .let(app)
+            .shouldHaveStatus(Status.BAD_REQUEST)
+    }
+
+    @Test
+    fun `complete book - invalid book id`() {
+        Request(Method.POST, "/api/v1/books/INVALID_BOOK_ID/complete")
+            .cookie(Cookie("access_token", fakeTokenProvider.generateAccessToken(1)))
+            .let(app)
+            .shouldHaveStatus(Status.BAD_REQUEST)
+    }
+
+    @Test
+    fun `complete book - unauthorized - no token`() {
+        Request(Method.POST, "/api/v1/books/1/complete")
+            .let(app)
+            .shouldHaveStatus(Status.UNAUTHORIZED)
+    }
+
+    @Test
+    fun `complete book - unauthorized - bad token`() {
+        Request(Method.POST, "/api/v1/books/1/complete")
+            .cookie(Cookie("access_token", "foo"))
+            .let(app)
+            .shouldHaveStatus(Status.UNAUTHORIZED)
+    }
+
+    @Test
+    fun `complete book - missing complete book request`() {
+        Request(Method.POST, "/api/v1/books/1/complete")
+            .cookie(Cookie("access_token", fakeTokenProvider.generateAccessToken(1)))
+            .let(app)
+            .shouldHaveStatus(Status.BAD_REQUEST)
+    }
+
+    @Test
+    fun `complete book - invalid complete book request - rating too high`() {
+        Request(Method.POST, "/api/v1/books/1/complete")
+            .cookie(Cookie("access_token", fakeTokenProvider.generateAccessToken(1)))
+            .with(Body.completeBookLens of CompleteBookRequest(100, null))
+            .let(app)
+            .shouldHaveStatus(Status.BAD_REQUEST)
+    }
+
+    @Test
+    fun `complete book - invalid complete book request - empty review`() {
+        Request(Method.POST, "/api/v1/books/1/complete")
+            .cookie(Cookie("access_token", fakeTokenProvider.generateAccessToken(1)))
+            .with(Body.completeBookLens of CompleteBookRequest(5, "  "))
+            .let(app)
+            .shouldHaveStatus(Status.BAD_REQUEST)
+    }
+
+    @Test
+    fun `complete book - invalid complete book request - review too long`() {
+        Request(Method.POST, "/api/v1/books/1/complete")
+            .cookie(Cookie("access_token", fakeTokenProvider.generateAccessToken(1)))
+            .with(Body.completeBookLens of CompleteBookRequest(5, "B".repeat(255)))
+            .let(app)
+    }
+
+    @Test
+    fun `complete book - not found`() {
+        Request(Method.POST, "/api/v1/books/9999/complete")
+            .cookie(Cookie("access_token", fakeTokenProvider.generateAccessToken(1)))
+            .body("{}")
+            .let(app)
+            .shouldHaveStatus(Status.NOT_FOUND)
+    }
+
+    @Test
+    fun `complete book - forbidden - not owner`() {
+        Request(Method.POST, "/api/v1/books/1/complete")
+            .cookie(Cookie("access_token", fakeTokenProvider.generateAccessToken(2)))
+            .body("{}")
+            .let(app)
+            .shouldHaveStatus(Status.FORBIDDEN)
+    }
+
+    // TODO: finish test :)
+    @Test fun `complete book - conflict - already completed`() {}
+
+    @Test
     fun `complete book - success`() {
         val response =
             Request(Method.POST, "/api/v1/books/1/complete")
                 .cookie(Cookie("access_token", fakeTokenProvider.generateAccessToken(1)))
-                .with(Body.completeBookLens of CompleteBookRequest(null, null))
+                .with(Body.completeBookLens of CompleteBookRequest(5, "Good book!"))
                 .let(app)
 
         response shouldHaveStatus Status.OK

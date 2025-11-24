@@ -181,10 +181,13 @@ fun bookRoutes(
                 lens = bookIdLens,
                 errorMessage = "Missing or invalid book ID",
             )
-                ?: return@authHandler createValidationErrorResponse(
-                    "Missing or invalid book ID",
-                    ErrorCodes.MISSING_BOOK_ID,
-                )
+                ?: run {
+                    logger.warn { "Missing or invalid book ID" }
+                    return@authHandler createValidationErrorResponse(
+                        "Missing or invalid book ID",
+                        ErrorCodes.MISSING_BOOK_ID,
+                    )
+                }
 
         val completeRequest =
             extractLensOrNull(
@@ -192,13 +195,17 @@ fun bookRoutes(
                 lens = Body.completeBookLens,
                 errorMessage = "Missing or invalid book completed request",
             )
-                ?: return@authHandler createValidationErrorResponse(
-                    "Missing or invalid book completed request",
-                    ErrorCodes.INVALID_BOOK_COMPLETED_REQUEST,
-                )
+                ?: run {
+                    logger.warn { "Missing or invalid book completed request" }
+                    return@authHandler createValidationErrorResponse(
+                        "Missing or invalid book completed request",
+                        ErrorCodes.INVALID_BOOK_COMPLETED_REQUEST,
+                    )
+                }
 
         val validationResult: List<String> = completeRequest.validate()
         if (validationResult.isNotEmpty()) {
+            logger.warn { "Book validation failed: $validationResult" }
             return@authHandler createValidationErrorResponse(
                 message = validationResult.joinToString(", "),
                 ErrorCodes.INVALID_BOOK_COMPLETED_REQUEST,
@@ -208,8 +215,12 @@ fun bookRoutes(
         logger.info { "Received book completion request: $completeRequest for $bookId" }
 
         when (val result = completeBook(userId, bookId, completeRequest)) {
-            is BookUpdateResult.Success -> Response(Status.OK).with(Body.bookResLens of result.book)
-            is BookUpdateResult.NotFound ->
+            is BookUpdateResult.Success -> {
+                logger.info { "Successfully completed book: $bookId" }
+                Response(Status.OK).with(Body.bookResLens of result.book)
+            }
+            is BookUpdateResult.NotFound -> {
+                logger.info { "Book not found" }
                 Response(Status.NOT_FOUND)
                     .with(
                         Body.apiErrorLens of
@@ -219,7 +230,9 @@ fun bookRoutes(
                                 type = ErrorTypes.NOT_FOUND,
                             )
                     )
-            is BookUpdateResult.Forbidden ->
+            }
+            is BookUpdateResult.Forbidden -> {
+                logger.info { "Insufficient permissions to complete book" }
                 Response(Status.FORBIDDEN)
                     .with(
                         Body.apiErrorLens of
@@ -229,7 +242,9 @@ fun bookRoutes(
                                 type = ErrorTypes.AUTHORIZATION,
                             )
                     )
-            is BookUpdateResult.Conflict ->
+            }
+            is BookUpdateResult.Conflict -> {
+                logger.info { "Book already exists on destination shelf" }
                 Response(Status.CONFLICT)
                     .with(
                         Body.apiErrorLens of
@@ -239,7 +254,9 @@ fun bookRoutes(
                                 type = ErrorTypes.CONFLICT,
                             )
                     )
-            is BookUpdateResult.DatabaseError ->
+            }
+            is BookUpdateResult.DatabaseError -> {
+                logger.error { "Error occurred trying to complete book" }
                 Response(Status.INTERNAL_SERVER_ERROR)
                     .with(
                         Body.apiErrorLens of
@@ -249,6 +266,7 @@ fun bookRoutes(
                                 type = ErrorTypes.SYSTEM,
                             )
                     )
+            }
         }
     }
 
