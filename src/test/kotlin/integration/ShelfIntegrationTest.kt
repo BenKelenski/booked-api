@@ -335,6 +335,17 @@ class ShelfIntegrationTest {
     }
 
     @Test
+    fun `add book to shelf - conflict - duplicate book on different shelf`() {
+        val googleBookId = "google1"
+
+        Request(Method.POST, "/api/v1/shelves/2/books")
+            .with(Body.bookReqLens of BookRequest(googleBookId))
+            .cookie(Cookie("access_token", fakeTokenProvider.generateAccessToken(1)))
+            .let(app)
+            .shouldHaveStatus(Status.CONFLICT)
+    }
+
+    @Test
     fun `add book to shelf - success`() {
         val googleBookId = "google4"
 

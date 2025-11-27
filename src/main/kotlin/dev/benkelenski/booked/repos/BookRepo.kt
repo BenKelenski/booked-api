@@ -62,9 +62,9 @@ class BookRepo {
             .where { (Books.userId eq userId) and (Books.shelfId eq shelfId) }
             .map { it.toBook() }
 
-    fun existsByShelfAndGoogleId(shelfId: Int, googleId: String): Boolean =
+    fun existsByGoogleIdAndUser(googleId: String, userId: Int): Boolean =
         Books.selectAll()
-            .where { (Books.shelfId eq shelfId) and (Books.googleId eq googleId) }
+            .where { (Books.userId eq userId) and (Books.googleId eq googleId) }
             .limit(1)
             .any()
 
@@ -121,6 +121,9 @@ class BookRepo {
             .groupBy(Shelves.id)
             .associate { it[Shelves.id] to it[Books.id.count()] }
     }
+
+    // TODO  - add a function that checks if a book is already on any user shelf
+
 }
 
 fun ResultRow.toBook() =

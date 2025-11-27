@@ -84,6 +84,11 @@ class ShelfService(
         transaction {
             logger.info { "Adding book $googleVolumeId to shelf $shelfId for user $userId" }
 
+            if (bookRepo.existsByGoogleIdAndUser(googleVolumeId, userId)) {
+                logger.warn { "User already owns book $googleVolumeId" }
+                return@transaction ShelfAddBookResult.Duplicate
+            }
+
             val shelf =
                 shelfRepo.fetchShelfById(userId, shelfId)
                     ?: run {
@@ -94,11 +99,6 @@ class ShelfService(
             if (shelf.userId != userId) {
                 logger.warn { "User $userId is not the owner of shelf $shelfId" }
                 return@transaction ShelfAddBookResult.Forbidden
-            }
-
-            if (bookRepo.existsByShelfAndGoogleId(shelfId, googleVolumeId)) {
-                logger.warn { "Book $googleVolumeId already exists in shelf $shelfId" }
-                return@transaction ShelfAddBookResult.Duplicate
             }
 
             val volumeDto =
