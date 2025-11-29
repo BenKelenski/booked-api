@@ -3,6 +3,7 @@ package dev.benkelenski.booked.routes
 import dev.benkelenski.booked.constants.ErrorCodes
 import dev.benkelenski.booked.constants.ErrorTypes
 import dev.benkelenski.booked.domain.*
+import dev.benkelenski.booked.domain.requests.CompleteBookRequest
 import dev.benkelenski.booked.domain.responses.ApiError
 import dev.benkelenski.booked.middleware.AuthMiddleware
 import dev.benkelenski.booked.middleware.authHandler
@@ -189,7 +190,7 @@ fun bookRoutes(
                     )
                 }
 
-        val completeRequest =
+        val completeRequest: CompleteBookRequest =
             extractLensOrNull(
                 request = request,
                 lens = Body.completeBookLens,
