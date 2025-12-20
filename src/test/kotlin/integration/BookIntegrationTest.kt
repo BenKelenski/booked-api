@@ -303,9 +303,6 @@ class BookIntegrationTest {
             .shouldHaveStatus(Status.FORBIDDEN)
     }
 
-    // TODO: finish test :)
-    @Test fun `complete book - conflict - already completed`() {}
-
     @Test
     fun `complete book - success`() {
         val response =

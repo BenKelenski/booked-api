@@ -121,9 +121,6 @@ class BookRepo {
             .groupBy(Shelves.id)
             .associate { it[Shelves.id] to it[Books.id.count()] }
     }
-
-    // TODO  - add a function that checks if a book is already on any user shelf
-
 }
 
 fun ResultRow.toBook() =
