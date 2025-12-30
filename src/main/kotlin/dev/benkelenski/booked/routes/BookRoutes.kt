@@ -21,7 +21,7 @@ private val logger = KotlinLogging.logger {}
 
 fun bookRoutes(
     findBookById: FindBookById,
-    findBooksByUser: FindBooksByUser,
+    findBooksByShelf: FindBooksByShelf,
     updateBook: UpdateBook,
     deleteBook: DeleteBook,
     completeBook: CompleteBook,
@@ -30,7 +30,10 @@ fun bookRoutes(
 
     val getBooksHandler = authHandler { userId, request ->
         logger.info { "Received book retrieval request for user: $userId" }
-        findBooksByUser(userId).let {
+
+        val shelves = shelfIdQueryLens(request)
+
+        findBooksByShelf(userId, shelves).let {
             Response(Status.OK).with(Body.booksResLens of it.toTypedArray())
         }
     }
@@ -38,7 +41,7 @@ fun bookRoutes(
     val getBookHandler = authHandler { userId, request ->
         val bookId =
             try {
-                bookIdLens(request)
+                bookIdPathLens(request)
             } catch (e: LensFailure) {
                 logger.error(e) { "Missing or invalid book ID." }
                 return@authHandler Response(Status.BAD_REQUEST)
@@ -61,7 +64,7 @@ fun bookRoutes(
     val patchBookHandler = authHandler { userId, request ->
         val bookId =
             try {
-                bookIdLens(request)
+                bookIdPathLens(request)
             } catch (e: LensFailure) {
                 logger.error(e) { "Missing or invalid book ID" }
                 return@authHandler Response(Status.BAD_REQUEST)
@@ -158,7 +161,7 @@ fun bookRoutes(
     val deleteBookHandler = authHandler { userId, request ->
         val bookId =
             try {
-                bookIdLens(request)
+                bookIdPathLens(request)
             } catch (e: LensFailure) {
                 logger.error(e) { "Missing or invalid book ID" }
                 return@authHandler Response(Status.BAD_REQUEST).body("Missing or invalid book ID")
@@ -179,7 +182,7 @@ fun bookRoutes(
         val bookId =
             extractLensOrNull(
                 request = request,
-                lens = bookIdLens,
+                lens = bookIdPathLens,
                 errorMessage = "Missing or invalid book ID",
             )
                 ?: run {

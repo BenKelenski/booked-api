@@ -21,7 +21,6 @@ fun shelfRoutes(
     findShelvesByUserId: FindShelvesByUserId,
     createShelf: CreateShelf,
     deleteShelf: DeleteShelf,
-    findBooksByShelf: FindBooksByShelf,
     addBookToShelf: AddBookToShelf,
     authMiddleware: AuthMiddleware,
 ): RoutingHttpHandler {
@@ -70,7 +69,7 @@ fun shelfRoutes(
     val getShelfHandler = authHandler { userId, request ->
         val shelfId =
             try {
-                shelfIdLens(request)
+                shelfIdPathLens(request)
             } catch (e: LensFailure) {
                 logger.error(e) { "Missing or invalid shelf ID" }
                 return@authHandler Response(Status.BAD_REQUEST)
@@ -93,7 +92,7 @@ fun shelfRoutes(
     val deleteShelfHandler = authHandler { userId, request ->
         val shelfId =
             try {
-                shelfIdLens(request)
+                shelfIdPathLens(request)
             } catch (e: LensFailure) {
                 logger.error(e) { "Missing or invalid shelf ID" }
                 return@authHandler Response(Status.BAD_REQUEST)
@@ -146,33 +145,10 @@ fun shelfRoutes(
         }
     }
 
-    val getBooksByShelfHandler = authHandler { userId, request ->
-        val shelfId =
-            try {
-                shelfIdLens(request)
-            } catch (e: LensFailure) {
-                logger.error(e) { "Missing or invalid shelf ID" }
-                return@authHandler Response(Status.BAD_REQUEST)
-                    .with(
-                        Body.apiErrorLens of
-                            ApiError(
-                                message = "Missing or invalid shelf ID",
-                                code = ErrorCodes.MISSING_SHELF_ID,
-                                type = ErrorTypes.VALIDATION,
-                            )
-                    )
-            }
-
-        findBooksByShelf(userId, shelfId).let { books ->
-            logger.info { "Found ${books.size} books for shelf $shelfId" }
-            Response(Status.OK).with(Body.booksResLens of books.toTypedArray())
-        }
-    }
-
     val addBookToShelfHandler = authHandler { userId, request ->
         val shelfId =
             try {
-                shelfIdLens(request)
+                shelfIdPathLens(request)
             } catch (e: LensFailure) {
                 logger.error(e) { "Missing or invalid shelf ID" }
                 return@authHandler Response(Status.BAD_REQUEST)
@@ -282,7 +258,6 @@ fun shelfRoutes(
             "/shelves" bind Method.POST to createShelfHandler,
             "/shelves/{shelf_id}" bind Method.GET to getShelfHandler,
             "/shelves/{shelf_id}" bind Method.DELETE to deleteShelfHandler,
-            "/shelves/{shelf_id}/books" bind Method.GET to getBooksByShelfHandler,
             "/shelves/{shelf_id}/books" bind Method.POST to addBookToShelfHandler,
         )
         .withFilter(authMiddleware)

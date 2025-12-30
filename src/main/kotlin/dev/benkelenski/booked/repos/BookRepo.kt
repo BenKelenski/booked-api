@@ -25,8 +25,15 @@ class BookRepo {
                 )
             }
 
-    fun fetchAllBooksByUser(userId: Int): List<Book> =
-        Books.selectAll().where { Books.userId eq userId }.map { it.toBook() }
+    fun fetchAllBooksForUser(userId: Int, shelves: List<Int>): List<Book> {
+        val query = Books.selectAll().where { Books.userId eq userId }
+
+        if (shelves.isNotEmpty()) {
+            query.andWhere { Books.shelfId inList shelves }
+        }
+
+        return query.map { it.toBook() }
+    }
 
     fun fetchById(bookId: Int): Book? =
         Books.selectAll().where { Books.id eq bookId }.map { it.toBook() }.singleOrNull()

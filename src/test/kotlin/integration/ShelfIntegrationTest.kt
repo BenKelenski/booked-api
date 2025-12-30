@@ -4,13 +4,13 @@ import dev.benkelenski.booked.createApp
 import dev.benkelenski.booked.domain.*
 import dev.benkelenski.booked.domain.requests.BookRequest
 import dev.benkelenski.booked.domain.requests.ShelfRequest
-import dev.benkelenski.booked.domain.responses.BookResponse
 import dev.benkelenski.booked.loadConfig
 import dev.benkelenski.booked.models.Books
 import dev.benkelenski.booked.models.Shelves
 import io.kotest.matchers.collections.shouldHaveSize
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
+import java.security.KeyPairGenerator
 import org.http4k.base64Encode
 import org.http4k.core.*
 import org.http4k.core.cookie.Cookie
@@ -28,7 +28,6 @@ import org.testcontainers.containers.PostgreSQLContainer
 import testUtils.FakeTokenProvider
 import testUtils.TestDbUtils
 import testUtils.fakeGoogleBooks
-import java.security.KeyPairGenerator
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class ShelfIntegrationTest {
@@ -109,10 +108,10 @@ class ShelfIntegrationTest {
             )
 
         response shouldHaveStatus Status.OK
-        val responseBody = Body.shelvesResLens(response)
+        val responseBody = Body.shelvesResLens(response).sortedBy { it.id }
         responseBody shouldHaveSize 3
         responseBody[0].bookCount shouldBe 3
-        responseBody[1].bookCount shouldBe 0
+        responseBody[1].bookCount shouldBe 1
         responseBody[2].bookCount shouldBe 0
     }
 
@@ -226,58 +225,6 @@ class ShelfIntegrationTest {
     }
 
     @Test
-    fun `get books by shelf - unauthorized - no token`() {
-        Request(Method.GET, "/api/v1/shelves/9999/books")
-            .let(app)
-            .shouldHaveStatus(Status.UNAUTHORIZED)
-    }
-
-    @Test
-    fun `get books by shelf - unauthorized - bad token`() {
-        Request(Method.GET, "/api/v1/shelves/9999/books")
-            .cookie(Cookie("access_token", "foo"))
-            .let(app)
-            .shouldHaveStatus(Status.UNAUTHORIZED)
-    }
-
-    @Test
-    fun `get books by shelf - none found`() {
-        val response =
-            app(
-                Request(Method.GET, "/api/v1/shelves/9999/books")
-                    .cookie(Cookie("access_token", fakeTokenProvider.generateAccessToken(1)))
-            )
-        response.status shouldBe Status.OK
-        val responseBody = Body.booksResLens(response)
-        responseBody shouldHaveSize 0
-        responseBody shouldBe emptyList<BookResponse>()
-    }
-
-    @Test
-    fun `get books by shelf - success`() {
-        val response =
-            app(
-                Request(Method.GET, "/api/v1/shelves/1/books")
-                    .cookie(Cookie("access_token", fakeTokenProvider.generateAccessToken(1)))
-            )
-
-        response.status shouldBe Status.OK
-
-        val responseBody = Body.booksResLens(response)
-
-        responseBody shouldHaveSize 3
-        responseBody[0].title shouldBe "Red Rising"
-        responseBody[0].authors shouldBe listOf("Pierce Brown")
-        responseBody[0].googleId shouldBe "google1"
-        responseBody[1].title shouldBe "Golden Son"
-        responseBody[1].authors shouldBe listOf("Pierce Brown")
-        responseBody[1].googleId shouldBe "google2"
-        responseBody[2].title shouldBe "Morning Star"
-        responseBody[2].authors shouldBe listOf("Pierce Brown")
-        responseBody[2].googleId shouldBe "google3"
-    }
-
-    @Test
     fun `add book to shelf - unauthorized - no token`() {
         Request(Method.POST, "/api/v1/shelves/9999/books")
             .let(app)
@@ -347,7 +294,7 @@ class ShelfIntegrationTest {
 
     @Test
     fun `add book to shelf - success`() {
-        val googleBookId = "google4"
+        val googleBookId = "google99"
 
         val response =
             app(
@@ -357,7 +304,7 @@ class ShelfIntegrationTest {
             )
 
         val book = Body.bookResLens(response)
-        book.id shouldBe 4
+        book.id shouldBe 5
         book.googleId shouldBe googleBookId
         book.createdAt shouldNotBe null
         book.title shouldBe "book-$googleBookId"

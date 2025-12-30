@@ -154,7 +154,7 @@ fun createApp(
             ),
             bookRoutes(
                 findBookById = bookService::findBookById,
-                findBooksByUser = bookService::findBooksByUser,
+                findBooksByShelf = bookService::findBooksByShelf,
                 updateBook = bookService::updateBook,
                 deleteBook = bookService::deleteBook,
                 completeBook = bookService::completeBook,
@@ -165,7 +165,7 @@ fun createApp(
                 findShelvesByUserId = shelfService::findShelvesByUserId,
                 createShelf = shelfService::createShelf,
                 deleteShelf = shelfService::deleteShelf,
-                findBooksByShelf = shelfService::findBooksByShelf,
+                //                findBooksByShelf = shelfService::findBooksByShelf,
                 addBookToShelf = shelfService::addBookToShelf,
                 authMiddleware = authMiddleware,
             ),

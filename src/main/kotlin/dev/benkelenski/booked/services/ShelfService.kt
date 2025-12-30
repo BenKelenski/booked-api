@@ -21,9 +21,6 @@ typealias CreateShelf = (userId: Int, shelfRequest: ShelfRequest) -> ShelfRespon
 /** alias for [ShelfService.deleteShelf] */
 typealias DeleteShelf = (userId: Int, shelfId: Int) -> ShelfDeleteResult
 
-/** alias for [ShelfService.findBooksByShelf] */
-typealias FindBooksByShelf = (userId: Int, shelfId: Int) -> List<BookResponse>
-
 /** alias for [ShelfService.addBookToShelf] */
 typealias AddBookToShelf = (userId: Int, shelfId: Int, googleVolumeId: String) -> ShelfAddBookResult
 

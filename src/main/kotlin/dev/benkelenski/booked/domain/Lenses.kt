@@ -5,6 +5,7 @@ import dev.benkelenski.booked.domain.responses.*
 import org.http4k.core.Body
 import org.http4k.format.Moshi.auto
 import org.http4k.lens.Path
+import org.http4k.lens.Query
 import org.http4k.lens.int
 
 // Auth lenses
@@ -25,7 +26,9 @@ val Body.Companion.userResLens
     get() = Body.auto<UserResponse>().toLens()
 
 // Shelf lenses
-val shelfIdLens = Path.int().of("shelf_id")
+val shelfIdPathLens = Path.int().of("shelf_id")
+
+val shelfIdQueryLens = Query.int().multi.defaulted("shelf", emptyList())
 
 val Body.Companion.shelfReqLens
     get() = Body.auto<ShelfRequest>().toLens()
@@ -37,7 +40,7 @@ val Body.Companion.shelvesResLens
     get() = Body.auto<Array<ShelfResponse>>().toLens()
 
 // Book lenses
-val bookIdLens = Path.int().of("book_id")
+val bookIdPathLens = Path.int().of("book_id")
 
 val Body.Companion.bookReqLens
     get() = Body.auto<BookRequest>().toLens()

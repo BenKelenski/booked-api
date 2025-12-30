@@ -110,16 +110,51 @@ class BookIntegrationTest {
         response shouldHaveStatus Status.OK
 
         val responseBody = Body.booksResLens(response)
-        responseBody shouldHaveSize 3
+        responseBody shouldHaveSize 4
         responseBody[0].title shouldBe "Red Rising"
         responseBody[0].authors shouldBe listOf("Pierce Brown")
         responseBody[0].googleId shouldBe "google1"
+        responseBody[0].shelfId shouldBe 1
         responseBody[1].title shouldBe "Golden Son"
         responseBody[1].authors shouldBe listOf("Pierce Brown")
         responseBody[1].googleId shouldBe "google2"
+        responseBody[1].shelfId shouldBe 1
         responseBody[2].title shouldBe "Morning Star"
         responseBody[2].authors shouldBe listOf("Pierce Brown")
         responseBody[2].googleId shouldBe "google3"
+        responseBody[2].shelfId shouldBe 1
+        responseBody[3].title shouldBe "The Hobbit"
+        responseBody[3].authors shouldBe listOf("J.R.R. Tolkien")
+        responseBody[3].googleId shouldBe "google4"
+        responseBody[3].shelfId shouldBe 2
+    }
+
+    @Test
+    fun `get all books - success - filter by shelf`() {
+        val response =
+            app(
+                Request(Method.GET, "/api/v1/books?shelf=2")
+                    .cookie(Cookie("access_token", fakeTokenProvider.generateAccessToken(1)))
+            )
+        response shouldHaveStatus Status.OK
+        val responseBody = Body.booksResLens(response)
+        responseBody shouldHaveSize 1
+        responseBody[0].title shouldBe "The Hobbit"
+        responseBody[0].authors shouldBe listOf("J.R.R. Tolkien")
+        responseBody[0].googleId shouldBe "google4"
+        responseBody[0].shelfId shouldBe 2
+    }
+
+    @Test
+    fun `get all books - success - filter by multiple shelves`() {
+        val response =
+            app(
+                Request(Method.GET, "/api/v1/books?shelf=1&shelf=2")
+                    .cookie(Cookie("access_token", fakeTokenProvider.generateAccessToken(1)))
+            )
+        response shouldHaveStatus Status.OK
+        val responseBody = Body.booksResLens(response)
+        responseBody shouldHaveSize 4
     }
 
     @Test
@@ -376,6 +411,6 @@ class BookIntegrationTest {
             )
 
         response shouldHaveStatus Status.NO_CONTENT
-        transaction { Books.selectAll().count() shouldBe 2 }
+        transaction { Books.selectAll().count() shouldBe 3 }
     }
 }

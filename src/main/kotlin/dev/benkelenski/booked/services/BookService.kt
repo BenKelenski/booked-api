@@ -10,8 +10,8 @@ import io.github.oshai.kotlinlogging.KotlinLogging
 import org.jetbrains.exposed.sql.transactions.transaction
 import java.time.Instant
 
-/** alias for [BookService.findBooksByUser] */
-typealias FindBooksByUser = (userId: Int) -> List<BookResponse>
+/** alias for [BookService.findBooksByShelf] */
+typealias FindBooksByShelf = (userId: Int, shelves: List<Int>) -> List<BookResponse>
 
 /** alias for [BookService.findBookById] */
 typealias FindBookById = (bookId: Int) -> BookResponse?
@@ -32,8 +32,8 @@ class BookService(private val bookRepo: BookRepo, private val shelfRepo: ShelfRe
         private val logger = KotlinLogging.logger {}
     }
 
-    fun findBooksByUser(userId: Int): List<BookResponse> = transaction {
-        bookRepo.fetchAllBooksByUser(userId).map { BookResponse.from(it) }
+    fun findBooksByShelf(userId: Int, shelves: List<Int>): List<BookResponse> = transaction {
+        bookRepo.fetchAllBooksForUser(userId, shelves).map { BookResponse.from(it) }
     }
 
     fun findBookById(bookId: Int): BookResponse? = transaction {
