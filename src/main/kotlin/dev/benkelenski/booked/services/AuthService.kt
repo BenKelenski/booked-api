@@ -15,7 +15,7 @@ import java.time.Duration
 import java.time.Instant
 
 /** alias for [AuthService.registerWithEmail] */
-typealias RegisterWithEmail = (email: String, password: String, name: String?) -> AuthResult
+typealias RegisterWithEmail = (email: String, password: String, name: String) -> AuthResult
 
 /** alias for [AuthService.loginWithEmail] */
 typealias LoginWithEmail = (email: String, password: String) -> AuthResult
@@ -48,7 +48,7 @@ class AuthService(
     }
 
     /** Register a new user using email and password */
-    fun registerWithEmail(email: String, password: String, name: String?): AuthResult =
+    fun registerWithEmail(email: String, password: String, name: String): AuthResult =
         try {
             transaction {
                 when (
@@ -124,8 +124,9 @@ class AuthService(
 
                 val idTokenClaims =
                     when (provider) {
-                        GOOGLE_PROVIDER ->
-                            googleAuthProvider.authenticate(authPayload.providerToken)
+                        GOOGLE_PROVIDER -> // TODO: need to use "sub" instead of email to uniquely
+                                           // identify users
+                        googleAuthProvider.authenticate(authPayload.providerToken)
                         else -> null
                     }
                         ?: run {
@@ -137,6 +138,10 @@ class AuthService(
                             )
                         }
 
+                if (idTokenClaims.email.isNullOrEmpty()) {
+                    return@transaction AuthResult.Failure("Email not found in token claims")
+                }
+
                 val user =
                     when (
                         val res =
@@ -144,7 +149,7 @@ class AuthService(
                                 provider = provider,
                                 providerUserId = idTokenClaims.subject,
                                 email = idTokenClaims.email,
-                                name = idTokenClaims.name,
+                                name = idTokenClaims.name ?: "New User",
                             )
                     ) {
                         is GetOrCreateUserResult.Created -> {

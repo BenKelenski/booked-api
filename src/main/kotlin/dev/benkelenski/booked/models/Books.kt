@@ -26,5 +26,6 @@ object Books : Table("books") {
 
     init {
         uniqueIndex("uq_books_user_google", userId, googleId)
+        index("idx_books_user_shelf", false, userId, shelfId)
     }
 }

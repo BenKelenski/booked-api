@@ -17,8 +17,8 @@ class UserRepo {
     fun getOrCreateUser(
         provider: String,
         providerUserId: String,
-        email: String?,
-        name: String?,
+        email: String,
+        name: String,
         password: String? = null,
     ): GetOrCreateUserResult {
         val row =

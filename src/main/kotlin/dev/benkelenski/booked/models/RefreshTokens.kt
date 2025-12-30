@@ -1,15 +1,16 @@
 package dev.benkelenski.booked.models
 
 import org.jetbrains.exposed.sql.Table
-import org.jetbrains.exposed.sql.javatime.CurrentTimestamp
-import org.jetbrains.exposed.sql.javatime.timestamp
+import org.jetbrains.exposed.sql.javatime.CurrentTimestampWithTimeZone
+import org.jetbrains.exposed.sql.javatime.timestampWithTimeZone
 
 object RefreshTokens : Table("refresh_tokens") {
     val id = uuid("id")
-    val userId = integer("user_id").references(Users.id)
+    val userId = integer("user_id").references(Users.id).index("idx_refresh_tokens_user_id")
     val tokenHash = text("token_hash")
-    val createdAt = timestamp("created_at").defaultExpression(CurrentTimestamp)
-    val expiresAt = timestamp("expires_at")
+    val createdAt =
+        timestampWithTimeZone("created_at").defaultExpression(CurrentTimestampWithTimeZone)
+    val expiresAt = timestampWithTimeZone("expires_at")
 
     override val primaryKey = PrimaryKey(id)
 }

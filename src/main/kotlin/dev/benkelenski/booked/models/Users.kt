@@ -6,8 +6,8 @@ import org.jetbrains.exposed.sql.javatime.timestampWithTimeZone
 
 object Users : Table("users") {
     val id = integer("id").autoIncrement()
-    val email = varchar("email", 255).nullable()
-    val name = varchar("name", 255).nullable()
+    val email = varchar("email", 255).uniqueIndex()
+    val name = varchar("name", 255)
     val createdAt =
         timestampWithTimeZone("created_at").defaultExpression(CurrentTimestampWithTimeZone)
 

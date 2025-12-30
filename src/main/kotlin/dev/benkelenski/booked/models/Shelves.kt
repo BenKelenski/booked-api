@@ -16,4 +16,8 @@ object Shelves : Table("shelves") {
     val createdAt =
         timestampWithTimeZone("created_at").defaultExpression(CurrentTimestampWithTimeZone)
     override val primaryKey = PrimaryKey(id)
+
+    init {
+        uniqueIndex(userId, name)
+    }
 }

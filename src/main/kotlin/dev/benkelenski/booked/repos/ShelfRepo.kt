@@ -11,9 +11,9 @@ class ShelfRepo {
     companion object {
         private val DEFAULT_SHELVES =
             listOf(
-                Pair("To Read", ReadingStatus.TO_READ),
-                Pair("Reading", ReadingStatus.READING),
-                Pair("Finished", ReadingStatus.FINISHED),
+                Triple("To Read", ReadingStatus.TO_READ, false),
+                Triple("Reading", ReadingStatus.READING, false),
+                Triple("Finished", ReadingStatus.FINISHED, false),
             )
     }
 
@@ -36,10 +36,10 @@ class ShelfRepo {
             .singleOrNull()
 
     fun createDefaultShelves(userId: Int): List<Shelf> =
-        Shelves.batchInsert(DEFAULT_SHELVES) { (name, status) ->
+        Shelves.batchInsert(DEFAULT_SHELVES) { (name, status, isDeletable) ->
                 this[Shelves.userId] = userId
                 this[Shelves.name] = name
-                this[Shelves.isDeletable] = false
+                this[Shelves.isDeletable] = isDeletable
                 this[Shelves.readingStatus] = status
             }
             .map { it.toShelf() }

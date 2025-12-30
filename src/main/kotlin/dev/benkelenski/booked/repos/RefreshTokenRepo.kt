@@ -8,6 +8,8 @@ import org.jetbrains.exposed.sql.deleteWhere
 import org.jetbrains.exposed.sql.insertReturning
 import org.jetbrains.exposed.sql.selectAll
 import java.time.Instant
+import java.time.OffsetDateTime
+import java.time.ZoneOffset
 import java.util.*
 
 class RefreshTokenRepo {
@@ -21,7 +23,7 @@ class RefreshTokenRepo {
                 it[this.id] = UUID.randomUUID()
                 it[this.userId] = userId
                 it[this.tokenHash] = PasswordUtils.hashRefreshToken(rawToken)
-                it[this.expiresAt] = expiresAt
+                it[this.expiresAt] = expiresAt.atOffset(ZoneOffset.UTC)
             }
             .single()[RefreshTokens.id]
             .toString()
@@ -45,7 +47,7 @@ class RefreshTokenRepo {
 
         // 4) Check not expired
         val expiresAt = row[RefreshTokens.expiresAt]
-        if (expiresAt.isBefore(Instant.now())) return null
+        if (expiresAt.isBefore(OffsetDateTime.now())) return null
 
         // 5) Delete the used token (rotation)
         RefreshTokens.deleteWhere { RefreshTokens.id eq uuid }

@@ -41,11 +41,13 @@ object TestDbUtils {
                 }
                 .single()[Shelves.id]
 
-        Shelves.insert {
-            it[Shelves.userId] = testuser
-            it[Shelves.name] = "Reading"
-            it[Shelves.readingStatus] = ReadingStatus.READING
-        }
+        val shelfId2 =
+            Shelves.insertReturning {
+                    it[Shelves.userId] = testuser
+                    it[Shelves.name] = "Reading"
+                    it[Shelves.readingStatus] = ReadingStatus.READING
+                }
+                .single()[Shelves.id]
 
         Shelves.insert {
             it[Shelves.userId] = testuser
@@ -76,9 +78,19 @@ object TestDbUtils {
             it[Books.userId] = testuser
             it[Books.shelfId] = shelfId
         }
+
+        Books.insert {
+            it[Books.googleId] = "google4"
+            it[Books.title] = "The Hobbit"
+            it[Books.authors] = listOf("J.R.R. Tolkien")
+            it[Books.currentPage] = 100
+            it[Books.pageCount] = 1000
+            it[Books.userId] = testuser
+            it[Books.shelfId] = shelfId2
+        }
     }
 
-    fun createEmailUser(email: String, password: String? = null, name: String? = null): User =
+    fun createEmailUser(email: String, password: String? = null, name: String = "testuser"): User =
         transaction {
             val newUser =
                 Users.insertReturning {
