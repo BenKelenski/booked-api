@@ -109,7 +109,7 @@ class ShelfIntegrationTest {
 
         response shouldHaveStatus Status.OK
         val responseBody = Body.shelvesResLens(response).sortedBy { it.id }
-        responseBody shouldHaveSize 3
+        responseBody shouldHaveSize 4
         responseBody[0].bookCount shouldBe 3
         responseBody[1].bookCount shouldBe 1
         responseBody[2].bookCount shouldBe 0
@@ -221,7 +221,7 @@ class ShelfIntegrationTest {
         responseBody.name shouldBe "shelf 1"
         responseBody.description shouldBe null
         responseBody.createdAt shouldNotBe null
-        responseBody.readingStatus shouldBe null
+        responseBody.shelfType shouldBe ShelfType.CUSTOM
     }
 
     @Test
@@ -351,11 +351,11 @@ class ShelfIntegrationTest {
 
     @Test
     fun `delete shelf - success`() {
-        Request(Method.DELETE, "/api/v1/shelves/1")
+        Request(Method.DELETE, "/api/v1/shelves/4")
             .cookie(Cookie("access_token", fakeTokenProvider.generateAccessToken(1)))
             .let(app)
             .shouldHaveStatus(Status.NO_CONTENT)
 
-        transaction { Shelves.selectAll().where { Shelves.userId eq 1 }.count() shouldBe 2 }
+        transaction { Shelves.selectAll().where { Shelves.userId eq 1 }.count() shouldBe 3 }
     }
 }

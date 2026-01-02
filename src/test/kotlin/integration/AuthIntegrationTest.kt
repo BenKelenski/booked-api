@@ -21,7 +21,6 @@ import org.http4k.kotest.shouldHaveStatus
 import org.http4k.routing.RoutingHttpHandler
 import org.http4k.routing.reverseProxy
 import org.jetbrains.exposed.sql.Database
-import org.jetbrains.exposed.sql.and
 import org.jetbrains.exposed.sql.selectAll
 import org.jetbrains.exposed.sql.transactions.transaction
 import org.junit.jupiter.api.*
@@ -164,11 +163,7 @@ class AuthIntegrationTest {
         responseBody.name shouldBe "Test User"
         responseBody.email shouldBe "test@test.com"
 
-        transaction {
-            Shelves.selectAll()
-                .where { (Shelves.userId eq 1) and (Shelves.isDeletable eq false) }
-                .count() shouldBe 3
-        }
+        transaction { Shelves.selectAll().where { (Shelves.userId eq 1) }.count() shouldBe 3 }
     }
 
     @Test

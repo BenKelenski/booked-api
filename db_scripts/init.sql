@@ -35,16 +35,18 @@ CREATE INDEX idx_refresh_tokens_user_id ON refresh_tokens (user_id);
 
 CREATE TABLE IF NOT EXISTS shelves
 (
-    id             SERIAL PRIMARY KEY,
-    user_id        INTEGER      NOT NULL REFERENCES users (id) ON DELETE CASCADE,
-    name           VARCHAR(150) NOT NULL,
-    description    VARCHAR(250) NULL,
-    is_deletable   BOOLEAN      NOT NULL DEFAULT TRUE,
-    reading_status TEXT         NULL,
-    created_at     TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT chk_shelf_status CHECK (reading_status IN ('TO_READ', 'READING', 'FINISHED')),
+    id          SERIAL PRIMARY KEY,
+    user_id     INTEGER      NOT NULL REFERENCES users (id) ON DELETE CASCADE,
+    name        VARCHAR(150) NOT NULL,
+    description VARCHAR(250) NULL,
+    shelf_type  TEXT         NOT NULL DEFAULT 'CUSTOM',
+    created_at  TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT chk_shelf_status CHECK (shelf_type IN ('TO_READ', 'READING', 'FINISHED', 'CUSTOM')),
     UNIQUE (user_id, name)
 );
+CREATE UNIQUE INDEX idx_user_shelf_type_unique_non_custom
+    ON shelves (user_id, shelf_type)
+    WHERE shelf_type != 'CUSTOM';
 
 CREATE TABLE IF NOT EXISTS books
 (

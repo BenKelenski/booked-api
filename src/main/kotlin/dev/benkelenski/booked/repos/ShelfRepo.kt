@@ -1,7 +1,7 @@
 package dev.benkelenski.booked.repos
 
-import dev.benkelenski.booked.domain.ReadingStatus
 import dev.benkelenski.booked.domain.Shelf
+import dev.benkelenski.booked.domain.ShelfType
 import dev.benkelenski.booked.models.Shelves
 import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
@@ -11,9 +11,9 @@ class ShelfRepo {
     companion object {
         private val DEFAULT_SHELVES =
             listOf(
-                Triple("To Read", ReadingStatus.TO_READ, false),
-                Triple("Reading", ReadingStatus.READING, false),
-                Triple("Finished", ReadingStatus.FINISHED, false),
+                Pair("To Read", ShelfType.TO_READ),
+                Pair("Reading", ShelfType.READING),
+                Pair("Finished", ShelfType.FINISHED),
             )
     }
 
@@ -36,11 +36,10 @@ class ShelfRepo {
             .singleOrNull()
 
     fun createDefaultShelves(userId: Int): List<Shelf> =
-        Shelves.batchInsert(DEFAULT_SHELVES) { (name, status, isDeletable) ->
+        Shelves.batchInsert(DEFAULT_SHELVES) { (name, shelfType) ->
                 this[Shelves.userId] = userId
                 this[Shelves.name] = name
-                this[Shelves.isDeletable] = isDeletable
-                this[Shelves.readingStatus] = status
+                this[Shelves.shelfType] = shelfType
             }
             .map { it.toShelf() }
 
@@ -51,7 +50,7 @@ class ShelfRepo {
                 .map { it.toShelf() }
                 .singleOrNull() ?: return null
 
-        if (!shelf.isDeletable) return null
+        if (shelf.shelfType != ShelfType.CUSTOM) return null
 
         return Shelves.deleteWhere { (Shelves.id eq shelfId) and (Shelves.userId eq userId) }
     }
@@ -65,9 +64,9 @@ class ShelfRepo {
             .limit(1)
             .any()
 
-    fun findShelfByStatus(userId: Int, status: ReadingStatus): Shelf? =
+    fun findShelfByStatus(userId: Int, status: ShelfType): Shelf? =
         Shelves.selectAll()
-            .where { (Shelves.userId eq userId) and (Shelves.readingStatus eq status) }
+            .where { (Shelves.userId eq userId) and (Shelves.shelfType eq status) }
             .map { it.toShelf() }
             .singleOrNull()
 }
@@ -78,7 +77,6 @@ fun ResultRow.toShelf() =
         userId = this[Shelves.userId],
         name = this[Shelves.name],
         description = this[Shelves.description],
-        isDeletable = this[Shelves.isDeletable],
-        readingStatus = this[Shelves.readingStatus],
+        shelfType = this[Shelves.shelfType],
         createdAt = this[Shelves.createdAt].toInstant(),
     )

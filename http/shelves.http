@@ -12,7 +12,7 @@ Cookie: access_token={{ACCESS_TOKEN}}
 Content-Type: application/json
 
 {
-  "name": "my shelf"
+  "name": "custom shelf"
 }
 
 ### POST add book to a shelf

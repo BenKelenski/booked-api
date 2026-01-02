@@ -1,6 +1,6 @@
 package dev.benkelenski.booked.services
 
-import dev.benkelenski.booked.domain.ReadingStatus
+import dev.benkelenski.booked.domain.ShelfType
 import dev.benkelenski.booked.domain.requests.CompleteBookRequest
 import dev.benkelenski.booked.domain.requests.UpdateBookPatch
 import dev.benkelenski.booked.domain.responses.BookResponse
@@ -97,7 +97,7 @@ class BookService(private val bookRepo: BookRepo, private val shelfRepo: ShelfRe
 
         // Find a user's "FINISHED" shelf
         val finishedShelf =
-            shelfRepo.findShelfByStatus(userId, ReadingStatus.FINISHED)
+            shelfRepo.findShelfByStatus(userId, ShelfType.FINISHED)
                 ?: return@transaction BookUpdateResult.DatabaseError
 
         validateShelfMove(userId, bookId, ownedBook, ownedBook.shelfId, finishedShelf.id)?.let {
