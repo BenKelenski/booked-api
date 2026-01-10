@@ -161,7 +161,8 @@ fun bookRoutes(
                                 type = ErrorTypes.CONFLICT,
                             )
                     )
-            is BookUpdateResult.DatabaseError ->
+            is BookUpdateResult.ValidationError,
+            BookUpdateResult.DatabaseError ->
                 Response(Status.INTERNAL_SERVER_ERROR)
                     .with(
                         Body.apiErrorLens of
@@ -221,6 +222,16 @@ fun bookRoutes(
                                 message = "Book not found",
                                 code = ErrorCodes.BOOK_NOT_FOUND,
                                 type = ErrorTypes.NOT_FOUND,
+                            )
+                    )
+            is BookUpdateResult.ValidationError ->
+                Response(Status.BAD_REQUEST)
+                    .with(
+                        Body.apiErrorLens of
+                            ApiError(
+                                message = "Invalid book progress update request",
+                                code = ErrorCodes.INVALID_BOOK_PROGRESS_REQUEST,
+                                type = ErrorTypes.VALIDATION,
                             )
                     )
             is BookUpdateResult.ShelfNotFound ->
@@ -286,15 +297,6 @@ fun bookRoutes(
                     )
                 }
 
-        val validationResult: List<String> = completeRequest.validate()
-        if (validationResult.isNotEmpty()) {
-            logger.warn { "Book validation failed: $validationResult" }
-            return@authHandler createValidationErrorResponse(
-                message = validationResult.joinToString(", "),
-                ErrorCodes.INVALID_BOOK_COMPLETED_REQUEST,
-            )
-        }
-
         logger.info { "Received book completion request: $completeRequest for $bookId" }
 
         when (val result = completeBook(userId, bookId, completeRequest)) {
@@ -311,6 +313,17 @@ fun bookRoutes(
                                 message = "Book not found",
                                 code = ErrorCodes.BOOK_NOT_FOUND,
                                 type = ErrorTypes.NOT_FOUND,
+                            )
+                    )
+            }
+            is BookUpdateResult.ValidationError -> {
+                Response(Status.BAD_REQUEST)
+                    .with(
+                        Body.apiErrorLens of
+                            ApiError(
+                                message = result.errors.joinToString(", "),
+                                code = ErrorCodes.INVALID_BOOK_COMPLETED_REQUEST,
+                                type = ErrorTypes.VALIDATION,
                             )
                     )
             }

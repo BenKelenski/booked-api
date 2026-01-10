@@ -65,7 +65,7 @@ class BookService(private val bookRepo: BookRepo, private val shelfRepo: ShelfRe
                 ?: return@transaction validateBookExistence(bookId)
 
         val targetShelf =
-            shelfRepo.fetchShelfById(userId, book.shelfId)
+            shelfRepo.fetchShelfById(userId = userId, shelfId = targetShelfId)
                 ?: return@transaction BookUpdateResult.ShelfNotFound
 
         validateShelfMove(
@@ -76,7 +76,8 @@ class BookService(private val bookRepo: BookRepo, private val shelfRepo: ShelfRe
                 return@transaction it
             }
 
-        val updatedBook = book.moveToShelf(targetShelfId, targetShelf.shelfType)
+        val updatedBook =
+            book.moveToShelf(targetShelfId = targetShelfId, targetShelfType = targetShelf.shelfType)
 
         bookRepo.updateBook(updatedBook)?.let { BookUpdateResult.Success(BookResponse.from(it)) }
             ?: BookUpdateResult.DatabaseError
@@ -88,8 +89,13 @@ class BookService(private val bookRepo: BookRepo, private val shelfRepo: ShelfRe
                 bookRepo.findByIdAndUser(bookId = bookId, userId = userId)
                     ?: return@transaction validateBookExistence(bookId)
 
+            if (latestPage !in 1..10000)
+                return@transaction BookUpdateResult.ValidationError(
+                    listOf("Page must be between 1 and 10000")
+                )
+
             val currentShelf =
-                shelfRepo.fetchShelfById(userId, book.shelfId)
+                shelfRepo.fetchShelfById(userId = userId, shelfId = book.shelfId)
                     ?: return@transaction BookUpdateResult.ShelfNotFound
 
             if (currentShelf.shelfType != ShelfType.READING)
@@ -110,6 +116,12 @@ class BookService(private val bookRepo: BookRepo, private val shelfRepo: ShelfRe
         val book =
             bookRepo.findByIdAndUser(bookId = bookId, userId = userId)
                 ?: return@transaction validateBookExistence(bookId)
+
+        val validationErrors = completeBookRequest.validate()
+        if (validationErrors.isNotEmpty()) {
+            logger.warn { "Book completion validation failed: $validationErrors" }
+            return@transaction BookUpdateResult.ValidationError(validationErrors)
+        }
 
         // Find a user's "FINISHED" shelf
         val finishedShelf =
@@ -167,6 +179,8 @@ class BookService(private val bookRepo: BookRepo, private val shelfRepo: ShelfRe
 
 sealed class BookUpdateResult {
     data class Success(val book: BookResponse) : BookUpdateResult()
+
+    data class ValidationError(val errors: List<String>) : BookUpdateResult()
 
     object NotFound : BookUpdateResult()
 
