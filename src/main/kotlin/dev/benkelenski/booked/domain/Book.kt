@@ -17,4 +17,22 @@ data class Book(
     val finishedAt: Instant?,
     val userId: Int,
     val shelfId: Int,
-)
+) {
+    fun moveToShelf(targetShelfId: Int, targetShelfType: ShelfType): Book =
+        when (targetShelfType) {
+            ShelfType.READING ->
+                this.copy(
+                    shelfId = targetShelfId,
+                    currentPage =
+                        0, // Rule: Moving to a READING shelfType starts the currentPage at 0
+                )
+            else ->
+                this.copy(
+                    shelfId = targetShelfId,
+                    currentPage =
+                        null, // Rule: Moving to any other shelfType resets the currentPage to null
+                )
+        }
+
+    fun updateProgress(latestPage: Int): Book = this.copy(currentPage = latestPage)
+}
