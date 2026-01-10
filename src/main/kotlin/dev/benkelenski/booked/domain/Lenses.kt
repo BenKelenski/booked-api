@@ -51,8 +51,11 @@ val Body.Companion.bookResLens
 val Body.Companion.booksResLens
     get() = Body.auto<Array<BookResponse>>().toLens()
 
-val Body.Companion.bookPatchLens
-    get() = Body.auto<UpdateBookPatch>().toLens()
+val Body.Companion.moveBookReqLens
+    get() = Body.auto<MoveBookRequest>().toLens()
+
+val Body.Companion.updateBookProgressReqLens
+    get() = Body.auto<UpdateBookProgressRequest>().toLens()
 
 val Body.Companion.completeBookLens
     get() = Body.auto<CompleteBookRequest>().toLens()
