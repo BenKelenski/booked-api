@@ -10,20 +10,11 @@ import java.time.ZoneOffset
 
 class BookRepo {
 
-    data class OwnedBookMinimal(val id: Int, val shelfId: Int, val googleId: String)
-
-    fun findOwnedMinimal(bookId: Int, userId: Int): OwnedBookMinimal? =
-        (Books innerJoin Shelves)
-            .select(Books.id, Books.shelfId, Books.googleId)
-            .where { (Books.id eq bookId) and (Shelves.userId eq userId) }
+    fun findByIdAndUser(bookId: Int, userId: Int): Book? =
+        Books.selectAll()
+            .where { (Books.id eq bookId) and (Books.userId eq userId) }
+            .map { it.toBook() }
             .singleOrNull()
-            ?.let {
-                OwnedBookMinimal(
-                    id = it[Books.id],
-                    shelfId = it[Books.shelfId],
-                    googleId = it[Books.googleId],
-                )
-            }
 
     fun fetchAllBooksForUser(userId: Int, shelves: List<Int>): List<Book> {
         val query = Books.selectAll().where { Books.userId eq userId }
@@ -90,16 +81,18 @@ class BookRepo {
             .any()
 
     fun updateBook(
-        bookId: Int,
-        moveToShelfId: Int?, // null = don't move
-        currentPage: Int?, // null = unchanged
-        updatedAt: Instant?, // set on any change if you store it
-    ): Int =
-        Books.update({ Books.id eq bookId }) {
-            moveToShelfId?.let { shelf -> it[Books.shelfId] = shelf }
-            currentPage?.let { p -> it[Books.currentPage] = p }
-            updatedAt?.let { ts -> it[Books.updatedAt] = ts.atOffset(ZoneOffset.UTC) }
-        }
+        book: Book,
+    ): Book? =
+        Books.updateReturning(where = { Books.id eq book.id }) {
+                it[Books.shelfId] = book.shelfId
+                it[Books.currentPage] = book.currentPage
+                it[Books.rating] = book.rating
+                it[Books.review] = book.review
+                it[Books.updatedAt] = Instant.now().atOffset(ZoneOffset.UTC)
+                it[Books.finishedAt] = book.finishedAt?.atOffset(ZoneOffset.UTC)
+            }
+            .map { it.toBook() }
+            .singleOrNull()
 
     fun completeBook(
         bookId: Int,
