@@ -1,12 +1,10 @@
 package integration
 
 import dev.benkelenski.booked.createApp
-import dev.benkelenski.booked.domain.bookPatchLens
-import dev.benkelenski.booked.domain.bookResLens
-import dev.benkelenski.booked.domain.booksResLens
-import dev.benkelenski.booked.domain.completeBookLens
+import dev.benkelenski.booked.domain.*
 import dev.benkelenski.booked.domain.requests.CompleteBookRequest
-import dev.benkelenski.booked.domain.requests.UpdateBookPatch
+import dev.benkelenski.booked.domain.requests.MoveBookRequest
+import dev.benkelenski.booked.domain.requests.UpdateBookProgressRequest
 import dev.benkelenski.booked.loadConfig
 import dev.benkelenski.booked.models.Books
 import io.kotest.matchers.collections.shouldHaveSize
@@ -200,59 +198,178 @@ class BookIntegrationTest {
     }
 
     @Test
-    fun `update book - unauthorized - no token`() {
-        Request(Method.PATCH, "/api/v1/books/9999").let(app).shouldHaveStatus(Status.UNAUTHORIZED)
+    fun `move book - missing book id`() {
+        Request(Method.POST, "/api/v1/books/ /move")
+            .cookie(Cookie("access_token", fakeTokenProvider.generateAccessToken(1)))
+            .with(Body.moveBookReqLens of MoveBookRequest(2))
+            .let(app)
+            .shouldHaveStatus(Status.BAD_REQUEST)
     }
 
     @Test
-    fun `update book - unauthorized - bad token`() {
-        Request(Method.PATCH, "/api/v1/books/9999")
-            .cookie(Cookie("access_token", "foo"))
+    fun `move book - invalid book id`() {
+        Request(Method.POST, "/api/v1/books/INVALID_BOOK_ID/move")
+            .cookie(Cookie("access_token", fakeTokenProvider.generateAccessToken(1)))
+            .with(Body.moveBookReqLens of MoveBookRequest(2))
+            .let(app)
+            .shouldHaveStatus(Status.BAD_REQUEST)
+    }
+
+    @Test
+    fun `move book - unauthorized - no token`() {
+        Request(Method.POST, "/api/v1/books/1/move")
+            .with(Body.moveBookReqLens of MoveBookRequest(2))
             .let(app)
             .shouldHaveStatus(Status.UNAUTHORIZED)
     }
 
     @Test
-    fun `update book - bad request - invalid book id`() {
-        Request(Method.PATCH, "/api/v1/books/INVALID_BOOK_ID")
+    fun `move book - unauthorized - bad token`() {
+        Request(Method.POST, "/api/v1/books/1/move")
+            .cookie(Cookie("access_token", "foo"))
+            .with(Body.moveBookReqLens of MoveBookRequest(2))
+            .let(app)
+            .shouldHaveStatus(Status.UNAUTHORIZED)
+    }
+
+    @Test
+    fun `move book - missing move book request`() {
+        Request(Method.POST, "/api/v1/books/1/move")
             .cookie(Cookie("access_token", fakeTokenProvider.generateAccessToken(1)))
             .let(app)
             .shouldHaveStatus(Status.BAD_REQUEST)
     }
 
     @Test
-    fun `update book - bad request - empty request body`() {
-        Request(Method.PATCH, "/api/v1/books/9999")
+    fun `move book - book not found`() {
+        Request(Method.POST, "/api/v1/books/9999/move")
             .cookie(Cookie("access_token", fakeTokenProvider.generateAccessToken(1)))
-            .with(Body.bookPatchLens of UpdateBookPatch(null, null, null))
+            .with(Body.moveBookReqLens of MoveBookRequest(2))
             .let(app)
-            .shouldHaveStatus(Status.BAD_REQUEST)
+            .shouldHaveStatus(Status.NOT_FOUND)
     }
 
     @Test
-    fun `update book - bad request - invalid status`() {
-        Request(Method.PATCH, "/api/v1/books/9999")
+    fun `move book - shelf not found`() {
+        Request(Method.POST, "/api/v1/books/1/move")
             .cookie(Cookie("access_token", fakeTokenProvider.generateAccessToken(1)))
-            .body("""{"status": "INVALID_STATUS"}""")
+            .with(Body.moveBookReqLens of MoveBookRequest(999))
             .let(app)
-            .shouldHaveStatus(Status.BAD_REQUEST)
+            .shouldHaveStatus(Status.NOT_FOUND)
     }
 
     @Test
-    fun `update book - success - progressPercent updated`() {
+    fun `move book - success - move to reading shelf`() {
         val response =
-            Request(Method.PATCH, "/api/v1/books/1")
+            Request(Method.POST, "/api/v1/books/1/move")
                 .cookie(Cookie("access_token", fakeTokenProvider.generateAccessToken(1)))
-                .with(Body.bookPatchLens of UpdateBookPatch(10, null, null))
+                .with(Body.moveBookReqLens of MoveBookRequest(2))
                 .let(app)
 
         response shouldHaveStatus Status.OK
-
         val responseBody = Body.bookResLens(response)
         responseBody.id shouldBe 1
-        responseBody.currentPage shouldBe 10
+        responseBody.shelfId shouldBe 2
+        responseBody.updatedAt shouldNotBe null
+        responseBody.currentPage shouldBe 0
+        responseBody.finishedAt shouldBe null
+    }
+
+    @Test
+    fun `move book - success - move from reading shelf`() {
+        val response =
+            Request(Method.POST, "/api/v1/books/4/move")
+                .cookie(Cookie("access_token", fakeTokenProvider.generateAccessToken(1)))
+                .with(Body.moveBookReqLens of MoveBookRequest(1))
+                .let(app)
+
+        response shouldHaveStatus Status.OK
+        val responseBody = Body.bookResLens(response)
+        responseBody.id shouldBe 4
+        responseBody.shelfId shouldBe 1
+        responseBody.updatedAt shouldNotBe null
+        responseBody.currentPage shouldBe null
+        responseBody.finishedAt shouldBe null
+    }
+
+    @Test
+    fun `update book - missing book id`() {
+        Request(Method.PATCH, "/api/v1/books/ /progress")
+            .cookie(Cookie("access_token", fakeTokenProvider.generateAccessToken(1)))
+            .with(Body.updateBookProgressReqLens of UpdateBookProgressRequest(150))
+            .let(app)
+            .shouldHaveStatus(Status.BAD_REQUEST)
+    }
+
+    @Test
+    fun `update book - invalid book id`() {
+        Request(Method.PATCH, "/api/v1/books/INVALID_BOOK_ID/progress")
+            .cookie(Cookie("access_token", fakeTokenProvider.generateAccessToken(1)))
+            .with(Body.updateBookProgressReqLens of UpdateBookProgressRequest(150))
+            .let(app)
+            .shouldHaveStatus(Status.BAD_REQUEST)
+    }
+
+    @Test
+    fun `update book - unauthorized - no token`() {
+        Request(Method.PATCH, "/api/v1/books/1/progress")
+            .with(Body.updateBookProgressReqLens of UpdateBookProgressRequest(150))
+            .let(app)
+            .shouldHaveStatus(Status.UNAUTHORIZED)
+    }
+
+    @Test
+    fun `update book progress - unauthorized - bad token`() {
+        Request(Method.PATCH, "/api/v1/books/1/progress")
+            .cookie(Cookie("access_token", "foo"))
+            .with(Body.updateBookProgressReqLens of UpdateBookProgressRequest(150))
+            .let(app)
+            .shouldHaveStatus(Status.UNAUTHORIZED)
+    }
+
+    @Test
+    fun `update book progress - missing update book request`() {
+        Request(Method.PATCH, "/api/v1/books/1/progress")
+            .cookie(Cookie("access_token", fakeTokenProvider.generateAccessToken(1)))
+            .let(app)
+            .shouldHaveStatus(Status.BAD_REQUEST)
+    }
+
+    @Test
+    fun `update book progress - success`() {
+        val response =
+            Request(Method.PATCH, "/api/v1/books/4/progress")
+                .cookie(Cookie("access_token", fakeTokenProvider.generateAccessToken(1)))
+                .with(Body.updateBookProgressReqLens of UpdateBookProgressRequest(1500))
+                .let(app)
+
+        response shouldHaveStatus Status.OK
+        val responseBody = Body.bookResLens(response)
+        responseBody.id shouldBe 4
+        responseBody.currentPage shouldBe 1500
         responseBody.updatedAt shouldNotBe null
         responseBody.finishedAt shouldBe null
+    }
+
+    @Test
+    fun `update book progress - cannot update current page on non-reading shelf`() {
+        val response =
+            Request(Method.PATCH, "/api/v1/books/1/progress")
+                .cookie(Cookie("access_token", fakeTokenProvider.generateAccessToken(1)))
+                .with(Body.updateBookProgressReqLens of UpdateBookProgressRequest(1500))
+                .let(app)
+
+        response shouldHaveStatus Status.FORBIDDEN
+    }
+
+    @Test
+    fun `update book progress - cannot update current page to negative value`() {
+        val response =
+            Request(Method.PATCH, "/api/v1/books/4/progress")
+                .cookie(Cookie("access_token", fakeTokenProvider.generateAccessToken(1)))
+                .with(Body.updateBookProgressReqLens of UpdateBookProgressRequest(-100))
+                .let(app)
+                .shouldHaveStatus(Status.BAD_REQUEST)
     }
 
     @Test
@@ -352,17 +469,6 @@ class BookIntegrationTest {
         responseBody.id shouldBe 1
         responseBody.finishedAt shouldNotBe null
         responseBody.updatedAt shouldNotBe null
-    }
-
-    @Test
-    fun `update book - success - move shelf`() {
-        val response =
-            Request(Method.PATCH, "/api/v1/books/1")
-                .cookie(Cookie("access_token", fakeTokenProvider.generateAccessToken(1)))
-                .with(Body.bookPatchLens of UpdateBookPatch(null, null, 2))
-                .let(app)
-
-        response shouldHaveStatus Status.OK
     }
 
     @Test
