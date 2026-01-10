@@ -7,6 +7,7 @@ object ErrorTypes {
     const val VALIDATION = "validation_error"
     const val NOT_FOUND = "not_found_error"
     const val CONFLICT = "conflict_error"
+    const val BUSINESS_RULE = "business_rule_error"
 
     // Server Errors (5xx)
     const val SYSTEM = "system_error"
