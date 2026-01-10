@@ -1,8 +1,8 @@
 package dev.benkelenski.booked.services
 
+import dev.benkelenski.booked.domain.Book
 import dev.benkelenski.booked.domain.ShelfType
 import dev.benkelenski.booked.domain.requests.CompleteBookRequest
-import dev.benkelenski.booked.domain.requests.UpdateBookPatch
 import dev.benkelenski.booked.domain.responses.BookResponse
 import dev.benkelenski.booked.repos.BookRepo
 import dev.benkelenski.booked.repos.ShelfRepo
@@ -16,8 +16,11 @@ typealias FindBooksByShelf = (userId: Int, shelves: List<Int>) -> List<BookRespo
 /** alias for [BookService.findBookById] */
 typealias FindBookById = (bookId: Int) -> BookResponse?
 
-/** alias for [BookService.updateBook] */
-typealias UpdateBook = (userId: Int, bookId: Int, patch: UpdateBookPatch) -> BookUpdateResult
+/** alias for [BookService.moveBook] */
+typealias MoveBook = (userId: Int, bookId: Int, targetShelfId: Int) -> BookUpdateResult
+
+/** alias for [BookService.updateBookProgress] */
+typealias UpdateBookProgress = (userId: Int, bookId: Int, latestPage: Int) -> BookUpdateResult
 
 /** alias for [BookService.deleteBook] */
 typealias DeleteBook = (userId: Int, bookId: Int) -> BookDeleteResult
@@ -40,36 +43,6 @@ class BookService(private val bookRepo: BookRepo, private val shelfRepo: ShelfRe
         bookRepo.fetchById(bookId)?.let { BookResponse.from(it) }
     }
 
-    fun updateBook(userId: Int, bookId: Int, patch: UpdateBookPatch): BookUpdateResult =
-        transaction {
-            val ownedBook =
-                bookRepo.findOwnedMinimal(bookId, userId)
-                    ?: return@transaction validateBookExistence(bookId)
-
-            val currentShelfId = ownedBook.shelfId
-            val targetShelfId = patch.shelfId ?: currentShelfId
-
-            validateShelfMove(userId, bookId, ownedBook, currentShelfId, targetShelfId)?.let {
-                return@transaction it
-            }
-
-            val now = Instant.now()
-
-            val rows =
-                bookRepo.updateBook(
-                    bookId = bookId,
-                    moveToShelfId = if (targetShelfId != currentShelfId) targetShelfId else null,
-                    currentPage = patch.currentPage,
-                    updatedAt = now,
-                )
-            if (rows == 0) return@transaction BookUpdateResult.NotFound
-
-            val updatedBook =
-                bookRepo.fetchById(bookId) ?: return@transaction BookUpdateResult.NotFound
-
-            BookUpdateResult.Success(BookResponse.from(updatedBook))
-        }
-
     fun deleteBook(userId: Int, bookId: Int): BookDeleteResult =
         try {
             transaction {
@@ -86,23 +59,70 @@ class BookService(private val bookRepo: BookRepo, private val shelfRepo: ShelfRe
             BookDeleteResult.DatabaseError
         }
 
+    fun moveBook(userId: Int, bookId: Int, targetShelfId: Int): BookUpdateResult = transaction {
+        val book =
+            bookRepo.findByIdAndUser(bookId = bookId, userId = userId)
+                ?: return@transaction validateBookExistence(bookId)
+
+        val targetShelf =
+            shelfRepo.fetchShelfById(userId, book.shelfId)
+                ?: return@transaction BookUpdateResult.ShelfNotFound
+
+        validateShelfMove(
+                book = book,
+                targetShelfId = targetShelfId,
+            )
+            ?.let {
+                return@transaction it
+            }
+
+        val updatedBook = book.moveToShelf(targetShelfId, targetShelf.shelfType)
+
+        bookRepo.updateBook(updatedBook)?.let { BookUpdateResult.Success(BookResponse.from(it)) }
+            ?: BookUpdateResult.DatabaseError
+    }
+
+    fun updateBookProgress(userId: Int, bookId: Int, latestPage: Int): BookUpdateResult =
+        transaction {
+            val book =
+                bookRepo.findByIdAndUser(bookId = bookId, userId = userId)
+                    ?: return@transaction validateBookExistence(bookId)
+
+            val currentShelf =
+                shelfRepo.fetchShelfById(userId, book.shelfId)
+                    ?: return@transaction BookUpdateResult.ShelfNotFound
+
+            if (currentShelf.shelfType != ShelfType.READING)
+                return@transaction BookUpdateResult.Forbidden
+
+            val updatedBook = book.updateProgress(latestPage = latestPage)
+
+            bookRepo.updateBook(updatedBook)?.let {
+                BookUpdateResult.Success(BookResponse.from(it))
+            } ?: BookUpdateResult.DatabaseError
+        }
+
     fun completeBook(
         userId: Int,
         bookId: Int,
         completeBookRequest: CompleteBookRequest,
     ): BookUpdateResult = transaction {
-        val ownedBook =
-            bookRepo.findOwnedMinimal(bookId, userId)
+        val book =
+            bookRepo.findByIdAndUser(bookId = bookId, userId = userId)
                 ?: return@transaction validateBookExistence(bookId)
 
         // Find a user's "FINISHED" shelf
         val finishedShelf =
-            shelfRepo.findShelfByStatus(userId, ShelfType.FINISHED)
-                ?: return@transaction BookUpdateResult.DatabaseError
+            shelfRepo.findShelfByStatus(userId = userId, status = ShelfType.FINISHED)
+                ?: return@transaction BookUpdateResult.ShelfNotFound
 
-        validateShelfMove(userId, bookId, ownedBook, ownedBook.shelfId, finishedShelf.id)?.let {
-            return@transaction it
-        }
+        validateShelfMove(
+                book = book,
+                targetShelfId = finishedShelf.id,
+            )
+            ?.let {
+                return@transaction it
+            }
 
         val now = Instant.now()
 
@@ -129,22 +149,16 @@ class BookService(private val bookRepo: BookRepo, private val shelfRepo: ShelfRe
     }
 
     private fun validateShelfMove(
-        userId: Int,
-        bookId: Int,
-        ownedBook: BookRepo.OwnedBookMinimal,
-        currentShelfId: Int,
+        book: Book,
         targetShelfId: Int,
     ): BookUpdateResult? {
-        if (targetShelfId == currentShelfId) return null
-
-        val ownsTargetShelf = shelfRepo.userOwnsShelf(userId, targetShelfId)
-        if (!ownsTargetShelf) return BookUpdateResult.Forbidden
+        if (targetShelfId == book.shelfId) return null
 
         val hasDuplicate =
             bookRepo.existsDuplicateOnShelf(
                 targetShelfId = targetShelfId,
-                googleId = ownedBook.googleId,
-                excludingBookId = bookId,
+                googleId = book.googleId,
+                excludingBookId = book.id,
             )
 
         return if (hasDuplicate) BookUpdateResult.Conflict else null
@@ -155,6 +169,8 @@ sealed class BookUpdateResult {
     data class Success(val book: BookResponse) : BookUpdateResult()
 
     object NotFound : BookUpdateResult()
+
+    object ShelfNotFound : BookUpdateResult()
 
     object Forbidden : BookUpdateResult()
 

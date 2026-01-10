@@ -22,7 +22,8 @@ private val logger = KotlinLogging.logger {}
 fun bookRoutes(
     findBookById: FindBookById,
     findBooksByShelf: FindBooksByShelf,
-    updateBook: UpdateBook,
+    moveBook: MoveBook,
+    updateBookProgress: UpdateBookProgress,
     deleteBook: DeleteBook,
     completeBook: CompleteBook,
     authMiddleware: AuthMiddleware,
@@ -61,7 +62,27 @@ fun bookRoutes(
             ?: Response(Status.NOT_FOUND)
     }
 
-    val patchBookHandler = authHandler { userId, request ->
+    val deleteBookHandler = authHandler { userId, request ->
+        val bookId =
+            try {
+                bookIdPathLens(request)
+            } catch (e: LensFailure) {
+                logger.error(e) { "Missing or invalid book ID" }
+                return@authHandler Response(Status.BAD_REQUEST).body("Missing or invalid book ID")
+            }
+
+        logger.info { "Received book deletion request for book: $bookId" }
+
+        when (deleteBook(userId, bookId)) {
+            is BookDeleteResult.Success -> Response(Status.NO_CONTENT)
+            is BookDeleteResult.NotFound -> Response(Status.NOT_FOUND)
+            is BookDeleteResult.Forbidden -> Response(Status.FORBIDDEN)
+            is BookDeleteResult.DatabaseError ->
+                Response(Status.INTERNAL_SERVER_ERROR).body("Error occurred trying to delete book")
+        }
+    }
+
+    val moveBookHandler = authHandler { userId, request ->
         val bookId =
             try {
                 bookIdPathLens(request)
@@ -78,43 +99,28 @@ fun bookRoutes(
                     )
             }
 
-        val patch =
+        val moveBookRequest =
             try {
-                Body.bookPatchLens(request)
+                Body.moveBookReqLens(request)
             } catch (e: LensFailure) {
-                logger.error(e) { "Missing or invalid book update request" }
+                logger.error(e) { "Missing or invalid move book request" }
                 return@authHandler Response(Status.BAD_REQUEST)
                     .with(
                         Body.apiErrorLens of
                             ApiError(
-                                message = "Missing or invalid book update request",
-                                code = ErrorCodes.INVALID_BOOK_UPDATE_REQUEST,
+                                message = "Missing or invalid move book request",
+                                code = ErrorCodes.INVALID_BOOK_MOVE_REQUEST,
                                 type = ErrorTypes.VALIDATION,
                             )
                     )
             }
 
-        if (patch.isEmpty()) {
-            logger.error { "Patch cannot be empty" }
-            return@authHandler Response(Status.BAD_REQUEST)
-                .with(
-                    Body.apiErrorLens of
-                        ApiError(
-                            message = "All book patch fields cannot be empty",
-                            code = ErrorCodes.INVALID_BOOK_UPDATE_REQUEST,
-                            type = ErrorTypes.VALIDATION,
-                        )
-                )
+        logger.info {
+            "Received book move request for book: $bookId to shelf: ${moveBookRequest.shelfId}"
         }
 
-        logger.info { "Received book patch request: $patch for book: $bookId" }
-
-        when (val res = updateBook(userId, bookId, patch)) {
-            is BookUpdateResult.Success -> {
-                logger.info { "Successfully updated book: $bookId" }
-                Response(Status.OK).with(Body.bookResLens of res.book)
-            }
-
+        when (val result = moveBook(userId, bookId, moveBookRequest.shelfId)) {
+            is BookUpdateResult.Success -> Response(Status.OK).with(Body.bookResLens of result.book)
             is BookUpdateResult.NotFound ->
                 Response(Status.NOT_FOUND)
                     .with(
@@ -125,12 +131,22 @@ fun bookRoutes(
                                 type = ErrorTypes.NOT_FOUND,
                             )
                     )
+            is BookUpdateResult.ShelfNotFound ->
+                Response(Status.NOT_FOUND)
+                    .with(
+                        Body.apiErrorLens of
+                            ApiError(
+                                message = "Shelf not found",
+                                code = ErrorCodes.SHELF_NOT_FOUND,
+                                type = ErrorTypes.NOT_FOUND,
+                            )
+                    )
             is BookUpdateResult.Forbidden ->
                 Response(Status.FORBIDDEN)
                     .with(
                         Body.apiErrorLens of
                             ApiError(
-                                message = "Insufficient permissions to update book",
+                                message = "Insufficient permissions to move book",
                                 code = ErrorCodes.INSUFFICIENT_PERMISSIONS,
                                 type = ErrorTypes.AUTHORIZATION,
                             )
@@ -150,7 +166,7 @@ fun bookRoutes(
                     .with(
                         Body.apiErrorLens of
                             ApiError(
-                                message = "Error occurred trying to update book",
+                                message = "Error occurred trying to move book",
                                 code = ErrorCodes.INTERNAL_SERVER_ERROR,
                                 type = ErrorTypes.SYSTEM,
                             )
@@ -158,23 +174,86 @@ fun bookRoutes(
         }
     }
 
-    val deleteBookHandler = authHandler { userId, request ->
+    val updateBookProgressHandler = authHandler { userId, request ->
         val bookId =
             try {
                 bookIdPathLens(request)
             } catch (e: LensFailure) {
                 logger.error(e) { "Missing or invalid book ID" }
-                return@authHandler Response(Status.BAD_REQUEST).body("Missing or invalid book ID")
+                return@authHandler Response(Status.BAD_REQUEST)
+                    .with(
+                        Body.apiErrorLens of
+                            ApiError(
+                                message = "Missing or invalid book ID",
+                                code = ErrorCodes.MISSING_BOOK_ID,
+                                type = ErrorTypes.VALIDATION,
+                            )
+                    )
             }
 
-        logger.info { "Received book deletion request for book: $bookId" }
+        val updateBookProgReq =
+            try {
+                Body.updateBookProgressReqLens(request)
+            } catch (e: LensFailure) {
+                logger.error(e) { "Missing or invalid update book progress request" }
+                return@authHandler Response(Status.BAD_REQUEST)
+                    .with(
+                        Body.apiErrorLens of
+                            ApiError(
+                                message = "Missing or invalid update book progress request",
+                                code = ErrorCodes.INVALID_BOOK_PROGRESS_REQUEST,
+                                type = ErrorTypes.VALIDATION,
+                            )
+                    )
+            }
 
-        when (deleteBook(userId, bookId)) {
-            is BookDeleteResult.Success -> Response(Status.NO_CONTENT)
-            is BookDeleteResult.NotFound -> Response(Status.NOT_FOUND)
-            is BookDeleteResult.Forbidden -> Response(Status.FORBIDDEN)
-            is BookDeleteResult.DatabaseError ->
-                Response(Status.INTERNAL_SERVER_ERROR).body("Error occurred trying to delete book")
+        logger.info {
+            "Received book progress update request for book: $bookId to page: ${updateBookProgReq.latestPage}"
+        }
+
+        when (val result = updateBookProgress(userId, bookId, updateBookProgReq.latestPage)) {
+            is BookUpdateResult.Success -> Response(Status.OK).with(Body.bookResLens of result.book)
+            is BookUpdateResult.NotFound ->
+                Response(Status.NOT_FOUND)
+                    .with(
+                        Body.apiErrorLens of
+                            ApiError(
+                                message = "Book not found",
+                                code = ErrorCodes.BOOK_NOT_FOUND,
+                                type = ErrorTypes.NOT_FOUND,
+                            )
+                    )
+            is BookUpdateResult.ShelfNotFound ->
+                Response(Status.NOT_FOUND)
+                    .with(
+                        Body.apiErrorLens of
+                            ApiError(
+                                message = "Shelf not found",
+                                code = ErrorCodes.SHELF_NOT_FOUND,
+                                type = ErrorTypes.NOT_FOUND,
+                            )
+                    )
+            is BookUpdateResult.Forbidden ->
+                Response(Status.FORBIDDEN)
+                    .with(
+                        Body.apiErrorLens of
+                            ApiError(
+                                message = "Cannot update progress for book.",
+                                code = ErrorCodes.BOOK_NOT_IN_PROGRESS,
+                                type = ErrorTypes.BUSINESS_RULE,
+                            )
+                    )
+            is BookUpdateResult.Conflict,
+            BookUpdateResult.DatabaseError ->
+                Response(Status.INTERNAL_SERVER_ERROR)
+                    .with(
+                        Body.apiErrorLens of
+                            ApiError(
+                                message = "Error occurred trying to update book progress.",
+                                code = ErrorCodes.INTERNAL_SERVER_ERROR,
+                                type = ErrorTypes.SERVICE,
+                            )
+                    )
         }
     }
 
@@ -235,6 +314,18 @@ fun bookRoutes(
                             )
                     )
             }
+            is BookUpdateResult.ShelfNotFound -> {
+                logger.info { "Shelf not found" }
+                Response(Status.NOT_FOUND)
+                    .with(
+                        Body.apiErrorLens of
+                            ApiError(
+                                message = "Shelf not found",
+                                code = ErrorCodes.SHELF_NOT_FOUND,
+                                type = ErrorTypes.NOT_FOUND,
+                            )
+                    )
+            }
             is BookUpdateResult.Forbidden -> {
                 logger.info { "Insufficient permissions to complete book" }
                 Response(Status.FORBIDDEN)
@@ -277,8 +368,9 @@ fun bookRoutes(
     return routes(
             "/books" bind Method.GET to getBooksHandler,
             "/books/{book_id}" bind Method.GET to getBookHandler,
-            "/books/{book_id}" bind Method.PATCH to patchBookHandler,
             "/books/{book_id}" bind Method.DELETE to deleteBookHandler,
+            "/books/{book_id}/move" bind Method.POST to moveBookHandler,
+            "/books/{book_id}/progress" bind Method.PATCH to updateBookProgressHandler,
             "/books/{book_id}/complete" bind Method.POST to completeBookHandler,
         )
         .withFilter(authMiddleware)

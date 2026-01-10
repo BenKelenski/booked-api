@@ -155,7 +155,8 @@ fun createApp(
             bookRoutes(
                 findBookById = bookService::findBookById,
                 findBooksByShelf = bookService::findBooksByShelf,
-                updateBook = bookService::updateBook,
+                moveBook = bookService::moveBook,
+                updateBookProgress = bookService::updateBookProgress,
                 deleteBook = bookService::deleteBook,
                 completeBook = bookService::completeBook,
                 authMiddleware = authMiddleware,
