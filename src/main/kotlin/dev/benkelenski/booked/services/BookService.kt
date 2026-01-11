@@ -8,7 +8,6 @@ import dev.benkelenski.booked.repos.BookRepo
 import dev.benkelenski.booked.repos.ShelfRepo
 import io.github.oshai.kotlinlogging.KotlinLogging
 import org.jetbrains.exposed.sql.transactions.transaction
-import java.time.Instant
 
 /** alias for [BookService.findBooksByShelf] */
 typealias FindBooksByShelf = (userId: Int, shelves: List<Int>) -> List<BookResponse>
@@ -43,21 +42,15 @@ class BookService(private val bookRepo: BookRepo, private val shelfRepo: ShelfRe
         bookRepo.fetchById(bookId)?.let { BookResponse.from(it) }
     }
 
-    fun deleteBook(userId: Int, bookId: Int): BookDeleteResult =
-        try {
-            transaction {
-                val deletedCount = bookRepo.deleteByIdAndUser(userId = userId, bookId = bookId)
+    fun deleteBook(userId: Int, bookId: Int): BookDeleteResult = transaction {
+        val deletedCount = bookRepo.deleteByIdAndUser(userId = userId, bookId = bookId)
 
-                when {
-                    deletedCount == 1 -> BookDeleteResult.Success
-                    !bookRepo.existsById(bookId) -> BookDeleteResult.NotFound
-                    else -> BookDeleteResult.Forbidden
-                }
-            }
-        } catch (e: Exception) {
-            logger.error(e) { "Failed to delete book: $bookId" }
-            BookDeleteResult.DatabaseError
+        when {
+            deletedCount == 1 -> BookDeleteResult.Success
+            !bookRepo.existsById(bookId) -> BookDeleteResult.NotFound
+            else -> BookDeleteResult.Forbidden
         }
+    }
 
     fun moveBook(userId: Int, bookId: Int, targetShelfId: Int): BookUpdateResult = transaction {
         val book =
@@ -89,9 +82,9 @@ class BookService(private val bookRepo: BookRepo, private val shelfRepo: ShelfRe
                 bookRepo.findByIdAndUser(bookId = bookId, userId = userId)
                     ?: return@transaction validateBookExistence(bookId)
 
-            if (latestPage !in 1..10000)
+            if (latestPage < 0)
                 return@transaction BookUpdateResult.ValidationError(
-                    listOf("Page must be between 1 and 10000")
+                    listOf("Page must be a positive integer")
                 )
 
             val currentShelf =
@@ -101,11 +94,14 @@ class BookService(private val bookRepo: BookRepo, private val shelfRepo: ShelfRe
             if (currentShelf.shelfType != ShelfType.READING)
                 return@transaction BookUpdateResult.Forbidden
 
-            val updatedBook = book.updateProgress(latestPage = latestPage)
-
-            bookRepo.updateBook(updatedBook)?.let {
-                BookUpdateResult.Success(BookResponse.from(it))
-            } ?: BookUpdateResult.DatabaseError
+            try {
+                val updatedBook = book.updateProgress(latestPage = latestPage)
+                bookRepo.updateBook(updatedBook)?.let {
+                    BookUpdateResult.Success(BookResponse.from(it))
+                } ?: BookUpdateResult.DatabaseError
+            } catch (e: IllegalArgumentException) {
+                BookUpdateResult.ValidationError(listOf(e.message ?: "Invalid progress update"))
+            }
         }
 
     fun completeBook(
@@ -123,9 +119,8 @@ class BookService(private val bookRepo: BookRepo, private val shelfRepo: ShelfRe
             return@transaction BookUpdateResult.ValidationError(validationErrors)
         }
 
-        // Find a user's "FINISHED" shelf
         val finishedShelf =
-            shelfRepo.findShelfByStatus(userId = userId, status = ShelfType.FINISHED)
+            shelfRepo.findShelfByType(userId = userId, type = ShelfType.FINISHED)
                 ?: return@transaction BookUpdateResult.ShelfNotFound
 
         validateShelfMove(
@@ -136,23 +131,15 @@ class BookService(private val bookRepo: BookRepo, private val shelfRepo: ShelfRe
                 return@transaction it
             }
 
-        val now = Instant.now()
-
-        val updatedRows =
-            bookRepo.completeBook(
-                bookId = bookId,
-                finishedShelfId = finishedShelf.id,
+        val updatedBook =
+            book.complete(
+                shelfId = finishedShelf.id,
                 rating = completeBookRequest.rating,
                 review = completeBookRequest.review,
-                finishedAt = now,
-                updatedAt = now,
             )
 
-        if (updatedRows == 0) return@transaction BookUpdateResult.DatabaseError
-
-        val updatedBook = bookRepo.fetchById(bookId) ?: return@transaction BookUpdateResult.NotFound
-
-        BookUpdateResult.Success(BookResponse.from(updatedBook))
+        bookRepo.updateBook(updatedBook)?.let { BookUpdateResult.Success(BookResponse.from(it)) }
+            ?: BookUpdateResult.DatabaseError
     }
 
     private fun validateBookExistence(bookId: Int): BookUpdateResult {

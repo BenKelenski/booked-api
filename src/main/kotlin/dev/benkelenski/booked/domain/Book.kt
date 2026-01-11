@@ -20,19 +20,51 @@ data class Book(
 ) {
     fun moveToShelf(targetShelfId: Int, targetShelfType: ShelfType): Book =
         when (targetShelfType) {
+            ShelfType.TO_READ ->
+                this.copy(
+                    shelfId = targetShelfId,
+                    currentPage = null,
+                    updatedAt = Instant.now(),
+                    finishedAt = null,
+                )
             ShelfType.READING ->
                 this.copy(
                     shelfId = targetShelfId,
                     currentPage =
                         0, // Rule: Moving to a READING shelfType starts the currentPage at 0
+                    updatedAt = Instant.now(),
+                    finishedAt = null,
                 )
-            else ->
+            ShelfType.FINISHED -> this.complete(targetShelfId, this.rating, this.review)
+            ShelfType.CUSTOM ->
                 this.copy(
                     shelfId = targetShelfId,
                     currentPage =
                         null, // Rule: Moving to any other shelfType resets the currentPage to null
+                    finishedAt = null,
+                    updatedAt = Instant.now(),
                 )
         }
 
-    fun updateProgress(latestPage: Int): Book = this.copy(currentPage = latestPage)
+    fun updateProgress(latestPage: Int): Book {
+        if (this.pageCount != null && latestPage > this.pageCount) {
+            throw IllegalArgumentException(
+                "Current page cannot exceed total page count: ${this.pageCount}"
+            )
+        }
+
+        return this.copy(currentPage = latestPage)
+    }
+
+    fun complete(shelfId: Int, rating: Int?, review: String?): Book {
+        val now = Instant.now()
+        return this.copy(
+            shelfId = shelfId,
+            currentPage = null,
+            rating = rating,
+            review = review,
+            finishedAt = now,
+            updatedAt = now,
+        )
+    }
 }
