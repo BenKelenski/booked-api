@@ -340,13 +340,13 @@ class BookIntegrationTest {
         val response =
             Request(Method.PATCH, "/api/v1/books/4/progress")
                 .cookie(Cookie("access_token", fakeTokenProvider.generateAccessToken(1)))
-                .with(Body.updateBookProgressReqLens of UpdateBookProgressRequest(1500))
+                .with(Body.updateBookProgressReqLens of UpdateBookProgressRequest(500))
                 .let(app)
 
         response shouldHaveStatus Status.OK
         val responseBody = Body.bookResLens(response)
         responseBody.id shouldBe 4
-        responseBody.currentPage shouldBe 1500
+        responseBody.currentPage shouldBe 500
         responseBody.updatedAt shouldNotBe null
         responseBody.finishedAt shouldBe null
     }
