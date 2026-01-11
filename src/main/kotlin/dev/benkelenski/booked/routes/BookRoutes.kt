@@ -41,20 +41,18 @@ fun bookRoutes(
 
     val getBookHandler = authHandler { userId, request ->
         val bookId =
-            try {
-                bookIdPathLens(request)
-            } catch (e: LensFailure) {
-                logger.error(e) { "Missing or invalid book ID." }
-                return@authHandler Response(Status.BAD_REQUEST)
-                    .with(
-                        Body.apiErrorLens of
-                            ApiError(
-                                "Missing or invalid book ID",
-                                code = ErrorCodes.MISSING_BOOK_ID,
-                                type = ErrorTypes.VALIDATION,
-                            )
+            extractLensOrNull(
+                request = request,
+                lens = bookIdPathLens,
+                errorMessage = "Missing or invalid book ID",
+            )
+                ?: run {
+                    logger.warn { "Missing or invalid book ID" }
+                    return@authHandler createValidationErrorResponse(
+                        "Missing or invalid book ID",
+                        ErrorCodes.MISSING_BOOK_ID,
                     )
-            }
+                }
 
         logger.info { "Received book retrieval request for book: $bookId" }
 
@@ -64,12 +62,18 @@ fun bookRoutes(
 
     val deleteBookHandler = authHandler { userId, request ->
         val bookId =
-            try {
-                bookIdPathLens(request)
-            } catch (e: LensFailure) {
-                logger.error(e) { "Missing or invalid book ID" }
-                return@authHandler Response(Status.BAD_REQUEST).body("Missing or invalid book ID")
-            }
+            extractLensOrNull(
+                request = request,
+                lens = bookIdPathLens,
+                errorMessage = "Missing or invalid book ID",
+            )
+                ?: run {
+                    logger.warn { "Missing or invalid book ID" }
+                    return@authHandler createValidationErrorResponse(
+                        "Missing or invalid book ID",
+                        ErrorCodes.MISSING_BOOK_ID,
+                    )
+                }
 
         logger.info { "Received book deletion request for book: $bookId" }
 
@@ -84,20 +88,18 @@ fun bookRoutes(
 
     val moveBookHandler = authHandler { userId, request ->
         val bookId =
-            try {
-                bookIdPathLens(request)
-            } catch (e: LensFailure) {
-                logger.error(e) { "Missing or invalid book ID" }
-                return@authHandler Response(Status.BAD_REQUEST)
-                    .with(
-                        Body.apiErrorLens of
-                            ApiError(
-                                message = "Missing or invalid book ID",
-                                code = ErrorCodes.MISSING_BOOK_ID,
-                                type = ErrorTypes.VALIDATION,
-                            )
+            extractLensOrNull(
+                request = request,
+                lens = bookIdPathLens,
+                errorMessage = "Missing or invalid book ID",
+            )
+                ?: run {
+                    logger.warn { "Missing or invalid book ID" }
+                    return@authHandler createValidationErrorResponse(
+                        "Missing or invalid book ID",
+                        ErrorCodes.MISSING_BOOK_ID,
                     )
-            }
+                }
 
         val moveBookRequest =
             try {
@@ -177,20 +179,18 @@ fun bookRoutes(
 
     val updateBookProgressHandler = authHandler { userId, request ->
         val bookId =
-            try {
-                bookIdPathLens(request)
-            } catch (e: LensFailure) {
-                logger.error(e) { "Missing or invalid book ID" }
-                return@authHandler Response(Status.BAD_REQUEST)
-                    .with(
-                        Body.apiErrorLens of
-                            ApiError(
-                                message = "Missing or invalid book ID",
-                                code = ErrorCodes.MISSING_BOOK_ID,
-                                type = ErrorTypes.VALIDATION,
-                            )
+            extractLensOrNull(
+                request = request,
+                lens = bookIdPathLens,
+                errorMessage = "Missing or invalid book ID",
+            )
+                ?: run {
+                    logger.warn { "Missing or invalid book ID" }
+                    return@authHandler createValidationErrorResponse(
+                        "Missing or invalid book ID",
+                        ErrorCodes.MISSING_BOOK_ID,
                     )
-            }
+                }
 
         val updateBookProgReq =
             try {
