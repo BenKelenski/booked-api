@@ -64,9 +64,9 @@ class ShelfRepo {
             .limit(1)
             .any()
 
-    fun findShelfByStatus(userId: Int, status: ShelfType): Shelf? =
+    fun findShelfByType(userId: Int, type: ShelfType): Shelf? =
         Shelves.selectAll()
-            .where { (Shelves.userId eq userId) and (Shelves.shelfType eq status) }
+            .where { (Shelves.userId eq userId) and (Shelves.shelfType eq type) }
             .map { it.toShelf() }
             .singleOrNull()
 }
