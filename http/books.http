@@ -6,28 +6,6 @@ Cookie: access_token={{ACCESS_TOKEN}}
 GET {{API_URL}}/books/1
 Cookie: access_token={{ACCESS_TOKEN}}
 
-### POST save book 1
-POST {{API_URL}}/books
-Cookie: access_token={{ACCESS_TOKEN}}
-Content-Type: application/json
-
-{
-  "title": "Mistborn",
-  "author": "Brando Sando",
-  "shelf_id": 1
-}
-
-### POST save book 2
-POST {{API_URL}}/books
-Cookie: access_token={{ACCESS_TOKEN}}
-Content-Type: application/json
-
-{
-  "title": "Red Rising",
-  "author": "Pierce Brown",
-  "shelf_id": 1
-}
-
 ### DELETE book by ID
 DELETE {{API_URL}}/books/1
 Cookie: access_token={{ACCESS_TOKEN}}
