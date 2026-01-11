@@ -94,22 +94,6 @@ class BookRepo {
             .map { it.toBook() }
             .singleOrNull()
 
-    fun completeBook(
-        bookId: Int,
-        finishedShelfId: Int,
-        rating: Int?,
-        review: String?,
-        finishedAt: Instant,
-        updatedAt: Instant,
-    ): Int =
-        Books.update({ Books.id eq bookId }) {
-            it[Books.shelfId] = finishedShelfId
-            rating?.let { r -> it[Books.rating] = r }
-            review?.let { r -> it[Books.review] = r }
-            it[Books.finishedAt] = finishedAt.atOffset(ZoneOffset.UTC)
-            it[Books.updatedAt] = updatedAt.atOffset(ZoneOffset.UTC)
-        }
-
     fun getCountsByShelf(userId: Int): Map<Int, Long> {
         return Shelves.leftJoin(
                 otherTable = Books,
