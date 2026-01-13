@@ -149,11 +149,38 @@ fun bookRoutes(
         logger.info { "Received book deletion request for book: $bookId" }
 
         when (deleteBook(userId, bookId)) {
-            is BookDeleteResult.Success -> Response(Status.NO_CONTENT)
-            is BookDeleteResult.NotFound -> Response(Status.NOT_FOUND)
-            is BookDeleteResult.Forbidden -> Response(Status.FORBIDDEN)
+            is BookDeleteResult.Success ->
+                Response(Status.NO_CONTENT).body("Book deleted successfully")
+            is BookDeleteResult.NotFound ->
+                Response(Status.NOT_FOUND)
+                    .with(
+                        Body.apiErrorLens of
+                            ApiError(
+                                message = "Book not found",
+                                code = ErrorCodes.BOOK_NOT_FOUND,
+                                type = ErrorTypes.NOT_FOUND,
+                            )
+                    )
+            is BookDeleteResult.Forbidden ->
+                Response(Status.FORBIDDEN)
+                    .with(
+                        Body.apiErrorLens of
+                            ApiError(
+                                message = "Cannot delete another user's book",
+                                code = ErrorCodes.INSUFFICIENT_PERMISSIONS,
+                                type = ErrorTypes.AUTHORIZATION,
+                            )
+                    )
             is BookDeleteResult.DatabaseError ->
-                Response(Status.INTERNAL_SERVER_ERROR).body("Error occurred trying to delete book")
+                Response(Status.INTERNAL_SERVER_ERROR)
+                    .with(
+                        Body.apiErrorLens of
+                            ApiError(
+                                message = "Error occurred trying to delete book",
+                                code = ErrorCodes.INTERNAL_SERVER_ERROR,
+                                type = ErrorTypes.SYSTEM,
+                            )
+                    )
         }
     }
 

@@ -60,6 +60,7 @@ fun shelfRoutes(
 
         when (val result = createShelf(userId, shelfRequest)) {
             is CreateShelfResult.Success -> {
+                logger.info { "Created shelf ${result.shelf.id} for user $userId" }
                 Response(Status.CREATED).with(Body.shelfResLens of result.shelf)
             }
             is CreateShelfResult.DatabaseError -> {
@@ -94,7 +95,16 @@ fun shelfRoutes(
         findShelfById(userId, shelfId)?.let {
             logger.info { "Found shelf $it for user $userId" }
             Response(Status.OK).with(Body.shelfResLens of it)
-        } ?: Response(Status.NOT_FOUND)
+        }
+            ?: Response(Status.NOT_FOUND)
+                .with(
+                    Body.apiErrorLens of
+                        ApiError(
+                            message = "Shelf not found",
+                            code = ErrorCodes.SHELF_NOT_FOUND,
+                            type = ErrorTypes.NOT_FOUND,
+                        )
+                )
     }
 
     val deleteShelfHandler = authHandler { userId, request ->
@@ -115,7 +125,7 @@ fun shelfRoutes(
         when (deleteShelf(userId, shelfId)) {
             is DeleteShelfResult.Success -> {
                 logger.info { "Deleted shelf $shelfId for user $userId" }
-                Response(Status.NO_CONTENT)
+                Response(Status.NO_CONTENT).body("Shelf deleted successfully")
             }
             is DeleteShelfResult.NotFound ->
                 Response(Status.NOT_FOUND)
