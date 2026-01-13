@@ -2,6 +2,7 @@ package dev.benkelenski.booked.repos
 
 import dev.benkelenski.booked.domain.Shelf
 import dev.benkelenski.booked.domain.ShelfType
+import dev.benkelenski.booked.models.Books
 import dev.benkelenski.booked.models.Shelves
 import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
@@ -16,15 +17,6 @@ class ShelfRepo {
                 Pair("Finished", ShelfType.FINISHED),
             )
     }
-
-    fun fetchAllShelvesByUser(userId: Int): List<Shelf> =
-        Shelves.selectAll().where { Shelves.userId eq userId }.map { it.toShelf() }
-
-    fun fetchShelfById(userId: Int, shelfId: Int): Shelf? =
-        Shelves.selectAll()
-            .where { (Shelves.id eq shelfId) and (Shelves.userId eq userId) }
-            .map { it.toShelf() }
-            .singleOrNull()
 
     fun addShelf(userId: Int, name: String, description: String?): Shelf? =
         Shelves.insertReturning {
@@ -58,17 +50,35 @@ class ShelfRepo {
     fun existsById(shelfId: Int): Boolean =
         Shelves.selectAll().where { Shelves.id eq shelfId }.limit(1).any()
 
-    fun userOwnsShelf(userId: Int, shelfId: Int): Boolean =
-        Shelves.selectAll()
-            .where { (Shelves.id eq shelfId) and (Shelves.userId eq userId) }
-            .limit(1)
-            .any()
-
     fun findShelfByType(userId: Int, type: ShelfType): Shelf? =
         Shelves.selectAll()
             .where { (Shelves.userId eq userId) and (Shelves.shelfType eq type) }
             .map { it.toShelf() }
             .singleOrNull()
+
+    fun fetchShelvesWithBookCounts(userId: Int, shelfId: Int? = null): List<Shelf> {
+        val query =
+            Shelves.join(
+                    otherTable = Books,
+                    joinType = JoinType.LEFT,
+                    onColumn = Shelves.id,
+                    otherColumn = Books.shelfId,
+                )
+                .select(
+                    Shelves.id,
+                    Shelves.userId,
+                    Shelves.name,
+                    Shelves.description,
+                    Shelves.shelfType,
+                    Shelves.createdAt,
+                    Books.id.count(),
+                )
+                .where { Shelves.userId eq userId }
+
+        shelfId?.let { query.andWhere { Shelves.id eq it } }
+
+        return query.groupBy(Shelves.id).map { it.toShelfWithCount() }
+    }
 }
 
 fun ResultRow.toShelf() =
@@ -78,5 +88,17 @@ fun ResultRow.toShelf() =
         name = this[Shelves.name],
         description = this[Shelves.description],
         shelfType = this[Shelves.shelfType],
+        bookCount = 0, // Default value when count not queried
+        createdAt = this[Shelves.createdAt].toInstant(),
+    )
+
+fun ResultRow.toShelfWithCount() =
+    Shelf(
+        id = this[Shelves.id],
+        userId = this[Shelves.userId],
+        name = this[Shelves.name],
+        description = this[Shelves.description],
+        shelfType = this[Shelves.shelfType],
+        bookCount = this[Books.id.count()],
         createdAt = this[Shelves.createdAt].toInstant(),
     )

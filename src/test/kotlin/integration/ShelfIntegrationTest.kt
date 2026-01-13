@@ -1,16 +1,16 @@
 package integration
 
 import dev.benkelenski.booked.createApp
-import dev.benkelenski.booked.domain.*
-import dev.benkelenski.booked.domain.requests.BookRequest
+import dev.benkelenski.booked.domain.ShelfType
 import dev.benkelenski.booked.domain.requests.ShelfRequest
+import dev.benkelenski.booked.domain.shelfReqLens
+import dev.benkelenski.booked.domain.shelfResLens
+import dev.benkelenski.booked.domain.shelvesResLens
 import dev.benkelenski.booked.loadConfig
-import dev.benkelenski.booked.models.Books
 import dev.benkelenski.booked.models.Shelves
 import io.kotest.matchers.collections.shouldHaveSize
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
-import java.security.KeyPairGenerator
 import org.http4k.base64Encode
 import org.http4k.core.*
 import org.http4k.core.cookie.Cookie
@@ -20,7 +20,6 @@ import org.http4k.lens.bearerAuth
 import org.http4k.routing.RoutingHttpHandler
 import org.http4k.routing.reverseProxy
 import org.jetbrains.exposed.sql.Database
-import org.jetbrains.exposed.sql.and
 import org.jetbrains.exposed.sql.selectAll
 import org.jetbrains.exposed.sql.transactions.transaction
 import org.junit.jupiter.api.*
@@ -28,6 +27,7 @@ import org.testcontainers.containers.PostgreSQLContainer
 import testUtils.FakeTokenProvider
 import testUtils.TestDbUtils
 import testUtils.fakeGoogleBooks
+import java.security.KeyPairGenerator
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class ShelfIntegrationTest {
@@ -222,94 +222,6 @@ class ShelfIntegrationTest {
         responseBody.description shouldBe null
         responseBody.createdAt shouldNotBe null
         responseBody.shelfType shouldBe ShelfType.CUSTOM
-    }
-
-    @Test
-    fun `add book to shelf - unauthorized - no token`() {
-        Request(Method.POST, "/api/v1/shelves/9999/books")
-            .let(app)
-            .shouldHaveStatus(Status.UNAUTHORIZED)
-    }
-
-    @Test
-    fun `add book to shelf - unauthorized - bad token`() {
-        Request(Method.POST, "/api/v1/shelves/9999/books")
-            .cookie(Cookie("access_token", "foo"))
-            .let(app)
-            .shouldHaveStatus(Status.UNAUTHORIZED)
-    }
-
-    @Test
-    fun `add book to shelf - invalid shelf id`() {
-        Request(Method.POST, "/api/v1/shelves/INVALID_SHELF_ID/books")
-            .cookie(Cookie("access_token", fakeTokenProvider.generateAccessToken(1)))
-            .let(app)
-            .shouldHaveStatus(Status.BAD_REQUEST)
-    }
-
-    @Test
-    fun `add book to shelf - bad request - no book request`() {
-        Request(Method.POST, "/api/v1/shelves/9999/books")
-            .cookie(Cookie("access_token", fakeTokenProvider.generateAccessToken(1)))
-            .let(app)
-            .shouldHaveStatus(Status.BAD_REQUEST)
-    }
-
-    @Test
-    fun `add book to shelf - bad request - missing google book id`() {
-        Request(Method.POST, "/api/v1/shelves/9999/books")
-            .with(Body.bookReqLens of BookRequest(" "))
-            .cookie(Cookie("access_token", fakeTokenProvider.generateAccessToken(1)))
-            .let(app)
-            .shouldHaveStatus(Status.BAD_REQUEST)
-    }
-
-    @Test
-    fun `add book to shelf - conflict - duplicate book`() {
-        val googleBookId = "google1"
-
-        Request(Method.POST, "/api/v1/shelves/1/books")
-            .with(Body.bookReqLens of BookRequest(googleBookId))
-            .cookie(Cookie("access_token", fakeTokenProvider.generateAccessToken(1)))
-            .let(app)
-            .shouldHaveStatus(Status.CONFLICT)
-
-        transaction {
-            Books.selectAll()
-                .where { (Books.shelfId eq 1) and (Books.googleId eq googleBookId) }
-                .count() shouldBe 1
-        }
-    }
-
-    @Test
-    fun `add book to shelf - conflict - duplicate book on different shelf`() {
-        val googleBookId = "google1"
-
-        Request(Method.POST, "/api/v1/shelves/2/books")
-            .with(Body.bookReqLens of BookRequest(googleBookId))
-            .cookie(Cookie("access_token", fakeTokenProvider.generateAccessToken(1)))
-            .let(app)
-            .shouldHaveStatus(Status.CONFLICT)
-    }
-
-    @Test
-    fun `add book to shelf - success`() {
-        val googleBookId = "google99"
-
-        val response =
-            app(
-                Request(Method.POST, "/api/v1/shelves/2/books")
-                    .with(Body.bookReqLens of BookRequest(googleBookId))
-                    .cookie(Cookie("access_token", fakeTokenProvider.generateAccessToken(1)))
-            )
-
-        val book = Body.bookResLens(response)
-        book.id shouldBe 5
-        book.googleId shouldBe googleBookId
-        book.createdAt shouldNotBe null
-        book.title shouldBe "book-$googleBookId"
-        book.authors shouldBe listOf("author-$googleBookId")
-        book.googleId shouldBe googleBookId
     }
 
     @Test

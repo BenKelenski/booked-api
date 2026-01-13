@@ -11,16 +11,14 @@ data class ShelfResponse(
     @param:Json(name = "book_count") val bookCount: Long,
     @param:Json(name = "shelf_type") val shelfType: ShelfType,
     @param:Json(name = "created_at") val createdAt: String,
-) {
-    companion object {
-        fun from(shelf: Shelf, bookCount: Long): ShelfResponse =
-            ShelfResponse(
-                id = shelf.id,
-                name = shelf.name,
-                description = shelf.description,
-                bookCount = bookCount,
-                shelfType = shelf.shelfType,
-                createdAt = shelf.createdAt.toString(),
-            )
-    }
-}
+)
+
+fun Shelf.toResponse() =
+    ShelfResponse(
+        id = this.id,
+        name = this.name,
+        description = this.description,
+        bookCount = this.bookCount,
+        shelfType = this.shelfType,
+        createdAt = this.createdAt.toString(),
+    )

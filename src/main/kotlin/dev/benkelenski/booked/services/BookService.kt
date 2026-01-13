@@ -4,6 +4,8 @@ import dev.benkelenski.booked.domain.Book
 import dev.benkelenski.booked.domain.ShelfType
 import dev.benkelenski.booked.domain.requests.CompleteBookRequest
 import dev.benkelenski.booked.domain.responses.BookResponse
+import dev.benkelenski.booked.domain.responses.toResponse
+import dev.benkelenski.booked.external.google.GoogleBooksClient
 import dev.benkelenski.booked.repos.BookRepo
 import dev.benkelenski.booked.repos.ShelfRepo
 import io.github.oshai.kotlinlogging.KotlinLogging
@@ -15,31 +17,75 @@ typealias FindBooksByShelf = (userId: Int, shelves: List<Int>) -> List<BookRespo
 /** alias for [BookService.findBookById] */
 typealias FindBookById = (bookId: Int) -> BookResponse?
 
+/** alias for [BookService.addBook] */
+typealias AddBook = (userId: Int, shelfId: Int, googleVolumeId: String) -> BookAddResult
+
+/** alias for [BookService.deleteBook] */
+typealias DeleteBook = (userId: Int, bookId: Int) -> BookDeleteResult
+
 /** alias for [BookService.moveBook] */
 typealias MoveBook = (userId: Int, bookId: Int, targetShelfId: Int) -> BookUpdateResult
 
 /** alias for [BookService.updateBookProgress] */
 typealias UpdateBookProgress = (userId: Int, bookId: Int, latestPage: Int) -> BookUpdateResult
 
-/** alias for [BookService.deleteBook] */
-typealias DeleteBook = (userId: Int, bookId: Int) -> BookDeleteResult
-
 /** alias for [BookService.completeBook] */
 typealias CompleteBook =
     (userId: Int, bookId: Int, completeBookRequest: CompleteBookRequest) -> BookUpdateResult
 
-class BookService(private val bookRepo: BookRepo, private val shelfRepo: ShelfRepo) {
+class BookService(
+    private val bookRepo: BookRepo,
+    private val shelfRepo: ShelfRepo,
+    private val googleBooksClient: GoogleBooksClient,
+) {
 
     companion object {
         private val logger = KotlinLogging.logger {}
+
+        private fun String.secureUrl(): String = replace("http://", "https://")
     }
 
     fun findBooksByShelf(userId: Int, shelves: List<Int>): List<BookResponse> = transaction {
-        bookRepo.fetchAllBooksForUser(userId, shelves).map { BookResponse.from(it) }
+        bookRepo.fetchAllBooksForUser(userId, shelves).map { book -> book.toResponse() }
     }
 
     fun findBookById(bookId: Int): BookResponse? = transaction {
-        bookRepo.fetchById(bookId)?.let { BookResponse.from(it) }
+        bookRepo.fetchById(bookId)?.toResponse()
+    }
+
+    fun addBook(userId: Int, shelfId: Int, googleVolumeId: String) = transaction {
+        if (googleVolumeId.isBlank()) {
+            return@transaction BookAddResult.ValidationError(
+                listOf("Google Volume ID cannot be empty")
+            )
+        }
+
+        // Check user doesn't already have book
+        if (bookRepo.existsByGoogleIdAndUser(googleVolumeId, userId)) {
+            return@transaction BookAddResult.Conflict
+        }
+
+        // Check user owns shelf
+        shelfRepo.fetchShelvesWithBookCounts(userId, shelfId).firstOrNull()
+            ?: return@transaction BookAddResult.ShelfNotFound
+
+        // Get book details from Google Books API
+        val volumeDto =
+            googleBooksClient.getVolume(googleVolumeId)
+                ?: return@transaction BookAddResult.BookNotFound
+
+        val book =
+            bookRepo.saveBook(
+                userId = userId,
+                shelfId = shelfId,
+                googleId = volumeDto.id,
+                title = volumeDto.volumeInfo.title,
+                authors = volumeDto.volumeInfo.authors,
+                thumbnailUrl = volumeDto.volumeInfo.imageLinks?.thumbnail?.secureUrl(),
+                pageCount = volumeDto.volumeInfo.pageCount,
+            ) ?: return@transaction BookAddResult.DatabaseError
+
+        BookAddResult.Success(book.toResponse())
     }
 
     fun deleteBook(userId: Int, bookId: Int): BookDeleteResult = transaction {
@@ -58,8 +104,9 @@ class BookService(private val bookRepo: BookRepo, private val shelfRepo: ShelfRe
                 ?: return@transaction validateBookExistence(bookId)
 
         val targetShelf =
-            shelfRepo.fetchShelfById(userId = userId, shelfId = targetShelfId)
-                ?: return@transaction BookUpdateResult.ShelfNotFound
+            shelfRepo
+                .fetchShelvesWithBookCounts(userId = userId, shelfId = targetShelfId)
+                .firstOrNull() ?: return@transaction BookUpdateResult.ShelfNotFound
 
         validateShelfMove(
                 book = book,
@@ -72,8 +119,9 @@ class BookService(private val bookRepo: BookRepo, private val shelfRepo: ShelfRe
         val updatedBook =
             book.moveToShelf(targetShelfId = targetShelfId, targetShelfType = targetShelf.shelfType)
 
-        bookRepo.updateBook(updatedBook)?.let { BookUpdateResult.Success(BookResponse.from(it)) }
-            ?: BookUpdateResult.DatabaseError
+        bookRepo.updateBook(updatedBook)?.let { book ->
+            BookUpdateResult.Success(book.toResponse())
+        } ?: BookUpdateResult.DatabaseError
     }
 
     fun updateBookProgress(userId: Int, bookId: Int, latestPage: Int): BookUpdateResult =
@@ -88,16 +136,17 @@ class BookService(private val bookRepo: BookRepo, private val shelfRepo: ShelfRe
                 )
 
             val currentShelf =
-                shelfRepo.fetchShelfById(userId = userId, shelfId = book.shelfId)
-                    ?: return@transaction BookUpdateResult.ShelfNotFound
+                shelfRepo
+                    .fetchShelvesWithBookCounts(userId = userId, shelfId = book.shelfId)
+                    .firstOrNull() ?: return@transaction BookUpdateResult.ShelfNotFound
 
             if (currentShelf.shelfType != ShelfType.READING)
                 return@transaction BookUpdateResult.Forbidden
 
             try {
                 val updatedBook = book.updateProgress(latestPage = latestPage)
-                bookRepo.updateBook(updatedBook)?.let {
-                    BookUpdateResult.Success(BookResponse.from(it))
+                bookRepo.updateBook(updatedBook)?.let { book ->
+                    BookUpdateResult.Success(book.toResponse())
                 } ?: BookUpdateResult.DatabaseError
             } catch (e: IllegalArgumentException) {
                 BookUpdateResult.ValidationError(listOf(e.message ?: "Invalid progress update"))
@@ -138,8 +187,9 @@ class BookService(private val bookRepo: BookRepo, private val shelfRepo: ShelfRe
                 review = completeBookRequest.review,
             )
 
-        bookRepo.updateBook(updatedBook)?.let { BookUpdateResult.Success(BookResponse.from(it)) }
-            ?: BookUpdateResult.DatabaseError
+        bookRepo.updateBook(updatedBook)?.let { book ->
+            BookUpdateResult.Success(book.toResponse())
+        } ?: BookUpdateResult.DatabaseError
     }
 
     private fun validateBookExistence(bookId: Int): BookUpdateResult {
@@ -162,6 +212,20 @@ class BookService(private val bookRepo: BookRepo, private val shelfRepo: ShelfRe
 
         return if (hasDuplicate) BookUpdateResult.Conflict else null
     }
+}
+
+sealed class BookAddResult {
+    data class Success(val book: BookResponse) : BookAddResult()
+
+    data class ValidationError(val errors: List<String>) : BookAddResult()
+
+    object BookNotFound : BookAddResult()
+
+    object ShelfNotFound : BookAddResult()
+
+    object Conflict : BookAddResult()
+
+    object DatabaseError : BookAddResult()
 }
 
 sealed class BookUpdateResult {

@@ -15,21 +15,19 @@ data class BookResponse(
     @param:Json(name = "created_at") val createdAt: String,
     @param:Json(name = "updated_at") val updatedAt: String? = null,
     @param:Json(name = "finished_at") val finishedAt: String? = null,
-) {
-    companion object {
-        fun from(book: Book): BookResponse =
-            BookResponse(
-                id = book.id,
-                shelfId = book.shelfId,
-                googleId = book.googleId,
-                title = book.title,
-                authors = book.authors,
-                currentPage = book.currentPage,
-                pageCount = book.pageCount,
-                thumbnailUrl = book.thumbnailUrl,
-                createdAt = book.createdAt.toString(),
-                updatedAt = book.updatedAt?.toString(),
-                finishedAt = book.finishedAt?.toString(),
-            )
-    }
-}
+)
+
+fun Book.toResponse() =
+    BookResponse(
+        id = this.id,
+        shelfId = this.shelfId,
+        googleId = this.googleId,
+        title = this.title,
+        authors = this.authors,
+        currentPage = this.currentPage,
+        pageCount = this.pageCount,
+        thumbnailUrl = this.thumbnailUrl,
+        createdAt = this.createdAt.toString(),
+        updatedAt = this.updatedAt?.toString(),
+        finishedAt = this.finishedAt?.toString(),
+    )

@@ -2,7 +2,6 @@ package dev.benkelenski.booked.repos
 
 import dev.benkelenski.booked.domain.Book
 import dev.benkelenski.booked.models.Books
-import dev.benkelenski.booked.models.Shelves
 import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
 import java.time.Instant
@@ -55,11 +54,6 @@ class BookRepo {
 
     fun existsById(id: Int): Boolean = Books.selectAll().where { Books.id eq id }.limit(1).any()
 
-    fun findAllByShelfAndUser(shelfId: Int, userId: Int): List<Book> =
-        Books.selectAll()
-            .where { (Books.userId eq userId) and (Books.shelfId eq shelfId) }
-            .map { it.toBook() }
-
     fun existsByGoogleIdAndUser(googleId: String, userId: Int): Boolean =
         Books.selectAll()
             .where { (Books.userId eq userId) and (Books.googleId eq googleId) }
@@ -93,18 +87,6 @@ class BookRepo {
             }
             .map { it.toBook() }
             .singleOrNull()
-
-    fun getCountsByShelf(userId: Int): Map<Int, Long> {
-        return Shelves.leftJoin(
-                otherTable = Books,
-                onColumn = { Shelves.id },
-                otherColumn = { Books.shelfId },
-                additionalConstraint = { Books.userId eq userId },
-            )
-            .select(Shelves.id, Books.id.count())
-            .groupBy(Shelves.id)
-            .associate { it[Shelves.id] to it[Books.id.count()] }
-    }
 }
 
 fun ResultRow.toBook() =

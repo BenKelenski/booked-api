@@ -22,9 +22,10 @@ private val logger = KotlinLogging.logger {}
 fun bookRoutes(
     findBookById: FindBookById,
     findBooksByShelf: FindBooksByShelf,
+    addBook: AddBook,
+    deleteBook: DeleteBook,
     moveBook: MoveBook,
     updateBookProgress: UpdateBookProgress,
-    deleteBook: DeleteBook,
     completeBook: CompleteBook,
     authMiddleware: AuthMiddleware,
 ): RoutingHttpHandler {
@@ -58,6 +59,76 @@ fun bookRoutes(
 
         findBookById(bookId)?.let { Response(Status.OK).with(Body.bookResLens of it) }
             ?: Response(Status.NOT_FOUND)
+    }
+
+    val addBookHandler = authHandler { userId, request ->
+        val addBookRequest =
+            try {
+                Body.addBookReqLens(request)
+            } catch (e: LensFailure) {
+                logger.error(e) { "Failed to parse book request: ${e.message}" }
+                return@authHandler createValidationErrorResponse(
+                    "Invalid add book request",
+                    ErrorCodes.INVALID_ADD_BOOK_REQUEST,
+                )
+            }
+
+        logger.info { "Received book addition request: $addBookRequest" }
+
+        when (val result = addBook(userId, addBookRequest.shelfId, addBookRequest.volumeId)) {
+            is BookAddResult.Success ->
+                Response(Status.CREATED).with(Body.bookResLens of result.book)
+            is BookAddResult.ValidationError ->
+                Response(Status.BAD_REQUEST)
+                    .with(
+                        Body.apiErrorLens of
+                            ApiError(
+                                message = result.errors.joinToString(", "),
+                                code = ErrorCodes.INVALID_ADD_BOOK_REQUEST,
+                                type = ErrorTypes.VALIDATION,
+                            )
+                    )
+            is BookAddResult.ShelfNotFound ->
+                Response(Status.NOT_FOUND)
+                    .with(
+                        Body.apiErrorLens of
+                            ApiError(
+                                message = "Shelf not found",
+                                code = ErrorCodes.SHELF_NOT_FOUND,
+                                type = ErrorTypes.NOT_FOUND,
+                            )
+                    )
+            is BookAddResult.BookNotFound ->
+                Response(Status.NOT_FOUND)
+                    .with(
+                        Body.apiErrorLens of
+                            ApiError(
+                                message = "Book not found",
+                                code = ErrorCodes.BOOK_NOT_FOUND,
+                                type = ErrorTypes.NOT_FOUND,
+                            )
+                    )
+            is BookAddResult.Conflict ->
+                Response(Status.CONFLICT)
+                    .with(
+                        Body.apiErrorLens of
+                            ApiError(
+                                message = "Book already exists for user",
+                                code = ErrorCodes.BOOK_ALREADY_EXISTS,
+                                type = ErrorTypes.CONFLICT,
+                            )
+                    )
+            is BookAddResult.DatabaseError ->
+                Response(Status.INTERNAL_SERVER_ERROR)
+                    .with(
+                        Body.apiErrorLens of
+                            ApiError(
+                                message = "Error occurred trying to add book",
+                                code = ErrorCodes.INTERNAL_SERVER_ERROR,
+                                type = ErrorTypes.SYSTEM,
+                            )
+                    )
+        }
     }
 
     val deleteBookHandler = authHandler { userId, request ->
@@ -380,6 +451,7 @@ fun bookRoutes(
 
     return routes(
             "/books" bind Method.GET to getBooksHandler,
+            "/books" bind Method.POST to addBookHandler,
             "/books/{book_id}" bind Method.GET to getBookHandler,
             "/books/{book_id}" bind Method.DELETE to deleteBookHandler,
             "/books/{book_id}/move" bind Method.POST to moveBookHandler,

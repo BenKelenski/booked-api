@@ -2,6 +2,7 @@ package integration
 
 import dev.benkelenski.booked.createApp
 import dev.benkelenski.booked.domain.*
+import dev.benkelenski.booked.domain.requests.AddBookRequest
 import dev.benkelenski.booked.domain.requests.CompleteBookRequest
 import dev.benkelenski.booked.domain.requests.MoveBookRequest
 import dev.benkelenski.booked.domain.requests.UpdateBookProgressRequest
@@ -18,6 +19,7 @@ import org.http4k.kotest.shouldHaveStatus
 import org.http4k.routing.RoutingHttpHandler
 import org.http4k.routing.reverseProxy
 import org.jetbrains.exposed.sql.Database
+import org.jetbrains.exposed.sql.and
 import org.jetbrains.exposed.sql.selectAll
 import org.jetbrains.exposed.sql.transactions.transaction
 import org.junit.jupiter.api.*
@@ -195,6 +197,88 @@ class BookIntegrationTest {
         responseBody.title shouldBe "Red Rising"
         responseBody.authors shouldBe listOf("Pierce Brown")
         responseBody.googleId shouldBe "google1"
+    }
+
+    @Test
+    fun `add book- unauthorized - no token`() {
+        Request(Method.POST, "/api/v1/books")
+            .with(Body.addBookReqLens of AddBookRequest(1, "google1"))
+            .let(app)
+            .shouldHaveStatus(Status.UNAUTHORIZED)
+    }
+
+    @Test
+    fun `add book - unauthorized - bad token`() {
+        Request(Method.POST, "/api/v1/books")
+            .cookie(Cookie("access_token", "foo"))
+            .with(Body.addBookReqLens of AddBookRequest(1, "google1"))
+            .let(app)
+            .shouldHaveStatus(Status.UNAUTHORIZED)
+    }
+
+    @Test
+    fun `add book to shelf - bad request - no book request`() {
+        Request(Method.POST, "/api/v1/books")
+            .cookie(Cookie("access_token", fakeTokenProvider.generateAccessToken(1)))
+            .let(app)
+            .shouldHaveStatus(Status.BAD_REQUEST)
+    }
+
+    @Test
+    fun `add book - bad request - missing google book id`() {
+        Request(Method.POST, "/api/v1/books")
+            .with(Body.addBookReqLens of AddBookRequest(1, "  "))
+            .cookie(Cookie("access_token", fakeTokenProvider.generateAccessToken(1)))
+            .let(app)
+            .shouldHaveStatus(Status.BAD_REQUEST)
+    }
+
+    @Test
+    fun `add book to shelf - conflict - duplicate book`() {
+        val googleBookId = "google1"
+
+        Request(Method.POST, "/api/v1/books")
+            .with(Body.addBookReqLens of AddBookRequest(1, googleBookId))
+            .cookie(Cookie("access_token", fakeTokenProvider.generateAccessToken(1)))
+            .let(app)
+            .shouldHaveStatus(Status.CONFLICT)
+
+        transaction {
+            Books.selectAll()
+                .where { (Books.shelfId eq 1) and (Books.googleId eq googleBookId) }
+                .count() shouldBe 1
+        }
+    }
+
+    @Test
+    fun `add book to shelf - conflict - duplicate book on different shelf`() {
+        val googleBookId = "google1"
+
+        Request(Method.POST, "/api/v1/books")
+            .with(Body.addBookReqLens of AddBookRequest(2, googleBookId))
+            .cookie(Cookie("access_token", fakeTokenProvider.generateAccessToken(1)))
+            .let(app)
+            .shouldHaveStatus(Status.CONFLICT)
+    }
+
+    @Test
+    fun `add book to shelf - success`() {
+        val googleBookId = "google99"
+
+        val response =
+            app(
+                Request(Method.POST, "/api/v1/books")
+                    .with(Body.addBookReqLens of AddBookRequest(1, googleBookId))
+                    .cookie(Cookie("access_token", fakeTokenProvider.generateAccessToken(1)))
+            )
+
+        val book = Body.bookResLens(response)
+        book.id shouldBe 5
+        book.googleId shouldBe googleBookId
+        book.createdAt shouldNotBe null
+        book.title shouldBe "book-$googleBookId"
+        book.authors shouldBe listOf("author-$googleBookId")
+        book.googleId shouldBe googleBookId
     }
 
     @Test

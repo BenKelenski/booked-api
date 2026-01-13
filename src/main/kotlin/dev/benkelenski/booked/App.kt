@@ -126,14 +126,14 @@ fun createApp(
             tokenProvider = tokenProvider,
         )
 
-    val bookService = BookService(bookRepo = bookRepo, shelfRepo = shelfRepo)
-
-    val shelfService =
-        ShelfService(
-            shelfRepo = shelfRepo,
+    val bookService =
+        BookService(
             bookRepo = bookRepo,
+            shelfRepo = shelfRepo,
             googleBooksClient = googleBooksClient,
         )
+
+    val shelfService = ShelfService(shelfRepo = shelfRepo)
 
     val googleBooksService = GoogleBooksService(googleBooksClient)
 
@@ -155,9 +155,10 @@ fun createApp(
             bookRoutes(
                 findBookById = bookService::findBookById,
                 findBooksByShelf = bookService::findBooksByShelf,
+                addBook = bookService::addBook,
+                deleteBook = bookService::deleteBook,
                 moveBook = bookService::moveBook,
                 updateBookProgress = bookService::updateBookProgress,
-                deleteBook = bookService::deleteBook,
                 completeBook = bookService::completeBook,
                 authMiddleware = authMiddleware,
             ),
@@ -166,8 +167,6 @@ fun createApp(
                 findShelvesByUserId = shelfService::findShelvesByUserId,
                 createShelf = shelfService::createShelf,
                 deleteShelf = shelfService::deleteShelf,
-                //                findBooksByShelf = shelfService::findBooksByShelf,
-                addBookToShelf = shelfService::addBookToShelf,
                 authMiddleware = authMiddleware,
             ),
             googleBooksRoutes(

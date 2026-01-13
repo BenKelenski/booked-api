@@ -42,8 +42,8 @@ val Body.Companion.shelvesResLens
 // Book lenses
 val bookIdPathLens = Path.int().of("book_id")
 
-val Body.Companion.bookReqLens
-    get() = Body.auto<BookRequest>().toLens()
+val Body.Companion.addBookReqLens
+    get() = Body.auto<AddBookRequest>().toLens()
 
 val Body.Companion.bookResLens
     get() = Body.auto<BookResponse>().toLens()
