@@ -19,7 +19,7 @@ object CookieUtils {
         Cookie(
             name = "refresh_token",
             value = token,
-            path = "/auth/refresh",
+            path = "/",
             secure = true,
             httpOnly = true,
             sameSite = SameSite.Strict,

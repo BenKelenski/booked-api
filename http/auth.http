@@ -29,3 +29,8 @@ Content-Type: application/json
 ### POST logout user
 POST {{API_URL}}/auth/logout
 Set-Cookie:
+
+### POST refresh
+POST {{API_URL}}/auth/refresh
+Cookie: access_token={{ACCESS_TOKEN}}
+Cookie: refresh_token={{REFRESH_TOKEN}}

@@ -234,10 +234,10 @@ fun authRoutes(
         }
     }
 
-    val refreshHandler = handler@{ request: Request ->
+    val refreshHandler = authHandler { userId: Int, request: Request ->
         val rawRefresh =
             request.cookie("refresh_token")?.value
-                ?: return@handler Response(Status.UNAUTHORIZED)
+                ?: return@authHandler Response(Status.UNAUTHORIZED)
                     .with(
                         Body.apiErrorLens of
                             ApiError(
@@ -247,7 +247,7 @@ fun authRoutes(
                             )
                     )
 
-        when (val result = refresh(rawRefresh)) {
+        when (val result = refresh(userId, rawRefresh)) {
             is AuthResult.Success -> {
                 val s = result.session
                 Response(Status.OK)
@@ -324,8 +324,11 @@ fun authRoutes(
         "/auth/register" bind Method.POST to registerHandler,
         "/auth/login" bind Method.POST to loginHandler,
         "/auth/oauth" bind Method.POST to oauthHandler,
-        "/auth/refresh" bind Method.POST to refreshHandler,
         "/auth/status" bind Method.GET to statusCheckHandler,
-        routes("/auth/logout" bind Method.POST to logoutHandler).withFilter(authMiddleware),
+        routes(
+                "/auth/refresh" bind Method.POST to refreshHandler,
+                "/auth/logout" bind Method.POST to logoutHandler,
+            )
+            .withFilter(authMiddleware),
     )
 }

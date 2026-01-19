@@ -10,9 +10,9 @@ import dev.benkelenski.booked.repos.RefreshTokenRepo
 import dev.benkelenski.booked.repos.ShelfRepo
 import dev.benkelenski.booked.repos.UserRepo
 import io.github.oshai.kotlinlogging.KotlinLogging
-import org.jetbrains.exposed.sql.transactions.transaction
 import java.time.Duration
 import java.time.Instant
+import org.jetbrains.exposed.sql.transactions.transaction
 
 /** alias for [AuthService.registerWithEmail] */
 typealias RegisterWithEmail = (email: String, password: String, name: String) -> AuthResult
@@ -24,7 +24,7 @@ typealias LoginWithEmail = (email: String, password: String) -> AuthResult
 typealias AuthenticateWith = (authPayload: AuthPayload) -> AuthResult
 
 /** alias for [AuthService.refresh] */
-typealias Refresh = (refreshToken: String) -> AuthResult
+typealias Refresh = (userId: Int, refreshToken: String) -> AuthResult
 
 /** alias for [AuthService.checkAuthStatus] */
 typealias CheckAuthStatus =
@@ -125,8 +125,8 @@ class AuthService(
                 val idTokenClaims =
                     when (provider) {
                         GOOGLE_PROVIDER -> // TODO: need to use "sub" instead of email to uniquely
-                                           // identify users
-                        googleAuthProvider.authenticate(authPayload.providerToken)
+                            // identify users
+                            googleAuthProvider.authenticate(authPayload.providerToken)
                         else -> null
                     }
                         ?: run {
@@ -175,15 +175,11 @@ class AuthService(
             AuthResult.DatabaseError
         }
 
-    fun refresh(refreshToken: String): AuthResult =
+    fun refresh(userId: Int, refreshToken: String): AuthResult =
         try {
             transaction {
-                val tokenId =
-                    tokenProvider.getTokenId(refreshToken)
-                        ?: return@transaction AuthResult.Failure("Invalid refresh token")
-
                 val userId =
-                    refreshTokenRepo.validateAndDelete(refreshToken, tokenId)
+                    refreshTokenRepo.validateAndDelete(userId = userId, rawToken = refreshToken)
                         ?: return@transaction AuthResult.Failure("Failure to delete refresh token")
 
                 val (accessToken, refreshToken) = getTokens(userId)
@@ -251,13 +247,15 @@ class AuthService(
      */
     private fun getTokens(userId: Int): Pair<String, String> {
         val accessToken = tokenProvider.generateAccessToken(userId)
-        val refreshTokenId =
-            refreshTokenRepo.create(
-                userId = userId,
-                rawToken = accessToken,
-                expiresAt = Instant.now().plus(Duration.ofDays(7)),
-            )
-        val refreshToken = tokenProvider.generateRefreshToken(userId, refreshTokenId)
+        val refreshToken =
+            java.security.SecureRandom().let { random ->
+                ByteArray(64).also { random.nextBytes(it) }.joinToString("") { "%02x".format(it) }
+            }
+        refreshTokenRepo.create(
+            userId = userId,
+            rawToken = refreshToken,
+            expiresAt = Instant.now().plus(Duration.ofDays(7)),
+        )
 
         return accessToken to refreshToken
     }

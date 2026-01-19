@@ -3,14 +3,13 @@ package dev.benkelenski.booked.repos
 // import java.time.Instant
 import dev.benkelenski.booked.models.RefreshTokens
 import dev.benkelenski.booked.utils.PasswordUtils
+import java.time.Instant
+import java.time.ZoneOffset
+import java.util.*
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
 import org.jetbrains.exposed.sql.deleteWhere
 import org.jetbrains.exposed.sql.insertReturning
 import org.jetbrains.exposed.sql.selectAll
-import java.time.Instant
-import java.time.OffsetDateTime
-import java.time.ZoneOffset
-import java.util.*
 
 class RefreshTokenRepo {
 
@@ -29,31 +28,19 @@ class RefreshTokenRepo {
             .toString()
 
     /**
-     * Validate the given raw refresh‐JWT against its stored hash, ensure it hasn’t expired, delete
-     * it, and return the associated user ID. Returns null on any failure.
+     * Validate the given raw opaque token against its stored hash, delete it, and return the
+     * associated user ID. Returns null on any failure.
      */
-    fun validateAndDelete(rawToken: String, tokenId: String): Int? {
-        // 1) Parse tokenId → UUID
-        val uuid = runCatching { UUID.fromString(tokenId) }.getOrNull() ?: return null
-
-        // 2) Lookup the stored row
+    fun validateAndDelete(userId: Int, rawToken: String): Int? {
         val row =
-            RefreshTokens.selectAll().where { RefreshTokens.id eq uuid }.singleOrNull()
-                ?: return null
+            RefreshTokens.selectAll()
+                .where { RefreshTokens.userId eq userId }
+                .firstOrNull {
+                    PasswordUtils.verifyRefreshToken(rawToken, it[RefreshTokens.tokenHash])
+                } ?: return null
 
-        // 3) Check hash matches
-        val storedHash = row[RefreshTokens.tokenHash]
-        if (!PasswordUtils.verifyRefreshToken(rawToken, storedHash)) return null
-
-        // 4) Check not expired
-        val expiresAt = row[RefreshTokens.expiresAt]
-        if (expiresAt.isBefore(OffsetDateTime.now())) return null
-
-        // 5) Delete the used token (rotation)
-        RefreshTokens.deleteWhere { RefreshTokens.id eq uuid }
-
-        // 6) Return the userId
-        return row[RefreshTokens.userId]
+        RefreshTokens.deleteWhere { RefreshTokens.id eq row[RefreshTokens.id] }
+        return userId
     }
 
     /**

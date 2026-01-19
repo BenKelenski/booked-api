@@ -270,7 +270,6 @@ class AuthIntegrationTest {
         val refresh = response.cookie("refresh_token") ?: fail("missing refresh_token")
 
         jwtRegex.matches(access.value) shouldBe true
-        jwtRegex.matches(refresh.value) shouldBe true
 
         access.httpOnly shouldBe true
         refresh.httpOnly shouldBe true
@@ -282,7 +281,7 @@ class AuthIntegrationTest {
         refresh.sameSite shouldBe SameSite.Strict
 
         access.path shouldBe "/"
-        refresh.path shouldBe "/auth/refresh"
+        refresh.path shouldBe "/"
 
         access.maxAge.shouldNotBeNull()
         refresh.maxAge.shouldNotBeNull()
